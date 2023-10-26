@@ -918,17 +918,47 @@ original : { desc : "original", key : "" }
 		});
 	}
 	
-	static jsonToSkeet (json, uri) {
+	static jsonToSkeet (json, profile, link) {
 		return new Promise ((resolve, reject) => {
-			try {
-				var data = JSON.parse (json);
-				console.log (data);
-				resolve (uri);
-			}
-			catch (e) {
-				console.log (e);
-				reject (uri);
-			}
+			(async () => {
+				try {
+					var builder = new Builder();
+					var data = JSON.parse (json);
+					console.log (data);
+					var did_plc = data.uri.split ("at://")[1].split ("/")[0];
+					var text = data.value.text;
+					if (data.value.facets)
+						for (var i = data.value.facets.length - 1; i >= 0; i--) {
+							var facet = data.value.facets[i];
+							if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
+								var mid = facet.features[0].did;
+								var mh = text.substring (facet.index.byteStart, facet.index.byteEnd);
+								var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
+								text = text.substring (0, facet.index.byteStart) + mention + text.substring (facet.index.byteEnd);
+							}
+						}
+					text = Utils.formatText (text);
+					builder.append (`[citation=1,1,1][nom][img]https://rehost.diberie.com/Picture/Get/f/219269[/img] [url=${link}]${profile}[/url][/nom]${text}`);
+					if (data.value.embed) {
+						if (data.value.embed["$type"] == "app.bsky.embed.images") {
+							var images = data.value.embed.images;
+							for (var i = 0; i < images.length; i++) {
+								var pid = images[i].image.ref["$link"];
+								var uri = `https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${pid}@jpeg`;
+								var img_min = "https://rehost.diberie.com/Rehost?size=min&url=" + uri;
+								var img = "https://rehost.diberie.com/Rehost?url=" + uri;
+								builder.append (`[url=${img}][img]${img_min}[/img][/url]`);
+							}
+						}
+					}
+					builder.append ("[/citation]");
+					resolve (builder.toString());
+				}
+				catch (e) {
+					console.log (e);
+					reject (link);
+				}
+			})();
 		});
 	}
 	
@@ -1047,7 +1077,7 @@ original : { desc : "original", key : "" }
 					headers : { "Cookie" : "" },
 					anonymous : true,
 					onload : function (response) {
-						Utils.jsonToSkeet (response.responseText, link).then (text => {
+						Utils.jsonToSkeet (response.responseText, res.groups.id, link).then (text => {
 							resolve (text);
 						}).catch (err => {
 							console.log (err);
