@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.22
+// @version       1.4.23
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.com/BZHDeveloper/HFR/raw/master/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.23         BlueSky
 // 1.4.19         Twitter/X : ajout du nouveau logo.
 // 1.4.18         Ajout d'un caractère par défaut si la zone de texte ne contient pas de texte.
 // 1.4.17         Twitter : mise à jour des URL.
@@ -80,6 +81,10 @@ class Expr {
 	
 	static get instagram() {
 		return new Expr ("^https://www\\.instagram\\.com/(reel|p)/(?<id>\\w+)/$");
+	}
+	
+	static get bluesky() {
+		return new Expr ("^(https://(?<instance>[\\w\\.]+)/profile/(?<id>[\\w\\.]+)/post/(?<hash>\\w+))$");
 	}
 }
 
@@ -913,6 +918,20 @@ original : { desc : "original", key : "" }
 		});
 	}
 	
+	static jsonToSkeet (json, uri) {
+		return new Promise ((resolve, reject) => {
+			try {
+				var data = JSON.parse (json);
+				console.log (data);
+				resolve (uri);
+			}
+			catch (e) {
+				console.log (e);
+				reject (uri);
+			}
+		});
+	}
+	
 	static jsonToPouet (json, uri) {
 		return new Promise ((resolve, reject) => {
 			try {
@@ -1003,6 +1022,32 @@ original : { desc : "original", key : "" }
 					anonymous : true,
 					onload : function (response) {
 						Utils.jsonToPouet (response.responseText, link).then (text => {
+							resolve (text);
+						}).catch (err => {
+							console.log (err);
+							reject (link);
+						});
+					}
+				});
+			})();
+		});
+	}
+	
+	static pasteBluesky (link) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var res = Expr.bluesky.exec (link);
+				var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${res.groups.id}&collection=app.bsky.feed.post&rkey=${res.groups.hash}`;
+				Utils.request({
+					method : "GET",
+					url : url,
+					onabort : function() { reject (link); },
+					onerror : function() { reject (link); },
+					ontimeout : function() { reject (link); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
+					onload : function (response) {
+						Utils.jsonToSkeet (response.responseText, link).then (text => {
 							resolve (text);
 						}).catch (err => {
 							console.log (err);
@@ -1240,6 +1285,14 @@ original : { desc : "original", key : "" }
 				}
 				else if (Expr.mastodon.match (text)) {
 					Utils.pasteMastodon (text).then (txt => {
+						resolve (txt);
+					}).catch (e => {
+						console.log (e);
+						reject (text);
+					});
+				}
+				else if (Expr.bluesky.match (text)) {
+					Utils.pasteBluesky (text).then (txt => {
 						resolve (txt);
 					}).catch (e => {
 						console.log (e);
