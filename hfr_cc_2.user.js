@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.24
+// @version       1.4.25
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.25         BS : affichage de miniature si possible
 // 1.4.24         BS : possibilité de voir le message pour les non connectés/inscrits.
 // 1.4.23         BlueSky
 // 1.4.19         Twitter/X : ajout du nouveau logo.
@@ -939,6 +940,11 @@ original : { desc : "original", key : "" }
 								var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
 								text = text.substring (0, facet.index.byteStart) + mention + text.substring (facet.index.byteEnd);
 							}
+							else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
+								var txt = text.substring (facet.index.byteStart - 1, facet.index.byteEnd);
+								var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
+								text = text.substring (0, facet.index.byteStart - 1) + url + text.substring (facet.index.byteEnd);
+							}
 						}
 					text = Utils.formatText (text);
 					builder.append (`[citation=1,1,1][nom][img]https://rehost.diberie.com/Picture/Get/f/219269[/img] [url=${link}]${profile}[/url][/nom]${text}\n`);
@@ -958,6 +964,12 @@ original : { desc : "original", key : "" }
 								builder.append (`[url=${data.value.embed.external.uri}][b]${data.value.embed.external.title}[/b][/url]`);
 							else
 								builder.append (`[url][b]${data.value.embed.external.uri}[/b][/url]`);
+							if (data.value.embed.external.thumb) {
+								var pid = data.value.embed.external.thumb.ref["$link"];
+								var uri = `https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${pid}@jpeg`;
+								var img_min = "https://rehost.diberie.com/Rehost?size=min&url=" + uri;
+								builder.append (`\n[url=${data.value.embed.external.uri}][img]${img_min}[/img][/url]`);
+							}
 						}
 					}
 					builder.append (`[/citation]\n[url=${lnk}][b]Voir ce message sans être connecté[/b][/url]`);
