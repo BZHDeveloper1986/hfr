@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.23
+// @version       1.4.24
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.24         BS : possibilité de voir le message pour les non connectés/inscrits.
 // 1.4.23         BlueSky
 // 1.4.19         Twitter/X : ajout du nouveau logo.
 // 1.4.18         Ajout d'un caractère par défaut si la zone de texte ne contient pas de texte.
@@ -922,11 +923,13 @@ original : { desc : "original", key : "" }
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				try {
+					var lnk = "https://skyview.social/?url=" + encodeURIComponent (link);
 					var builder = new Builder();
 					var data = JSON.parse (json);
 					console.log (data);
 					var did_plc = data.uri.split ("at://")[1].split ("/")[0];
 					var text = data.value.text;
+					console.log (text);
 					if (data.value.facets)
 						for (var i = data.value.facets.length - 1; i >= 0; i--) {
 							var facet = data.value.facets[i];
@@ -938,7 +941,7 @@ original : { desc : "original", key : "" }
 							}
 						}
 					text = Utils.formatText (text);
-					builder.append (`[citation=1,1,1][nom][img]https://rehost.diberie.com/Picture/Get/f/219269[/img] [url=${link}]${profile}[/url][/nom]${text}`);
+					builder.append (`[citation=1,1,1][nom][img]https://rehost.diberie.com/Picture/Get/f/219269[/img] [url=${link}]${profile}[/url][/nom]${text}\n`);
 					if (data.value.embed) {
 						if (data.value.embed["$type"] == "app.bsky.embed.images") {
 							var images = data.value.embed.images;
@@ -950,8 +953,14 @@ original : { desc : "original", key : "" }
 								builder.append (`[url=${img}][img]${img_min}[/img][/url]`);
 							}
 						}
+						else if (data.value.embed["$type"] == "app.bsky.embed.external") {
+							if (data.value.embed.external.title)
+								builder.append (`[url=${data.value.embed.external.uri}][b]${data.value.embed.external.title}[/b][/url]`);
+							else
+								builder.append (`[url][b]${data.value.embed.external.uri}[/b][/url]`);
+						}
 					}
-					builder.append ("[/citation]");
+					builder.append (`[/citation]\n[url=${lnk}][b]Voir ce message sans être connecté[/b][/url]`);
 					resolve (builder.toString());
 				}
 				catch (e) {
