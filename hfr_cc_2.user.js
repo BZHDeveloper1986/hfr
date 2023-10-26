@@ -4,9 +4,9 @@
 // @version       1.4.23
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
-// @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/master/hfr-logo.png
-// @downloadURL   https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/master/hfr_cc_2.user.js
-// @updateURL     https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/master/hfr_cc_2.user.js
+// @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
+// @downloadURL   https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
+// @updateURL     https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
 // @require       https://vjs.zencdn.net/8.0.4/video.js
 // @include       https://forum.hardware.fr/*
 // @noframes
