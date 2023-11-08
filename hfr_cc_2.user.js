@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.25
+// @version       1.4.27
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,8 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.27         ajout d'un contrôle de compatibilité :o
+// 1.4.26         BS : citations
 // 1.4.25         BS : affichage de miniature si possible
 // 1.4.24         BS : possibilité de voir le message pour les non connectés/inscrits.
 // 1.4.23         BlueSky
@@ -516,6 +518,73 @@ class Builder {
 	}
 }
 
+class BuilderAsync {
+	#table
+	
+	constructor () {
+		this.#table = [];
+	}
+	
+	append (action) {
+		if (typeof (action) == "string")
+			this.#table.push (Promise.resolve (action));
+		else
+			this.#table.push (action);
+	}
+	
+	toString() {
+		return Promise.all(this.#table)
+	}
+}
+
+class Quote {
+	#name
+	#uri
+	#quote
+	#txt
+	
+	constructor (link) { this.#uri = link; }
+	
+	set uri (str) { this.#uri = str; }
+	get uri() { return this.#uri; }
+	
+	get skyview() {
+		return "https://skyview.social/?url=" + encodeURIComponent (this.#uri);
+	}
+	
+	set author (str) { this.#name = str; }
+	get author() { return this.#name; }
+	
+	set subquote (q) { this.#quote = q; }
+	get subquote() { return this.#quote; }
+	
+	set text (str) { this.#txt = str; }
+	get text() { return this.#txt; }
+	
+	toString() {
+		return new Promise ((resolve, reject) => {
+			var pms = [
+				Promise.resolve ("[citation=1,1,1][nom][url=" + this.#uri + "]" + this.#name + "[/url][/nom]" + this.#txt)
+			];
+			if (Quote.isQuote (this.#quote))
+				pms.push (this.#quote.toString());
+			pms.push (Promise.resolve ("[/citation]"));
+			Promise.all (pms).then (values => {
+				resolve (values.join(""));
+			}).catch (e => {
+				console.log (e);
+				reject (this.#uri);
+			});
+		});
+	}
+	
+	static isQuote (obj) {
+		if (typeof (obj) != "object")
+			return false;
+		return obj.hasOwnProperty ("uri") && obj.hasOwnProperty ("author");
+	}
+}
+
 class Utils {
 	static #oit;
 	static #table_;
@@ -920,69 +989,6 @@ original : { desc : "original", key : "" }
 		});
 	}
 	
-	static jsonToSkeet (json, profile, link) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				try {
-					var lnk = "https://skyview.social/?url=" + encodeURIComponent (link);
-					var builder = new Builder();
-					var data = JSON.parse (json);
-					console.log (data);
-					var did_plc = data.uri.split ("at://")[1].split ("/")[0];
-					var text = data.value.text;
-					console.log (text);
-					if (data.value.facets)
-						for (var i = data.value.facets.length - 1; i >= 0; i--) {
-							var facet = data.value.facets[i];
-							if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
-								var mid = facet.features[0].did;
-								var mh = text.substring (facet.index.byteStart, facet.index.byteEnd);
-								var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
-								text = text.substring (0, facet.index.byteStart) + mention + text.substring (facet.index.byteEnd);
-							}
-							else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
-								var txt = text.substring (facet.index.byteStart - 1, facet.index.byteEnd);
-								var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
-								text = text.substring (0, facet.index.byteStart - 1) + url + text.substring (facet.index.byteEnd);
-							}
-						}
-					text = Utils.formatText (text);
-					builder.append (`[citation=1,1,1][nom][img]https://rehost.diberie.com/Picture/Get/f/219269[/img] [url=${link}]${profile}[/url][/nom]${text}\n`);
-					if (data.value.embed) {
-						if (data.value.embed["$type"] == "app.bsky.embed.images") {
-							var images = data.value.embed.images;
-							for (var i = 0; i < images.length; i++) {
-								var pid = images[i].image.ref["$link"];
-								var uri = `https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${pid}@jpeg`;
-								var img_min = "https://rehost.diberie.com/Rehost?size=min&url=" + uri;
-								var img = "https://rehost.diberie.com/Rehost?url=" + uri;
-								builder.append (`[url=${img}][img]${img_min}[/img][/url]`);
-							}
-						}
-						else if (data.value.embed["$type"] == "app.bsky.embed.external") {
-							if (data.value.embed.external.title)
-								builder.append (`[url=${data.value.embed.external.uri}][b]${data.value.embed.external.title}[/b][/url]`);
-							else
-								builder.append (`[url][b]${data.value.embed.external.uri}[/b][/url]`);
-							if (data.value.embed.external.thumb) {
-								var pid = data.value.embed.external.thumb.ref["$link"];
-								var uri = `https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${pid}@jpeg`;
-								var img_min = "https://rehost.diberie.com/Rehost?size=min&url=" + uri;
-								builder.append (`\n[url=${data.value.embed.external.uri}][img]${img_min}[/img][/url]`);
-							}
-						}
-					}
-					builder.append (`[/citation]\n[url=${lnk}][b]Voir ce message sans être connecté[/b][/url]`);
-					resolve (builder.toString());
-				}
-				catch (e) {
-					console.log (e);
-					reject (link);
-				}
-			})();
-		});
-	}
-	
 	static jsonToPouet (json, uri) {
 		return new Promise ((resolve, reject) => {
 			try {
@@ -1084,6 +1090,121 @@ original : { desc : "original", key : "" }
 		});
 	}
 	
+	static __jsonToSkeet (json, profile, link) {
+		try {
+			var lnk = "https://skyview.social/?url=" + encodeURIComponent (link);
+			var builder = new Builder();
+			var data = JSON.parse (json);
+			console.log (data);
+			var did_plc = data.uri.split ("at://")[1].split ("/")[0];
+			var text = data.value.text;
+			console.log (text);
+			if (data.value.facets)
+				for (var i = data.value.facets.length - 1; i >= 0; i--) {
+					var facet = data.value.facets[i];
+					if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
+						var mid = facet.features[0].did;
+						var mh = text.substring (facet.index.byteStart, facet.index.byteEnd);
+						var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
+						text = text.substring (0, facet.index.byteStart) + mention + text.substring (facet.index.byteEnd);
+					}
+					else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
+						var txt = text.substring (facet.index.byteStart - 1, facet.index.byteEnd);
+						var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
+						text = text.substring (0, facet.index.byteStart - 1) + url + text.substring (facet.index.byteEnd);
+					}
+				}
+			text = Utils.formatText (text);
+			builder.append (`[citation=1,1,1][nom][img]https://rehost.diberie.com/Picture/Get/f/219269[/img] [url=${link}]${profile}[/url][/nom]${text}\n`);
+			if (data.value.embed) {
+				if (data.value.embed["$type"] == "app.bsky.embed.images") {
+					var images = data.value.embed.images;
+					for (var i = 0; i < images.length; i++) {
+						var pid = images[i].image.ref["$link"];
+						var uri = `https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${pid}@jpeg`;
+						var img_min = "https://rehost.diberie.com/Rehost?size=min&url=" + uri;
+						var img = "https://rehost.diberie.com/Rehost?url=" + uri;
+						builder.append (`[url=${img}][img]${img_min}[/img][/url]`);
+					}
+				}
+				else if (data.value.embed["$type"] == "app.bsky.embed.external") {
+					if (data.value.embed.external.title)
+						builder.append (`[url=${data.value.embed.external.uri}][b]${data.value.embed.external.title}[/b][/url]`);
+					else
+						builder.append (`[url][b]${data.value.embed.external.uri}[/b][/url]`);
+					if (data.value.embed.external.thumb) {
+						var pid = data.value.embed.external.thumb.ref["$link"];
+						var uri = `https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${pid}@jpeg`;
+						var img_min = "https://rehost.diberie.com/Rehost?size=min&url=" + uri;
+						builder.append (`\n[url=${data.value.embed.external.uri}][img]${img_min}[/img][/url]`);
+					}
+				}
+				else if (data.value.embed["$type"] == "app.bsky.embed.record") {
+					
+				}
+			}
+			builder.append (`[/citation]\n[url=${lnk}][b]Voir ce message sans être connecté[/b][/url]`);
+			resolve (builder.toString());
+		}
+		catch (e) {
+			console.log (e);
+			reject (link);
+		}
+	}
+	
+	static jsonToSkeet (data, id, link) {
+		var quote = new Quote (link);
+		quote.author = id;
+		var did_plc = data.uri.split ("at://")[1].split ("/")[0];
+		var text = data.value.text;
+		console.log (text);
+		if (data.value.facets)
+			for (var i = data.value.facets.length - 1; i >= 0; i--) {
+				var facet = data.value.facets[i];
+				if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
+					var mid = facet.features[0].did;
+					var mh = text.substring (facet.index.byteStart, facet.index.byteEnd);
+					var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
+					text = text.substring (0, facet.index.byteStart) + mention + text.substring (facet.index.byteEnd);
+				}
+				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
+					var txt = text.substring (facet.index.byteStart - 1, facet.index.byteEnd);
+					var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
+					text = text.substring (0, facet.index.byteStart - 1) + url + text.substring (facet.index.byteEnd);
+				}
+			}
+		quote.text = Utils.formatText (text);
+		if (data.value.embed) {}
+		return quote.toString();
+	}
+	
+	static getSkeet (link, id, hash) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${id}&collection=app.bsky.feed.post&rkey=${hash}`;
+				Utils.request({
+					method : "GET",
+					url : url,
+					onabort : function() { reject (link); },
+					onerror : function() { reject (link); },
+					ontimeout : function() { reject (link); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
+					onload : function (response) {
+						try {
+							var json = JSON.parse (response.responseText);
+							resolve (Utils.jsonToSkeet (json, id, link));
+						}
+						catch (e) {
+							console.log (e);
+							reject (link);
+						}
+					}
+				});
+			})();
+		});
+	}
+	
 	static pasteBluesky (link) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
@@ -1098,12 +1219,19 @@ original : { desc : "original", key : "" }
 					headers : { "Cookie" : "" },
 					anonymous : true,
 					onload : function (response) {
-						Utils.jsonToSkeet (response.responseText, res.groups.id, link).then (text => {
-							resolve (text);
-						}).catch (err => {
-							console.log (err);
+						try {
+							var json = JSON.parse (response.responseText);
+							Utils.jsonToSkeet (json, res.groups.id, link).then (text => {
+								resolve (text);
+							}).catch (e => {
+								console.log (e);
+								reject (link);
+							});
+						}
+						catch (e) {
+							console.log (e);
 							reject (link);
-						});
+						}
 					}
 				});
 			})();
@@ -1629,105 +1757,110 @@ original : { desc : "original", key : "" }
 			event.preventDefault();
 		}
 		else if (event.code == "KeyV" && event.ctrlKey) {
-			navigator.clipboard.read().then(array => {
-				for (var item of array) {
-					if (item.types.indexOf ("text/plain") >= 0) {
-						event.target.disabled = true;
-						loading.attach (event.target);
-						Utils.pasteText (item).then (text => {
-							Utils.insertText (event.target, text);
-							loading.destroy();
-							event.target.disabled = false;
-							event.target.focus();
-						}).catch (e => {
-							console.log (e);
-							Utils.insertText (event.target, e);
-							loading.destroy();
-							event.target.disabled = false;
-							event.target.focus();
-						});
-					}
-					else
-						for (var type of item.types) {
-							if (type.indexOf ("audio/") == 0) {
-								event.target.disabled = true;
-								loading.attach (event.target);
-								Utils.uploadGofile (item, type).then (url => {
-									Utils.insertText (event.target, "[url]" + url + "[/url]");
-									loading.destroy();
-									event.target.disabled = false;
-									event.target.focus();
-								}).catch (e => {
-									loading.destroy();
-									event.target.disabled = false;
-									event.target.focus();
-									console.log (e);
-								});
-								break;
-							}
-							else if (type.indexOf ("image/") == 0) {
-								event.target.disabled = true;
-								loading.attach (event.target);
-								Utils.pasteImage (item, type).then (data => {
-									console.log (data);
-									Utils.registerImage (data);
-									if (event.altKey) {
-										var src = data.link;
-										if (data.type != "image/gif")
-											src = data.link.replace (data.id, data.id + "l");
-										Utils.insertText (event.target, "[url=" + data.link + "][img]" + src + "[/img][/url]");	
-									}
-									else {
-										var dialog = new Dialog();
-										dialog.closed (d => { d.destroy(); });
-										dialog.title = "prévisualisation de l'image";
-										var src = data.link;
-										if (data.type != "image/gif")
-											src = data.link.replace (data.id, data.id + "l");
-										var img = new Image (src);
-										img.loaded ((w,h) => {
-											if (w > 400) {
-												img.height = 400 * h / w;
-												img.width = 400;
-											}
-											if (h > 400) {
-												img.width = 400 * w / h;
-												img.height = 400;
-											}
-										});
-										dialog.content = img;
-										if (data.type == "image/gif") {
-											var button = new TextButton ("gif");
-											button.set ("bbcode", "[url=" + data.link + "][img]" + data.link + "[/img][/url]");
-											button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-											dialog.addButton (button);
+			console.log (navigator);
+			console.log (navigator.clipboard);
+			if (!navigator?.clipboard?.read)
+				console.log ("navigator.clipboard.read : fonction non présente ou non activée.\nVous êtes sur Firefox : suivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_240.htm#t67904757")
+			else
+				navigator.clipboard.read().then(array => {
+					for (var item of array) {
+						if (item.types.indexOf ("text/plain") >= 0) {
+							event.target.disabled = true;
+							loading.attach (event.target);
+							Utils.pasteText (item).then (text => {
+								Utils.insertText (event.target, text);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							}).catch (e => {
+								console.log (e);
+								Utils.insertText (event.target, e);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							});
+						}
+						else
+							for (var type of item.types) {
+								if (type.indexOf ("audio/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.uploadGofile (item, type).then (url => {
+										Utils.insertText (event.target, "[url]" + url + "[/url]");
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+								else if (type.indexOf ("image/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.pasteImage (item, type).then (data => {
+										console.log (data);
+										Utils.registerImage (data);
+										if (event.altKey) {
+											var src = data.link;
+											if (data.type != "image/gif")
+												src = data.link.replace (data.id, data.id + "l");
+											Utils.insertText (event.target, "[url=" + data.link + "][img]" + src + "[/img][/url]");	
 										}
-										else
-											for (var key of Object.keys (Utils.ImageType)) {
-												var desc = Utils.ImageType[key];
-												var button = new TextButton (desc.desc);
-												button.set ("bbcode", "[url=" + data.link + "][img]" + data.link.replace (data.id, data.id + desc.key) + "[/img][/url]");
+										else {
+											var dialog = new Dialog();
+											dialog.closed (d => { d.destroy(); });
+											dialog.title = "prévisualisation de l'image";
+											var src = data.link;
+											if (data.type != "image/gif")
+												src = data.link.replace (data.id, data.id + "l");
+											var img = new Image (src);
+											img.loaded ((w,h) => {
+												if (w > 400) {
+													img.height = 400 * h / w;
+													img.width = 400;
+												}
+												if (h > 400) {
+													img.width = 400 * w / h;
+													img.height = 400;
+												}
+											});
+											dialog.content = img;
+											if (data.type == "image/gif") {
+												var button = new TextButton ("gif");
+												button.set ("bbcode", "[url=" + data.link + "][img]" + data.link + "[/img][/url]");
 												button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
 												dialog.addButton (button);
 											}
-										dialog.display();
-									}
-									loading.destroy();
-									event.target.disabled = false;
-									event.target.focus();
-								}).catch (e => {
-									loading.destroy();
-									event.target.disabled = false;
-									event.target.focus();
-									console.log (e);
-								});
-								break;
+											else
+												for (var key of Object.keys (Utils.ImageType)) {
+													var desc = Utils.ImageType[key];
+													var button = new TextButton (desc.desc);
+													button.set ("bbcode", "[url=" + data.link + "][img]" + data.link.replace (data.id, data.id + desc.key) + "[/img][/url]");
+													button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
+													dialog.addButton (button);
+												}
+											dialog.display();
+										}
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
 							}
-						}
-				}
-			}).catch(e => {
-				console.log (e);
-			});
+					}
+				}).catch(e => {
+					console.log (e);
+				});
 			event.preventDefault();
 		}
 	}
