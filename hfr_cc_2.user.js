@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.27
+// @version       1.4.28
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.28         Firefox : affichage de l'activation dans une alerte.
 // 1.4.27         ajout d'un contrôle de compatibilité :o
 // 1.4.26         BS : citations
 // 1.4.25         BS : affichage de miniature si possible
@@ -1760,7 +1761,7 @@ original : { desc : "original", key : "" }
 			console.log (navigator);
 			console.log (navigator.clipboard);
 			if (!navigator?.clipboard?.read)
-				console.log ("navigator.clipboard.read : fonction non présente ou non activée.\nVous êtes sur Firefox : suivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_240.htm#t67904757")
+				alert ("navigator.clipboard.read : fonction non présente ou non activée.\nVous êtes sur Firefox : suivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_240.htm#t67904757")
 			else
 				navigator.clipboard.read().then(array => {
 					for (var item of array) {
