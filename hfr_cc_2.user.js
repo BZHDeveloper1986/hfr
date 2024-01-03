@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.28
+// @version       1.4.29
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.29         Re bascule sur nitter.net
 // 1.4.28         Firefox : affichage de l'activation dans une alerte.
 // 1.4.27         ajout d'un contrôle de compatibilité :o
 // 1.4.26         BS : citations
@@ -69,7 +70,7 @@ class Expr {
 	}
 	
 	static get twitter() {
-		return new Expr ("^((https|http)://(mobile\\.)?(twitter|x)\\.com/\\w+/status/(?<id>\\d+)(\\?s=\\d+)?\\??.*)$");
+		return new Expr ("^((https|http)://((mobile\\.)?(twitter|x)\\.com|nitter\\.net)/\\w+/status/(?<id>\\d+)(\\?s=\\d+)?\\??.*)$");
 	}
 	
 	static get mastodon() {
@@ -820,173 +821,95 @@ original : { desc : "original", key : "" }
 		}
 		return result;
 	}
-	
-	static tweetVideoUrl (info) {
-		var list = [];
-		for (var i = 0; i < info.variants.length; i++) {
-			var v = info.variants[i];
-			if (info.variants[i].content_type == "application/x-mpegURL")
-				v.bitrate = 0;
-			list.push (info.variants[i]);
-		}
-		list.sort ((a,b) => { return b.bitrate - a.bitrate; });
-		if (list.length > 0)
-			return list[0];
-		return { url : "" };
-	}
-	
-	static tweetToQuote (tweet) {
-		console.log (tweet);
+
+	static tweetToQuote (element) {
 		var builder = new Builder();
+		var quote = element.querySelector ("div.quote");
+		if (quote) {
+			quote.parentElement.removeChild (quote);
+			builder.append ("\n");
+			quote.xid = quote.querySelector(".quote-link").getAttribute ("href").split ("/")[3].split("#")[0];
+			builder.append (Utils.tweetToQuote (quote));
+		}
 		var obj = {
-			"Government" : "[img]https://i.imgur.com/AYsrHeC.png[/img]",
-			"Business" : "[img]https://i.imgur.com/6C4thzC.png[/img]"
+			"government" : "[img]https://i.imgur.com/AYsrHeC.png[/img]",
+			"business" : "[img]https://i.imgur.com/6C4thzC.png[/img]"
 		};
-		builder.append ("[:teepodavignon:8][citation=1,1,1][nom][url=https://x.com/i/status/" + tweet.id_str + "][:salami dubongout:4] " + Utils.normalizeText (Utils.formatText (tweet.user.name)));
-		if (tweet.user.verified_type == "Government" || tweet.user.verified_type == "Business")
-			builder.append (" " + obj[tweet.user.verified_type]);
-		else if (tweet.user.is_blue_verified || tweet.user.verified)
-			builder.append (" [:yoann riou:9]");
-		builder.append (" (@" + tweet.user.screen_name + ")[/url][/nom]");
-		var array = [...(tweet.text)];
-		for (var i = 0; i < array.length; i++) {
-			var _mention = null, _hashtag = null, _url = null, _media = null;
-			if (tweet.entities.user_mentions)
-				for (var mention of tweet.entities.user_mentions)
-					if (mention.indices[0] == i) {
-						_mention = mention;
-						break;
-					}
-			if (tweet.entities.hashtags)
-				for (var hashtag of tweet.entities.hashtags)
-					if (hashtag.indices[0] == i) {
-						_hashtag = hashtag;
-						break;
-					}
-			if (tweet.entities.urls)
-				for (var url of tweet.entities.urls)
-					if (url.indices[0] == i) {
-						_url = url;
-						break;
-					}
-			if (tweet.entities.media)
-				for (var media of tweet.entities.media)
-					if (media.indices[0] == i) {
-						_media = media;
-						break;
-					}
-			if (_mention) {
-				builder.append ("[url=https://x.com/" + _mention.screen_name + "][b]@" + _mention.screen_name + "[/b][/url]");
-				i += _mention.indices[1] - _mention.indices[0] - 1;
-			}
-			else if (_hashtag) {
-				builder.append ("[url=https://x.com/hashtag/" + _hashtag.text + "][b]#" + _hashtag.text + "[/b][/url]");
-				i += _hashtag.indices[1] - _hashtag.indices[0] - 1;
-			}
-			else if (_url) {
-				builder.append ("[url=" + _url.expanded_url + "][b]" + _url.display_url + "[/b][/url]");
-				i += _url.indices[1] - _url.indices[0] - 1;
-			}
-			else if (_media) {
-				i += _media.indices[1] - _media.indices[0] - 1;
-			}
-			else
-				builder.append (Utils.formatText(array[i]));
+		var icon = "[:yoann riou:9]";
+		if (element.querySelector ("span.verified-icon") != null) {
+			if (element.querySelector ("span.verified-icon").classList.contains ("business"))
+				icon = obj["business"];
+			if (element.querySelector ("span.verified-icon").classList.contains ("government"))
+				icon = obj["government"];
 		}
-		if (tweet.mediaDetails && tweet.mediaDetails.length > 0) {
+		var id = element.querySelector (".tweet-name-row .username").textContent;
+		var name = Utils.normalizeText (Utils.formatText (element.querySelector (".tweet-name-row .fullname").textContent));
+		builder.append (`[:teepodavignon:8][citation=1,1,1][nom][url=https://x.com/i/status/${element.xid}]${name} ${icon} (${id})[/url][/nom]`);
+		var div = element.querySelector ("div.quote-text");
+		if (div == null)
+			div = element.querySelector ("div.tweet-content");
+		if (div != null) {
+			var cnt = div.childNodes;
+			for (var i = 0; i < cnt.length; i++) {
+				if (cnt[i].nodeType == Node.TEXT_NODE)
+					builder.append (Utils.formatText (cnt[i].nodeValue));
+				else if (cnt[i].nodeName.toLowerCase() == "a") {
+					builder.append (`[url=${cnt[i].getAttribute ("href")}]${cnt[i].textContent}[/url]`);
+				}
+			}
+		}
+		var poll = element.querySelector (".poll");
+		if (poll) {
 			builder.append ("\n");
-			for (var i = 0; i < tweet.mediaDetails.length; i++) {
-				var md = tweet.mediaDetails[i];
-				if (md.type == "video") {
-					var v = Utils.tweetVideoUrl (md.video_info);
-					var url_data = (v.url == "") ? "" : "&hfr-url-data=" + encodeURIComponent (v.url) + "&hfr-media-type=" + encodeURIComponent (v.content_type);
-					builder.append ("[url=https://x.com/i/status/" + tweet.id_str + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + md.media_url_https + url_data + "[/img][/url]\n");
-				}
-				else if (md.type == "animated_gif") {
-					var video_src = md.video_info.variants[0].url;
-					var url_data = "&gif=true&hfr-url-data=" + encodeURIComponent (video_src);
-					builder.append ("[url=https://x.com/i/status/" + tweet.id_str + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + md.media_url_https + url_data + "[/img][/url]\n");
-				}
-				else if (md.type == "photo")
-					builder.append ("[url=https://rehost.diberie.com/Rehost?url=" + md.media_url_https + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + md.media_url_https + "[/img][/url]");
-			}
+			poll.querySelectorAll(".poll-meter").forEach (opt => {
+				builder.append (`${opt.querySelector(".poll-choice-value").textContent} ${opt.querySelector(".poll-choice-option").textContent}\n`);
+			});
 		}
-		/*
-		else if (tweet.video) {
+		var atch = element.querySelector (".quote-media-container");
+			if (atch == null)
+			atch = element.querySelector (".attachments");
+		if (atch) {
 			builder.append ("\n");
-			var video_src = "";
-			for (var i = 0; i < tweet.video.variants.length; i++)
-				if (tweet.video.variants[i].type == "video/mp4")
-					video_src = tweet.video.variants[i].src;
-			var url_data = (video_src == "") ? "" : "&hfr-url-data=" + encodeURIComponent (video_src);
-			url_data += (tweet.video.contentType == "gif") ? "&gif=true" : "";
-			builder.append ("[url=https://x.com/i/status/" + tweet.id_str + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + tweet.video.poster + url_data + "[/img][/url]");
+			atch.querySelectorAll (".attachment.image img").forEach (img => {
+				builder.append (`[img]https://nitter.net${img.getAttribute ("src")}[/img]`);
+			});
+			atch.querySelectorAll ("video.gif").forEach (gif => {
+				var data = encodeURIComponent ("https://nitter.net" + gif.querySelector ("source").getAttribute ("src"));
+				builder.append (`[url=https://x.com/i/status/${element.xid}][img]https://nitter.net${gif.getAttribute ("poster")}?&hfr-url-data=${data}&gif=true[/img][/url]`);
+			});
+			atch.querySelectorAll (".attachment.video-container video").forEach (video => {
+				var data = video.getAttribute ("data-url").split("/")[3];
+				var mt = encodeURIComponent ("application/vnd.apple.mpegurl");
+				builder.append (`[url=https://x.com/i/status/${element.xid}][img]https://nitter.net${video.getAttribute ("poster")}?&hfr-url-data=${data}&hfr-media-type=${mt}[/img][/url]`);
+			});
 		}
-		else if (tweet.photos) {
-			builder.append ("\n");
-			for (var photo of tweet.photos) {
-				builder.append ("[url=https://rehost.diberie.com/Rehost?url=" + photo.url + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + photo.url + "[/img][/url]");
-			}
-		}
-		*/
-		else if (tweet.card) {
-			var regex = /^poll(?<count>\d)choice_text_only$/;
-			var res = regex.exec (tweet.card.name);
-			if (res) {
-				console.log ("ouch");
-				builder.append ("\n");
-				var count = parseInt (res.groups.count);
-				var arr = [];
-				var total = 0;
-				for (var i = 1; i < count + 1; i++) {
-					var obj = {};
-					obj.label = tweet.card.binding_values["choice" + i + "_label"].string_value;
-					obj.count = parseInt (tweet.card.binding_values["choice" + i + "_count"].string_value);
-					total += obj.count;
-					arr.push (obj);
-				}
-				for (var i = 0; i < arr.length; i++) {
-					arr[i].pct = (arr[i].count * 100 / total).toFixed(2) + " %";
-					builder.append ("[*] " + arr[i].label + " (" + arr[i].pct + ")\n");
-				}
-			}
-			else if (tweet.card.name == "summary_large_image") {
-				builder.append ("\n");
-				builder.append ("[url=" + tweet.card.url + "][img]" + tweet.card.binding_values.thumbnail_image.image_value.url + "[/img][/url]");
-				builder.append ("[quote]" + tweet.card.binding_values.title.string_value + "[/quote]");
-			}
-		}
-		builder.append ("[/citation]");		
-		
-		if (tweet.quoted_tweet) {
-			builder.prepend ("\n");
-			builder.prepend (Utils.tweetToQuote (tweet.quoted_tweet));
-		}
-		return Utils.normalizeText (builder.toString());
+		builder.append ("[/citation]");
+		return builder.toString();
 	}
 	
 	static pasteTwitter (link) {
 		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.twitter.exec (link);
-				Utils.request({
-					method : "GET",
-					url : "https://cdn.syndication.twimg.com/tweet-result?token=43l77nyjhwo&id=" + res.groups.id,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onload : function (response) {
-						try {
-							var json = JSON.parse (response.responseText);
-							resolve (Utils.tweetToQuote (json));
-						}
-						catch (e) {
-							console.log (e);
-							reject (link);
-						}
+			var res = Expr.twitter.exec (link);
+			Utils.request({
+				method : "GET",
+				url : "https://nitter.net/i/status/" + res.groups.id,
+				onabort : function() { reject (link); },
+				onerror : function() { reject (link); },
+				ontimeout : function() { reject (link); },
+				headers : { "Cookie" : "hlsPlayback=on" },
+				onload : function (response) {
+					try {
+						var doc = new DOMParser().parseFromString (response.responseText, "text/html");
+						var tb = doc.querySelector ("div.tweet-body");
+						tb.xid = res.groups.id;
+						resolve (Utils.tweetToQuote (tb));
 					}
-				});
-			})();
+					catch (e) {
+						console.log (e);
+						reject (link);
+					}
+				}
+			});
 		});
 	}
 	
