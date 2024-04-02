@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.30
+// @version       1.4.33
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.33         Instagram ne fonctionne plus
 // 1.4.28         Firefox : affichage de l'activation dans une alerte.
 // 1.4.27         ajout d'un contrôle de compatibilité :o
 // 1.4.26         BS : citations
@@ -82,10 +83,6 @@ class Expr {
 	
 	static get reddit() {
 		return new Expr ("^https://www\\.reddit\\.com/r/\\w+/comments/\\w+/[àáâãäåçèéêëìíîïðòóôõöùúûüýÿ\\w%]+/$");
-	}
-	
-	static get instagram() {
-		return new Expr ("^https://www\\.instagram\\.com/(reel|p)/(?<id>\\w+)/$");
 	}
 	
 	static get bluesky() {
@@ -1351,43 +1348,6 @@ original : { desc : "original", key : "" }
 		});
 	}
 	
-	static formatInstagram (text) {
-		console.log (text);
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				resolve ("toto");
-			})();
-		});
-	}
-	
-	static pasteInstagram (link) {
-		var m = Expr.instagram.exec (link);
-		var id = m.groups.id;
-		
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Utils.request({
-					method : "POST",
-					url : "https://instanavigation.com/get-media-comments",
-					data : `{"media_id":"${id}"}`,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "laravel_session=eyJpdiI6IjNHMWoxSUNCa0Izb2dJM2dGem0xZVE9PSIsInZhbHVlIjoiYmE4aGVxZDBxUDBINDN1WG9KSzNGMy9JMGdIZGMzMmpUWm9LMWZxN25WUm1Gd0N6cmk3OUtWaUhRelpWeExUU3Boa24xOTdoSDkreXI5OTBLS3FQb1NPc2xJR2FpMEdvRDg2bW42aCtLSC9zdUNoZ2hwVGNFQkNwdWp2R2U4NXkiLCJtYWMiOiI5M2NlMjhhYjIxMmI4YzhhMTA1ODM1YWIwZTU0MWZmMTVkNjRlMWE0MDVkNjZmYzVjZThjZTU5NmNlODdiNGU3In0=", "Content-Type" : "application/json" },
-					anonymous : true,
-					onload : function (response) {
-						Utils.formatInstagram (response.responseText).then (text => {
-							resolve (text);
-						}).catch (err => {
-							console.log (err);
-							reject (link);
-						});
-					}
-				});
-			})();
-		});
-	}
-	
 	static dropText (text) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
@@ -1439,15 +1399,7 @@ original : { desc : "original", key : "" }
 			(async () => {
 				var blob = await item.getType ("text/plain");
 				var text = await blob.text();
-				if (Expr.instagram.match (text)) {
-					Utils.pasteInstagram (text).then (txt => {
-						resolve (txt);
-					}).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else if (Expr.reddit.match (text)) {
+				if (Expr.reddit.match (text)) {
 					Utils.pasteReddit (text).then (txt => {
 						resolve (txt);
 					}).catch (e => {
