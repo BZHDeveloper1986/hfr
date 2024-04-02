@@ -1709,7 +1709,7 @@ original : { desc : "original", key : "" }
 			console.log (Utils.hashDialog.displayed);
 			event.preventDefault();
 		}
-		else if (event.code == "KeyV" && (event.ctrlKey && navigator.platform.indexOf ("Mac") != 0 || event.metaKey && navigator.platform.indexOf ("Mac") == 0)) {
+		else if (event.code == "KeyV" && event.ctrlKey) {
 			console.log (navigator);
 			console.log (navigator.clipboard);
 			if (!navigator?.clipboard?.read)
