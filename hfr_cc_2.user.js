@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.33
+// @version       1.4.34
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.34         Mastodon : emojis dans le nom de l'utilisateur.
 // 1.4.33         Instagram ne fonctionne plus
 // 1.4.28         Firefox : affichage de l'activation dans une alerte.
 // 1.4.27         ajout d'un contrôle de compatibilité :o
@@ -995,7 +996,7 @@ original : { desc : "original", key : "" }
 				var doc = new DOMParser().parseFromString (data.content, "text/html");
 				var id = data.account.acct;
 				var instance = new URL (data.account.url).host;
-				var name = data.account.display_name;
+				var name = Utils.formatText (data.account.display_name);
 				builder.append (`[:teepodavignon:8][citation=1,1,1][nom][url=${uri}][img]https://rehost.diberie.com/Picture/Get/f/110911[/img] ${name} (@${id}@${instance})[/url][/nom]`);
 				var p = doc.querySelector ("p");
 				while (p != null) {
