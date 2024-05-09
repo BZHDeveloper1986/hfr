@@ -140,7 +140,7 @@ let HFR = {
                             return resp.text();
                     }).then (txt => {
                         console.log ("caca");
-                        console.log (txt);
+                        resolve (txt);
                         console.log ("prout");
                     })
                     .catch (e => { reject(e); });
