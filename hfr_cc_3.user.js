@@ -21,6 +21,6 @@
 // ==/UserScript==
 
 var cat = new HFR.Category("prive");
-cat.findTopic ("Un p'tit lien ?").then (topic => {
-    console.log (topic.user);
-});
+cat.createTopic ("Jean Robin", "test js", "ben c'est un test normalement").then (txt => {
+    console.log (txt);
+}).catch (e => { console.log (e); });

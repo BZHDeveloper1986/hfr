@@ -122,7 +122,7 @@ let HFR = {
                 .then (rep => rep.text())
                 .then (text => {
                     var doc = new DOMParser().parseFromString(text, "text/html");
-                    var data = "content_form=" + encodeURIComponent (msg)
+                    var data = "verifrequet=1100&content_form=" + encodeURIComponent (msg)
                         + "&pseudo=" + doc.querySelector("input[name='pseudo']").value
                         + "&cat=" + this.#cid
                         + "&sujet=" + encodeURIComponent(title)
