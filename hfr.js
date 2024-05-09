@@ -137,6 +137,8 @@ let HFR = {
                     });
                     if (!resolved && index < 5)
                         this.findTopicInternal (query, index + 1).then (page => { resolve (page); }).catch (e => { reject (e); });
+                    if (!resolved && index == 5)
+                        reject ("topic non trouvé");
                 }).catch (e => { reject (e); });
             });
         }
