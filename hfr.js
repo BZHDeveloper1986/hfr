@@ -136,6 +136,7 @@ let HFR = {
                         },
                         body : data
                     }).then (resp => {
+                        console.log ("status : " + resp.status);
                         if (resp.status == 200)
                             return resp.text();
                     }).then (txt => {
