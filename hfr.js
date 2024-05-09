@@ -97,6 +97,7 @@ let HFR = {
 
         static load (id, index) {
             return new Promise ((o, n) => {
+                console.log ("/forum1.php?cat=" + id + "&page=" + index);
                 fetch ("/forum1.php?cat=" + id + "&page=" + index).then (response => response.text()).then (text => {
                     var page = new HFR.CategoryPage (id, index);
                     var doc = new DOMParser().parseFromString(text, "text/html");
