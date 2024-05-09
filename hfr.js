@@ -115,5 +115,38 @@ let HFR = {
         findTopic (query) {
             return this.findTopicInternal (query, 1);
         }
+
+        createTopic (dest, title, msg) {
+            return new Promise ((resolve, reject) => {
+                fetch ("/message.php?config=hfr.inc&cat=" + this.#cid + "&sond=0&p=1&subcat=0&dest=&subcatgroup=0")
+                .then (rep => rep.text())
+                .then (text => {
+                    var doc = new DOMParser().parseFromString(text, "text/html");
+                    var data = "content_form=" + encodeURIComponent (msg)
+                        + "&pseudo=" + doc.querySelector("input[name='pseudo']").value
+                        + "&cat=" + this.#cid
+                        + "&sujet=" + encodeURIComponent(title)
+                        + "&dest=" + encodeURIComponent(dest)
+                        + "&hash_check=" + doc.querySelector("input[name='hash_check']").value;
+
+                    fetch ("https://forum.hardware.fr/bddpost.php?config=hfr.inc", {
+                        method : "POST",
+                        headers : {
+                            "Content-Type" : "application/x-www-form-urlencoded"
+                        },
+                        body : data
+                    }).then (resp => {
+                        if (resp.status == 200)
+                            return resp.text();
+                    }).then (txt => {
+                        console.log ("caca");
+                        console.log (txt);
+                        console.log ("prout");
+                    })
+                    .catch (e => { reject(e); });
+                })
+                .catch (e => { reject (e); });
+            });
+        }
     }
 };

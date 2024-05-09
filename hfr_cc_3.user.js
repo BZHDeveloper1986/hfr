@@ -7,6 +7,7 @@
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
 // @downloadURL   https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
 // @updateURL     https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
+// @require       https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr.js?time=1715211227359
 // @require       https://vjs.zencdn.net/8.0.4/video.js
 // @include       https://forum.hardware.fr/*
 // @noframes
