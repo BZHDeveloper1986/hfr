@@ -7,7 +7,7 @@
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
 // @downloadURL   https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
 // @updateURL     https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
-// @require       https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr.js?time=1715212901287
+// @require       https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr.js?time=1715212901300
 // @require       https://vjs.zencdn.net/8.0.4/video.js
 // @include       https://forum.hardware.fr/*
 // @noframes
@@ -21,6 +21,18 @@
 // ==/UserScript==
 
 var cat = new HFR.Category("prive");
-cat.createTopic ("Jean Robin", "test js", "ben c'est un test normalement").then (txt => {
-    console.log (txt);
-}).catch (e => { console.log (e); });
+cat.findTopic ("data-copie-colle").then (topic => {
+    if (topic.user == null || topic.user.toLowerCase() == "multimp") {
+        console.log ("erreur");
+        var data = {
+            toto : "tata",
+            tutu : true,
+            titi : 33.5
+        };
+        cat.createTopic (JSON.stringify (data), "multimp", "data-copie-colle").then (b => {
+            console.log (b);
+        }).catch (e => { console.log (e); });
+    }
+    else
+        console.log ("ok");
+});

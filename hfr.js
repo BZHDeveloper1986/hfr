@@ -1,4 +1,32 @@
 let HFR = {
+    Message : class {
+        static parse (tr) {}
+    },
+    TopicPage : class {
+        #url;
+        #list;
+
+        constructor (u) {
+            this.#url = u;
+            this.#list = [];
+        }
+
+        get messages() {
+            return this.#list;
+        }
+
+        static load (url) {
+            return new Promise ((resolve, reject) => {
+                fetch (url.toString()).then (rep => {
+                    return rep.text();
+                }).then (text => {
+                    var page = new HFR.TopicPage (url);
+                    var dom = new DOMParser().parseFromString (text, "text/html");
+                    return page;
+                }).catch (e => { reject (e); });
+            });
+        }
+    },
     Topic : class {
         #tit;
         #url;
@@ -20,8 +48,10 @@ let HFR = {
             return topic;
         }
 
-        static create (user, title) {
-
+        getfirstPage () {
+            var url = new URL ("https://forum.hardware.fr" + this.#url);
+            url.searchParams.set ("page", 1);
+            return HFR.TopicPage.load (url);
         }
 
         set user (u) { this.#usr = u; }
@@ -70,9 +100,7 @@ let HFR = {
                 fetch ("/forum1.php?cat=" + id + "&page=" + index).then (response => response.text()).then (text => {
                     var page = new HFR.CategoryPage (id, index);
                     var doc = new DOMParser().parseFromString(text, "text/html");
-                    console.log (doc);
                     doc.querySelectorAll("tr.sujet").forEach(s => {
-                        console.log ("prout");
                         page.topics.push (HFR.Topic.parse (s));
                     });
                     o(page);
@@ -101,7 +129,7 @@ let HFR = {
                 HFR.CategoryPage.load (this.#cid, index).then (page => {
                     var resolved = false;
                     page.topics.forEach (topic => {
-                        if (topic.title.indexOf (query) == 0) {
+                        if (topic.title == query) {
                             resolved = true;
                             resolve (topic);
                         }
@@ -116,7 +144,7 @@ let HFR = {
             return this.findTopicInternal (query, 1);
         }
 
-        createTopic (dest, title, msg) {
+        createTopic (msg, dest, title, topics, subcat) {
             return new Promise ((resolve, reject) => {
                 fetch ("/message.php?config=hfr.inc&cat=" + this.#cid + "&sond=0&p=1&subcat=0&dest=&subcatgroup=0")
                 .then (rep => rep.text())
@@ -125,9 +153,14 @@ let HFR = {
                     var data = "verifrequet=1100&content_form=" + encodeURIComponent (msg)
                         + "&pseudo=" + doc.querySelector("input[name='pseudo']").value
                         + "&cat=" + this.#cid
+                        + ((subcat != null) ? "&subcat=" + subcat : "")
                         + "&sujet=" + encodeURIComponent(title)
                         + "&dest=" + encodeURIComponent(dest)
                         + "&hash_check=" + doc.querySelector("input[name='hash_check']").value;
+                    if (topics != null && Array.isArray (topics))
+                        for (var i = 0; i < topics.length && i < 5; i++) {
+                            data = data + "&toread" + (i+1) + "=" + topics[i];
+                        }
 
                     fetch ("https://forum.hardware.fr/bddpost.php?config=hfr.inc", {
                         method : "POST",
@@ -136,13 +169,14 @@ let HFR = {
                         },
                         body : data
                     }).then (resp => {
-                        console.log ("status : " + resp.status);
                         if (resp.status == 200)
                             return resp.text();
                     }).then (txt => {
-                        console.log ("caca");
-                        resolve (txt);
-                        console.log ("prout");
+                        var dom = new DOMParser().parseFromString(txt, "text/html");
+                        if (dom.getElementsByClassName("hop").length > 0 && dom.querySelector(".hop").getElementsByTagName('input').length === 0)
+                            resolve (true);
+                        else
+                            reject ("erreur dans la création du message");
                     })
                     .catch (e => { reject(e); });
                 })
