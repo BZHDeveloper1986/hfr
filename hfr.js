@@ -1,6 +1,46 @@
 let HFR = {
+    User : class {
+        #pnam;
+        #avtr;
+
+        constructor (str, uri) {
+            this.#pnam = str;
+            this.#avtr = uri;
+        }
+
+        get avatar() {
+            return this.#avtr;
+        }
+
+        get name() {
+            return this.#pnam;
+        }
+    },
     Message : class {
-        static parse (tr) {}
+        #usr;
+        #txt;
+
+        constructor (u, t) {
+            this.#usr = u;
+            this.#txt = t;
+        }
+
+        get text() {
+            return this.#txt;
+        }
+
+        get user() {
+            return this.#usr;
+        }
+
+        static parse (table) {
+            var name = table.querySelector (".messCase1 .s2").textContent;
+            var avtr = null;
+            if (table.querySelector(".avatar_center") != null)
+                avtr = table.querySelector(".avatar_center img").getAttribute("src");
+            var div = table.querySelector (".messCase2 div[id]");
+            return new HFR.Message (new HFR.User (name, avtr), div.textContent);
+        }
     },
     TopicPage : class {
         #url;
@@ -11,8 +51,26 @@ let HFR = {
             this.#list = [];
         }
 
+        get index() {
+            return parseInt (this.#url.searchParams.get ("page"));
+        }
+
         get messages() {
             return this.#list;
+        }
+
+        getNextPage() {
+            return this.getPage (this.index + 1);
+        }
+
+        getPreviousPage() {
+            return this.getPage (this.index - 1);
+        }
+
+        getPage (idx) {
+            var u = new URL (this.#url.toString());
+            u.searchParams.set ("page", idx);
+            return HFR.TopicPage.load (u);
         }
 
         static load (url) {
@@ -22,7 +80,11 @@ let HFR = {
                 }).then (text => {
                     var page = new HFR.TopicPage (url);
                     var dom = new DOMParser().parseFromString (text, "text/html");
-                    return page;
+                    dom.querySelectorAll(".messagetable").forEach (mt => {
+                        var msg = HFR.Message.parse (mt);
+                        page.messages.push (msg);
+                    });
+                    resolve (page);
                 }).catch (e => { reject (e); });
             });
         }

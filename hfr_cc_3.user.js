@@ -7,7 +7,7 @@
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
 // @downloadURL   https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
 // @updateURL     https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
-// @require       https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr.js?time=1715212901304
+// @require       https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr.js?time=1715212901305
 // @require       https://vjs.zencdn.net/8.0.4/video.js
 // @include       https://forum.hardware.fr/*
 // @noframes
@@ -20,9 +20,22 @@
 // @grant         GM_xmlhttpRequest
 // ==/UserScript==
 
-var cat = new HFR.Category("prive");
-cat.findTopic ("data-copie-colle").then (topic => {
-    console.log ("ok");
-}).catch (e => {
-    console.log (e);
-});
+function getPrivateDataAsync() {
+    return new Promise ((resolve, reject) => {
+        var cat = new HFR.Category("prive");
+        cat.findTopic ("data-copie-colle").then (topic => {
+            topic.getFirstPage().then (page => {
+                resolve (page.messages[0].text);
+            }).catch (e => { reject (e); });
+        }).catch (e => {
+            var data = {
+                toto : "tata",
+                tutu : true,
+                titi : 33.5
+            };
+            cat.createTopic (JSON.stringify (data), "multimp", "data-copie-colle").then (b => {
+                resolve (data);
+            }).catch (e => { reject (e); });
+        });
+    });
+}
