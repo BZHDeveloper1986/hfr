@@ -110,7 +110,7 @@ let HFR = {
             return topic;
         }
 
-        getfirstPage () {
+        getFirstPage () {
             var url = new URL ("https://forum.hardware.fr" + this.#url);
             url.searchParams.set ("page", 1);
             return HFR.TopicPage.load (url);
