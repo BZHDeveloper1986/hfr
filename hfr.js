@@ -38,7 +38,7 @@ let HFR = {
             var avtr = null;
             if (table.querySelector(".avatar_center") != null)
                 avtr = table.querySelector(".avatar_center img").getAttribute("src");
-            var div = table.querySelector (".messCase2 div[id]");
+            var div = table.querySelector (".messCase2 div[id] p");
             return new HFR.Message (new HFR.User (name, avtr), div.textContent);
         }
     },

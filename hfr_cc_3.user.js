@@ -7,7 +7,7 @@
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
 // @downloadURL   https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
 // @updateURL     https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
-// @require       https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr.js?time=1715212901305
+// @require       https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr.js?time=1715212901307
 // @require       https://vjs.zencdn.net/8.0.4/video.js
 // @include       https://forum.hardware.fr/*
 // @noframes
@@ -28,6 +28,7 @@ function getPrivateDataAsync() {
                 resolve (page.messages[0].text);
             }).catch (e => { reject (e); });
         }).catch (e => {
+            console.log (e);
             var data = {
                 toto : "tata",
                 tutu : true,
@@ -39,3 +40,5 @@ function getPrivateDataAsync() {
         });
     });
 }
+
+getPrivateDataAsync().then (data => { console.log (data); });
