@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.34
+// @version       1.4.35
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.35         Twitter : correction affichage emojis dans le texte.
 // 1.4.34         Mastodon : emojis dans le nom de l'utilisateur.
 // 1.4.33         Instagram ne fonctionne plus
 // 1.4.28         Firefox : affichage de l'activation dans une alerte.
@@ -888,8 +889,8 @@ original : { desc : "original", key : "" }
 			else if (_media) {
 				i += _media.indices[1] - _media.indices[0] - 1;
 			}
-			else
-				builder.append (Utils.formatText(array[i]));
+			else 
+				builder.append (array[i]);
 		}
 		if (tweet.mediaDetails && tweet.mediaDetails.length > 0) {
 			builder.append ("\n");
@@ -960,7 +961,7 @@ original : { desc : "original", key : "" }
 			builder.prepend ("\n");
 			builder.prepend (Utils.tweetToQuote (tweet.quoted_tweet));
 		}
-		return Utils.normalizeText (builder.toString());
+		return Utils.normalizeText (Utils.formatText (builder.toString()));
 	}
 	
 	static pasteTwitter (link) {
@@ -1722,13 +1723,13 @@ original : { desc : "original", key : "" }
 							event.target.disabled = true;
 							loading.attach (event.target);
 							Utils.pasteText (item).then (text => {
-								Utils.insertText (event.target, text);
+								console.log ("prout");
+								Utils.insertText (event.target, Utils.formatText (text));
 								loading.destroy();
 								event.target.disabled = false;
 								event.target.focus();
 							}).catch (e => {
-								console.log (e);
-								Utils.insertText (event.target, e);
+								Utils.insertText (event.target, Utils.formatText (e));
 								loading.destroy();
 								event.target.disabled = false;
 								event.target.focus();
