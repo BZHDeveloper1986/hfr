@@ -670,7 +670,7 @@ class Utils {
 		}
 		var file_id = "hfr-cc-file" + (num == -1 ? "" : "-" + num);
 		var form = event.target.form;
-		if (form == false)
+		if (form == null)
 			form = event.target.parentElement;
 		var btn = form.querySelector("input[type=\"button\"], input[type=\"submit\"]");
 		if (btn.parentElement.querySelector (".hfr-cc-button"))
