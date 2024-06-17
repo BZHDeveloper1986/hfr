@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.36 
+// @version       1.4.37
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.37         Taille limite pour imgur (*** alors eux).
 // 1.4.35         Twitter : correction affichage emojis dans le texte.
 // 1.4.34         Mastodon : emojis dans le nom de l'utilisateur.
 // 1.4.33         Instagram ne fonctionne plus
@@ -1461,6 +1462,10 @@ original : { desc : "original", key : "" }
 	}
 	
 	static uploadGofile (file, resolve, reject) {
+		if (file.size > 20000000) {
+			reject("fichier trop gros");
+			return;
+		}
 		var form = new FormData();
 		console.log (file);
 		form.append ("file", file);
@@ -1496,6 +1501,10 @@ original : { desc : "original", key : "" }
 	}
 	
 	static uploadImage (file, resolve, reject) {
+		if (file.size > 20000000) {
+			reject("fichier trop gros");
+			return;
+		}
 		var form = new FormData();
 		form.append ("image", file);
 		Utils.request ({
@@ -1855,6 +1864,7 @@ original : { desc : "original", key : "" }
 					event.target.disabled = true;
 					loading.attach (event.target);
 					Utils.dropImage (item.getAsFile()).then (data => {
+						Utils.registerImage (data);
 						if (event.altKey) {
 							var src = data.link;
 							if (data.type != "image/gif")
@@ -1879,6 +1889,7 @@ original : { desc : "original", key : "" }
 									img.height = 400;
 								}
 							});
+							console.log("toto 4");
 							dialog.content = img;
 							if (data.type == "image/gif") {
 								var button = new TextButton ("gif");
