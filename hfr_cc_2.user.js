@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.37
+// @version       1.4.38
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.38         alerte firefox sur une fonctionnalité désactivée.
 // 1.4.37         Taille limite pour imgur (*** alors eux).
 // 1.4.35         Twitter : correction affichage emojis dans le texte.
 // 1.4.34         Mastodon : emojis dans le nom de l'utilisateur.
@@ -1847,6 +1848,9 @@ original : { desc : "original", key : "" }
 			for (var i = 0; i < dt.items.length; i++) {
 				var item = dt.items[i];
 				console.log (item);
+				if (item.type == "application/x-moz-nativeimage") {
+					alert ("Vous êtes sur Firefox et la fonctionnalité de glisser des images entre les onglets n'est pas activée\nsuivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_265.htm#t71266097");
+				}
 				if (item.type.indexOf ("audio/") == 0) {
 					event.target.disabled = true;
 					loading.attach (event.target);
