@@ -600,13 +600,12 @@ class Skeet {
 
 	toString() {
 		return new Promise ((resolve, reject) => {
-			var pms = [
-				Promise.resolve ("[:teepodavignon:8][citation=1,1,1][nom][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] ")
-			];
-			pms.push (this.#pfl.toString());
-			pms.push (Promise.resolve ("[/url][/nom]" + this.#txt + "[/citation]"));
+			var pms = [];
 			if (this.#quote != null)
 				pms.push (this.#quote);
+			pms.push (Promise.resolve ("[:teepodavignon:8][citation=1,1,1][nom][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] "));
+			pms.push (this.#pfl.toString());
+			pms.push (Promise.resolve ("[/url][/nom]" + this.#txt + "[/citation]"));
 			Promise.all (pms).then (values => {
 				resolve (values.join(""));
 			}).catch (e => {
