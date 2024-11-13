@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.39
+// @version       1.4.40
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.40         BlueSky : miniature des liens, si existe.
 // 1.4.39         BlueSky : ajout des images & video.
 // 1.4.38         alerte firefox sur une fonctionnalité désactivée.
 // 1.4.37         Taille limite pour imgur (*** alors eux).
@@ -1171,12 +1172,12 @@ original : { desc : "original", key : "" }
 					text = text.substring (0, facet.index.byteStart) + mention + text.substring (facet.index.byteEnd);
 				}
 				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
-					var txt = text.substring (facet.index.byteStart - 1, facet.index.byteEnd);
+					var txt = text.substring (facet.index.byteStart - 1, facet.index.byteEnd).trim();
 					var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
 					text = text.substring (0, facet.index.byteStart - 1) + url + text.substring (facet.index.byteEnd);
 				}
 			}
-		console.log (data.value.embed);
+		console.log (data.value);
 		if (data.value.embed) {
 			text += "\n";
 			if (data.value.embed.images) {
@@ -1191,6 +1192,11 @@ original : { desc : "original", key : "" }
 				var url = `https://video.bsky.app/watch/${did_plc}/${lnk}`;
 				var url_data = "?vdata=" + encodeURIComponent (url + "/playlist.m3u8");
 				text += `[url=${link}][img]${url}/thumbnail.jpg${url_data}[/img][/url]`;
+			}
+			if (data.value.embed.external && (data.value.embed.images == null || data.value.embed.images.length == 0)) {
+				var lnk = data.value.embed.external.uri;
+				var img = data.value.embed.external.thumb.ref["$link"];
+				text += `[url=${lnk}][img]https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${img}[/img][/url]`;
 			}
 		}
 		quote.text = Utils.formatText (text);
