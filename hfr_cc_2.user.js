@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.44
+// @version       1.4.45
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.45         BlueSky : c'est un *** leur gestion des données.
 // 1.4.44         BlueSky : Correction du profil.
 // 1.4.43         BlueSky : description du lien externe.
 // 1.4.42         BlueSky : ajout du profil (en travaux :o)
@@ -1210,8 +1211,11 @@ original : { desc : "original", key : "" }
 				var imgs = data.value.embed.images;
 				for (var i = 0; i < imgs.length; i++) {
 					var lnk = imgs[i].image.ref["$link"];
+					console.log ("toto : " + text);
 					text += `[url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}[/img][/url]`;
+					console.log ("toto : " + text);
 				}
+				console.log (text);
 			}
 			if (data.value.embed.video) {
 				var lnk = data.value.embed.video.ref["$link"];
@@ -1227,11 +1231,37 @@ original : { desc : "original", key : "" }
 				var qte = data.value.embed.external.title + ((data.value.embed.external.description != null) ? (" - " + data.value.embed.external.description) : "");
 				text += `[url=${lnk}][b]${lnk}[/b][/url]\n[url=${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${img}[/img][/url][quote]${qte}[/quote]`;
 			}
-			console.log ("caca prout : " + sub);
-			console.log (data.value.embed.record);
+			if (data.value.embed.media) {
+				var med = data.value.embed.media;
+				if (med.images) {
+					var imgs = med.images;
+					for (var i = 0; i < imgs.length; i++) {
+						var lnk = imgs[i].image.ref["$link"];
+						console.log ("toto : " + text);
+						text += `[url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}[/img][/url]`;
+						console.log ("toto : " + text);
+					}
+					console.log (text);
+				}
+				if (med.video) {
+					var lnk = med.video.ref["$link"];
+					var url = `https://video.bsky.app/watch/${did_plc}/${lnk}`;
+					var url_data = "?vdata=" + encodeURIComponent (url + "/playlist.m3u8");
+					text += `[url=${link}][img]https://rehost.diberie.com/Rehost?size=min&url=${url}/thumbnail.jpg${url_data}[/img][/url]`;
+				}
+				if (med.external && (med.images == null || med.images.length == 0)) {
+					var lnk = med.external.uri;
+					var img = med.external.thumb.ref["$link"];
+					var qte = med.external.title + ((med.external.description != null) ? (" - " + med.external.description) : "");
+					text += `[url=${lnk}][b]${lnk}[/b][/url]\n[url=${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${img}[/img][/url][quote]${qte}[/quote]`;
+				}
+			}
 			if (data.value.embed.record && sub == false) {
-				var subdid = data.value.embed.record.uri.split ("at://")[1].split ("/")[0];
-				var subp = data.value.embed.record.uri.split ("app.bsky.feed.post/")[1];
+				var rec = data.value.embed.record;
+				if (rec.record)
+					rec = rec.record;
+				var subdid = rec.uri.split ("at://")[1].split ("/")[0];
+				var subp = rec.uri.split ("app.bsky.feed.post/")[1];
 				quote.subquote = Utils.getSkeet (`https://bsky.app/profile/${subdid}/post/${subp}`, subdid, subp, true);
 			}
 		}
