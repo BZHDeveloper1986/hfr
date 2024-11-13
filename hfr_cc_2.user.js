@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.38
+// @version       1.4.39
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.39         BlueSky : ajout des images & video.
 // 1.4.38         alerte firefox sur une fonctionnalité désactivée.
 // 1.4.37         Taille limite pour imgur (*** alors eux).
 // 1.4.35         Twitter : correction affichage emojis dans le texte.
@@ -1175,8 +1176,24 @@ original : { desc : "original", key : "" }
 					text = text.substring (0, facet.index.byteStart - 1) + url + text.substring (facet.index.byteEnd);
 				}
 			}
+		console.log (data.value.embed);
+		if (data.value.embed) {
+			text += "\n";
+			if (data.value.embed.images) {
+				var imgs = data.value.embed.images;
+				for (var i = 0; i < imgs.length; i++) {
+					var lnk = imgs[i].image.ref["$link"];
+					text += `[url=${link}][img]https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}[/img][/url]`;
+				}
+			}
+			if (data.value.embed.video) {
+				var lnk = data.value.embed.video.ref["$link"];
+				var url = `https://video.bsky.app/watch/${did_plc}/${lnk}`;
+				var url_data = "?vdata=" + encodeURIComponent (url + "/playlist.m3u8");
+				text += `[url=${link}][img]${url}/thumbnail.jpg${url_data}[/img][/url]`;
+			}
+		}
 		quote.text = Utils.formatText (text);
-		if (data.value.embed) {}
 		return quote.toString();
 	}
 	
@@ -2075,6 +2092,27 @@ Utils.init (table => {
 					src : v
 				});
 				index++;
+			}
+		}
+		else if (Expr.bluesky.match (href)) {
+			var img = link.firstElementChild;
+			if (img != null && img.hasAttribute ("src")) {
+				var src = new URL (img.getAttribute ("src"));
+				var url = src.searchParams.get("vdata");
+				if (url != null) {
+					var video = document.createElement ("video");
+					video.setAttribute ("id", "hfr-video-" + index);
+					video.setAttribute ("class", "video-js");
+					video.setAttribute ("controls", "");
+					video.setAttribute ("height", "400");
+					link.parentNode.replaceChild(video, link);
+					var player = videojs ("hfr-video-" + index, {controlBar: {fullscreenToggle: true}});
+					player.src ({
+						type : "application/x-mpegURL",
+						src : url
+					});
+					index++;
+				}
 			}
 		}
 		else if (href.indexOf ("https://x.com/i/status/") == 0) {
