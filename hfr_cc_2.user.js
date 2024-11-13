@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.42
+// @version       1.4.43
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.43         BlueSky : description du lien externe.
 // 1.4.42         BlueSky : ajout du profile (en travaux :o)
 // 1.4.41         BlueSky : ajout du logo.
 // 1.4.40         BlueSky : miniature des liens, si existe.
@@ -1204,9 +1205,12 @@ original : { desc : "original", key : "" }
 				text += `[url=${link}][img]${url}/thumbnail.jpg${url_data}[/img][/url]`;
 			}
 			if (data.value.embed.external && (data.value.embed.images == null || data.value.embed.images.length == 0)) {
+				console.log ("osfgpdsfh");
+				console.log (data.value.embed.external);
 				var lnk = data.value.embed.external.uri;
 				var img = data.value.embed.external.thumb.ref["$link"];
-				text += `[url=${lnk}][img]https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${img}[/img][/url]`;
+				var qte = data.value.embed.external.title + ((data.value.embed.external.description != null) ? (" - " + data.value.embed.external.description) : "");
+				text += `[url=${lnk}][b]${lnk}[/b][/url]\n[url=${lnk}][img]https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${img}[/img][/url][quote]${qte}[/quote]`;
 			}
 			console.log ("caca prout : " + sub);
 			console.log (data.value.embed.record);
