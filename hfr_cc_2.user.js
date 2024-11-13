@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.41
+// @version       1.4.42
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.42         BlueSky : ajout du profile (en travaux :o)
 // 1.4.41         BlueSky : ajout du logo.
 // 1.4.40         BlueSky : miniature des liens, si existe.
 // 1.4.39         BlueSky : ajout des images & video.
@@ -542,6 +543,80 @@ class BuilderAsync {
 	}
 }
 
+class SkeetProfile {
+	#did
+
+	constructor (did) {
+		this.#did = did;
+	}
+
+	toString() {
+		return new Promise ((resolve, reject) => {
+			var url = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=" + this.#did;
+			Utils.request({
+				method : "GET",
+				url : url,
+				onabort : function() { reject (this.#did); },
+				onerror : function() { reject (this.#did); },
+				ontimeout : function() { reject (this.#did); },
+				headers : { "Cookie" : "" },
+				anonymous : true,
+				onload : function (response) {
+					try {
+						var json = JSON.parse (response.responseText);
+						resolve (`${json.displayName} (${json.handle})`);
+					}
+					catch (e) {
+						console.log (e);
+						reject (this.#did);
+					}
+				}
+			});
+		});
+	}
+}
+
+class Skeet {
+	#uri
+	#quote
+	#txt
+	#pfl
+
+	constructor (lnk) {
+		this.#uri = lnk;
+	}
+
+	set uri (lnk) { this.#uri = lnk; }
+	get uri() { return this.#uri; }
+	
+	set subquote (q) { this.#quote = q; }
+	get subquote() { return this.#quote; }
+	
+	set text (str) { this.#txt = str; }
+	get text() { return this.#txt; }
+
+	set profile (p) { this.#pfl = p; }
+	get profile() { return this.#pfl; }
+
+	toString() {
+		return new Promise ((resolve, reject) => {
+			var pms = [
+				Promise.resolve ("[:teepodavignon:8][citation=1,1,1][nom][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] ")
+			];
+			pms.push (this.#pfl.toString());
+			pms.push (Promise.resolve ("[/url][/nom]" + this.#txt + "[/citation]"));
+			if (this.#quote != null)
+				pms.push (this.#quote);
+			Promise.all (pms).then (values => {
+				resolve (values.join(""));
+			}).catch (e => {
+				console.log (e);
+				reject (this.#uri);
+			});
+		});
+	}
+}
+
 class Quote {
 	#name
 	#uri
@@ -552,10 +627,6 @@ class Quote {
 	
 	set uri (str) { this.#uri = str; }
 	get uri() { return this.#uri; }
-	
-	get skyview() {
-		return "https://skyview.social/?url=" + encodeURIComponent (this.#uri);
-	}
 	
 	set author (str) { this.#name = str; }
 	get author() { return this.#name; }
@@ -569,7 +640,7 @@ class Quote {
 	toString() {
 		return new Promise ((resolve, reject) => {
 			var pms = [
-				Promise.resolve ("[citation=1,1,1][nom][url=" + this.#uri + "]" + this.#name + "[/url][/nom]" + this.#txt)
+				Promise.resolve ("[citation=1,1,1][nom][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] " + this.#name + "[/url][/nom]" + this.#txt)
 			];
 			if (Quote.isQuote (this.#quote))
 				pms.push (this.#quote.toString());
@@ -1095,72 +1166,11 @@ original : { desc : "original", key : "" }
 		});
 	}
 	
-	static __jsonToSkeet (json, profile, link) {
-		try {
-			var lnk = "https://skyview.social/?url=" + encodeURIComponent (link);
-			var builder = new Builder();
-			var data = JSON.parse (json);
-			console.log (data);
-			var did_plc = data.uri.split ("at://")[1].split ("/")[0];
-			var text = data.value.text;
-			console.log (text);
-			if (data.value.facets)
-				for (var i = data.value.facets.length - 1; i >= 0; i--) {
-					var facet = data.value.facets[i];
-					if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
-						var mid = facet.features[0].did;
-						var mh = text.substring (facet.index.byteStart, facet.index.byteEnd);
-						var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
-						text = text.substring (0, facet.index.byteStart) + mention + text.substring (facet.index.byteEnd);
-					}
-					else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
-						var txt = text.substring (facet.index.byteStart - 1, facet.index.byteEnd);
-						var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
-						text = text.substring (0, facet.index.byteStart - 1) + url + text.substring (facet.index.byteEnd);
-					}
-				}
-			text = Utils.formatText (text);
-			builder.append (`[citation=1,1,1][nom][img]https://rehost.diberie.com/Picture/Get/f/219269[/img] [url=${link}]${profile}[/url][/nom]${text}\n`);
-			if (data.value.embed) {
-				if (data.value.embed["$type"] == "app.bsky.embed.images") {
-					var images = data.value.embed.images;
-					for (var i = 0; i < images.length; i++) {
-						var pid = images[i].image.ref["$link"];
-						var uri = `https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${pid}@jpeg`;
-						var img_min = "https://rehost.diberie.com/Rehost?size=min&url=" + uri;
-						var img = "https://rehost.diberie.com/Rehost?url=" + uri;
-						builder.append (`[url=${img}][img]${img_min}[/img][/url]`);
-					}
-				}
-				else if (data.value.embed["$type"] == "app.bsky.embed.external") {
-					if (data.value.embed.external.title)
-						builder.append (`[url=${data.value.embed.external.uri}][b]${data.value.embed.external.title}[/b][/url]`);
-					else
-						builder.append (`[url][b]${data.value.embed.external.uri}[/b][/url]`);
-					if (data.value.embed.external.thumb) {
-						var pid = data.value.embed.external.thumb.ref["$link"];
-						var uri = `https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${pid}@jpeg`;
-						var img_min = "https://rehost.diberie.com/Rehost?size=min&url=" + uri;
-						builder.append (`\n[url=${data.value.embed.external.uri}][img]${img_min}[/img][/url]`);
-					}
-				}
-				else if (data.value.embed["$type"] == "app.bsky.embed.record") {
-					
-				}
-			}
-			builder.append (`[/citation]\n[url=${lnk}][b]Voir ce message sans être connecté[/b][/url]`);
-			resolve (builder.toString());
-		}
-		catch (e) {
-			console.log (e);
-			reject (link);
-		}
-	}
-	
-	static jsonToSkeet (data, id, link) {
-		var quote = new Quote (link);
-		quote.author = "[img]https://rehost.diberie.com/Picture/Get/f/327943[/img]" + id;
+	static jsonToSkeet (data, id, link, sub) {
 		var did_plc = data.uri.split ("at://")[1].split ("/")[0];
+		var quote = new Skeet (link);
+		quote.profile = new SkeetProfile (did_plc);
+		quote.author = id;
 		var text = data.value.text;
 		console.log (text);
 		if (data.value.facets)
@@ -1199,12 +1209,19 @@ original : { desc : "original", key : "" }
 				var img = data.value.embed.external.thumb.ref["$link"];
 				text += `[url=${lnk}][img]https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${img}[/img][/url]`;
 			}
+			console.log ("caca prout : " + sub);
+			console.log (data.value.embed.record);
+			if (data.value.embed.record && sub == false) {
+				var subdid = data.value.embed.record.uri.split ("at://")[1].split ("/")[0];
+				var subp = data.value.embed.record.uri.split ("app.bsky.feed.post/")[1];
+				quote.subquote = Utils.getSkeet (`https://bsky.app/profile/${subdid}/post/${subp}`, subdid, subp, true);
+			}
 		}
 		quote.text = Utils.formatText (text);
 		return quote.toString();
 	}
 	
-	static getSkeet (link, id, hash) {
+	static getSkeet (link, id, hash, sub) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${id}&collection=app.bsky.feed.post&rkey=${hash}`;
@@ -1219,7 +1236,7 @@ original : { desc : "original", key : "" }
 					onload : function (response) {
 						try {
 							var json = JSON.parse (response.responseText);
-							resolve (Utils.jsonToSkeet (json, id, link));
+							resolve (Utils.jsonToSkeet (json, id, link, sub));
 						}
 						catch (e) {
 							console.log (e);
@@ -1235,6 +1252,7 @@ original : { desc : "original", key : "" }
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				var res = Expr.bluesky.exec (link);
+				console.log ("zelda : " + link);
 				var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${res.groups.id}&collection=app.bsky.feed.post&rkey=${res.groups.hash}`;
 				Utils.request({
 					method : "GET",
@@ -1247,7 +1265,7 @@ original : { desc : "original", key : "" }
 					onload : function (response) {
 						try {
 							var json = JSON.parse (response.responseText);
-							Utils.jsonToSkeet (json, res.groups.id, link).then (text => {
+							Utils.jsonToSkeet (json, res.groups.id, link, false).then (text => {
 								resolve (text);
 							}).catch (e => {
 								console.log (e);
