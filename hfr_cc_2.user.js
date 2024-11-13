@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.43
+// @version       1.4.44
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,8 +20,9 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.44         BlueSky : Correction du profil.
 // 1.4.43         BlueSky : description du lien externe.
-// 1.4.42         BlueSky : ajout du profile (en travaux :o)
+// 1.4.42         BlueSky : ajout du profil (en travaux :o)
 // 1.4.41         BlueSky : ajout du logo.
 // 1.4.40         BlueSky : miniature des liens, si existe.
 // 1.4.39         BlueSky : ajout des images & video.
@@ -546,30 +547,45 @@ class BuilderAsync {
 
 class SkeetProfile {
 	#did
+	#handle;
+	#name;
 
-	constructor (did) {
-		this.#did = did;
+	constructor (d, h, n) {
+		this.#did = d;
+		this.#handle = h;
+		this.#name = n;
 	}
 
+	get did() { return this.#did; }
+
+	get name() { return this.#name; }
+
+	get handle() { return this.#handle; }
+
 	toString() {
+		return `${this.#name} (${this.#handle})`;
+	}
+
+	static fetch (str) {
 		return new Promise ((resolve, reject) => {
-			var url = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=" + this.#did;
+			var url = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=" + str;
 			Utils.request({
 				method : "GET",
 				url : url,
-				onabort : function() { reject (this.#did); },
-				onerror : function() { reject (this.#did); },
-				ontimeout : function() { reject (this.#did); },
+				onabort : function() { reject (str); },
+				onerror : function() { reject (str); },
+				ontimeout : function() { reject (str); },
 				headers : { "Cookie" : "" },
 				anonymous : true,
 				onload : function (response) {
 					try {
 						var json = JSON.parse (response.responseText);
-						resolve (`${json.displayName} (${json.handle})`);
+						var prf = new SkeetProfile (json.did, json.handle, json.displayName);
+						resolve (prf);
 					}
 					catch (e) {
 						console.log (e);
-						reject (this.#did);
+						reject (str);
 					}
 				}
 			});
@@ -605,7 +621,7 @@ class Skeet {
 			if (this.#quote != null)
 				pms.push (this.#quote);
 			pms.push (Promise.resolve ("[:teepodavignon:8][citation=1,1,1][nom][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] "));
-			pms.push (this.#pfl.toString());
+			pms.push (Promise.resolve (this.#pfl.toString()));
 			pms.push (Promise.resolve ("[/url][/nom]" + this.#txt + "[/citation]"));
 			Promise.all (pms).then (values => {
 				resolve (values.join(""));
@@ -1166,11 +1182,10 @@ original : { desc : "original", key : "" }
 		});
 	}
 	
-	static jsonToSkeet (data, id, link, sub) {
+	static jsonToSkeet (data, profile, link, sub) {
 		var did_plc = data.uri.split ("at://")[1].split ("/")[0];
 		var quote = new Skeet (link);
-		quote.profile = new SkeetProfile (did_plc);
-		quote.author = id;
+		quote.profile = profile;
 		var text = data.value.text;
 		console.log (text);
 		if (data.value.facets)
@@ -1195,14 +1210,14 @@ original : { desc : "original", key : "" }
 				var imgs = data.value.embed.images;
 				for (var i = 0; i < imgs.length; i++) {
 					var lnk = imgs[i].image.ref["$link"];
-					text += `[url=${link}][img]https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}[/img][/url]`;
+					text += `[url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}[/img][/url]`;
 				}
 			}
 			if (data.value.embed.video) {
 				var lnk = data.value.embed.video.ref["$link"];
 				var url = `https://video.bsky.app/watch/${did_plc}/${lnk}`;
 				var url_data = "?vdata=" + encodeURIComponent (url + "/playlist.m3u8");
-				text += `[url=${link}][img]${url}/thumbnail.jpg${url_data}[/img][/url]`;
+				text += `[url=${link}][img]https://rehost.diberie.com/Rehost?size=min&url=${url}/thumbnail.jpg${url_data}[/img][/url]`;
 			}
 			if (data.value.embed.external && (data.value.embed.images == null || data.value.embed.images.length == 0)) {
 				console.log ("osfgpdsfh");
@@ -1210,7 +1225,7 @@ original : { desc : "original", key : "" }
 				var lnk = data.value.embed.external.uri;
 				var img = data.value.embed.external.thumb.ref["$link"];
 				var qte = data.value.embed.external.title + ((data.value.embed.external.description != null) ? (" - " + data.value.embed.external.description) : "");
-				text += `[url=${lnk}][b]${lnk}[/b][/url]\n[url=${lnk}][img]https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${img}[/img][/url][quote]${qte}[/quote]`;
+				text += `[url=${lnk}][b]${lnk}[/b][/url]\n[url=${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${img}[/img][/url][quote]${qte}[/quote]`;
 			}
 			console.log ("caca prout : " + sub);
 			console.log (data.value.embed.record);
@@ -1227,25 +1242,36 @@ original : { desc : "original", key : "" }
 	static getSkeet (link, id, hash, sub) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${id}&collection=app.bsky.feed.post&rkey=${hash}`;
-				Utils.request({
-					method : "GET",
-					url : url,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var json = JSON.parse (response.responseText);
-							resolve (Utils.jsonToSkeet (json, id, link, sub));
+				var res = Expr.bluesky.exec (link);
+				SkeetProfile.fetch (id).then (profile => {
+					var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${profile.did}&collection=app.bsky.feed.post&rkey=${hash}`;
+					Utils.request({
+						method : "GET",
+						url : url,
+						onabort : function() { reject (link); },
+						onerror : function() { reject (link); },
+						ontimeout : function() { reject (link); },
+						headers : { "Cookie" : "" },
+						anonymous : true,
+						onload : function (response) {
+							try {
+								var json = JSON.parse (response.responseText);
+								Utils.jsonToSkeet (json, profile, link, sub).then (text => {
+									resolve (text);
+								}).catch (e => {
+									console.log (e);
+									reject (link);
+								});
+							}
+							catch (e) {
+								console.log (e);
+								reject (link);
+							}
 						}
-						catch (e) {
-							console.log (e);
-							reject (link);
-						}
-					}
+					});
+				}).catch (e => {
+					console.log (e);
+					reject (link);
 				});
 			})();
 		});
@@ -1255,31 +1281,35 @@ original : { desc : "original", key : "" }
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				var res = Expr.bluesky.exec (link);
-				console.log ("zelda : " + link);
-				var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${res.groups.id}&collection=app.bsky.feed.post&rkey=${res.groups.hash}`;
-				Utils.request({
-					method : "GET",
-					url : url,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var json = JSON.parse (response.responseText);
-							Utils.jsonToSkeet (json, res.groups.id, link, false).then (text => {
-								resolve (text);
-							}).catch (e => {
+				SkeetProfile.fetch (res.groups.id).then (profile => {
+					var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${profile.did}&collection=app.bsky.feed.post&rkey=${res.groups.hash}`;
+					Utils.request({
+						method : "GET",
+						url : url,
+						onabort : function() { reject (link); },
+						onerror : function() { reject (link); },
+						ontimeout : function() { reject (link); },
+						headers : { "Cookie" : "" },
+						anonymous : true,
+						onload : function (response) {
+							try {
+								var json = JSON.parse (response.responseText);
+								Utils.jsonToSkeet (json, profile, link, false).then (text => {
+									resolve (text);
+								}).catch (e => {
+									console.log (e);
+									reject (link);
+								});
+							}
+							catch (e) {
 								console.log (e);
 								reject (link);
-							});
+							}
 						}
-						catch (e) {
-							console.log (e);
-							reject (link);
-						}
-					}
+					});
+				}).catch (e => {
+					console.log (e);
+					reject (link);
 				});
 			})();
 		});
