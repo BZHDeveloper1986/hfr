@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.40
+// @version       1.4.41
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.41         BlueSky : ajout du logo.
 // 1.4.40         BlueSky : miniature des liens, si existe.
 // 1.4.39         BlueSky : ajout des images & video.
 // 1.4.38         alerte firefox sur une fonctionnalité désactivée.
@@ -1158,7 +1159,7 @@ original : { desc : "original", key : "" }
 	
 	static jsonToSkeet (data, id, link) {
 		var quote = new Quote (link);
-		quote.author = id;
+		quote.author = "[img]https://rehost.diberie.com/Picture/Get/f/327943[/img]" + id;
 		var did_plc = data.uri.split ("at://")[1].split ("/")[0];
 		var text = data.value.text;
 		console.log (text);
