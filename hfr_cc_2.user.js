@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.46
+// @version       1.4.47
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -98,7 +98,7 @@ class Expr {
 	}
 	
 	static get bluesky() {
-		return new Expr ("^(https://(?<instance>[\\w\\.]+)/profile/(?<id>[\\w\\.]+)/post/(?<hash>\\w+))$");
+		return new Expr ("^(https://(?<instance>[\\w\\.]+)/profile/(?<id>[\\w\\.:-]+)/post/(?<hash>\\w+))$");
 	}
 }
 
@@ -1259,6 +1259,8 @@ original : { desc : "original", key : "" }
 				var rec = data.value.embed.record;
 				if (rec.record)
 					rec = rec.record;
+				console.log ("log");
+				console.log (rec);
 				var subdid = rec.uri.split ("at://")[1].split ("/")[0];
 				var subp = rec.uri.split ("app.bsky.feed.post/")[1];
 				quote.subquote = Utils.getSkeet (`https://bsky.app/profile/${subdid}/post/${subp}`, subdid, subp, true);
