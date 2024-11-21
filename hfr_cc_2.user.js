@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.48
+// @version       1.4.49
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.49         BlueSky : souci avec les images.
 // 1.4.48         BlueSky : les GIF sont là.
 // 1.4.46         BlueSky : compte le texte en octets, pas en caractères...
 // 1.4.45         BlueSky : c'est un *** leur gestion des données.
@@ -1222,7 +1223,7 @@ original : { desc : "original", key : "" }
 				var lnk = data.value.embed.video.ref["$link"];
 				var url = `https://video.bsky.app/watch/${did_plc}/${lnk}`;
 				var url_data = "?vdata=" + encodeURIComponent (url + "/playlist.m3u8");
-				text += `[url=${link}][img]https://rehost.diberie.com/Rehost?size=min&url=${url}/thumbnail.jpg${url_data}[/img][/url]`;
+				text += `[url=${link}][img]${url}/thumbnail.jpg${url_data}[/img][/url]`;
 			}
 			if (data.value.embed.external && (data.value.embed.images == null || data.value.embed.images.length == 0)) {
 				var lnk = data.value.embed.external.uri;
@@ -1248,7 +1249,7 @@ original : { desc : "original", key : "" }
 					var lnk = med.video.ref["$link"];
 					var url = `https://video.bsky.app/watch/${did_plc}/${lnk}`;
 					var url_data = "?vdata=" + encodeURIComponent (url + "/playlist.m3u8");
-					text += `[url=${link}][img]https://rehost.diberie.com/Rehost?size=min&url=${url}/thumbnail.jpg${url_data}[/img][/url]`;
+					text += `[url=${link}][img]${url}/thumbnail.jpg${url_data}[/img][/url]`;
 				}
 				if (med.external && (med.images == null || med.images.length == 0)) {
 					var lnk = med.external.uri;
