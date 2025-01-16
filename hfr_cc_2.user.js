@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.50
+// @version       1.4.51
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -558,7 +558,7 @@ class SkeetProfile {
 	constructor (d, h, n) {
 		this.#did = d;
 		this.#handle = h;
-		this.#name = n;
+		this.#name = Utils.normalizeText (n);
 	}
 
 	get did() { return this.#did; }
