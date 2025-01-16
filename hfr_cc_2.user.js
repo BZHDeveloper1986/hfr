@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.49
+// @version       1.4.50
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.50         Normalisation des chaînes de caractères.
 // 1.4.49         BlueSky : souci avec les images.
 // 1.4.48         BlueSky : les GIF sont là.
 // 1.4.46         BlueSky : compte le texte en octets, pas en caractères...
@@ -873,6 +874,8 @@ original : { desc : "original", key : "" }
 				code -= 9307;
 			else if (code >= 127462 && code <= 127487)
 				code -= 127397;
+			else if (code >= 120406 && code <= 120457)
+				code -= 120335;
 			res_arr.push (String.fromCodePoint (code));
 		}
 		return res_arr.join("");
