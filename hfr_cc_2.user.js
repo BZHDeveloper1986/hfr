@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.52
+// @version       1.4.53
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.53         le dev est un idiot.
 // 1.4.52         correction d'URL.
 // 1.4.50         Normalisation des chaînes de caractères.
 // 1.4.49         BlueSky : souci avec les images.
@@ -831,7 +832,7 @@ original : { desc : "original", key : "" }
 			Utils.request({
 				method : "GET",
 				responseType : "json",
-				url : "https://gitlab.com/BZHDeveloper/HFR/raw/master/emojis-data.json",
+				url : "https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/emojis-data.json",
 				onload : function (response) {
 					localStorage.setItem ("hfr-cc-data", JSON.stringify (response.response));
 					callback (response.response.unicode_table);
