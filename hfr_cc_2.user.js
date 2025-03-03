@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.53
+// @version       1.4.54
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.54         Nouvelle URL pour les emojis.
 // 1.4.53         le dev est un idiot.
 // 1.4.52         correction d'URL.
 // 1.4.50         Normalisation des chaînes de caractères.
@@ -908,7 +909,7 @@ original : { desc : "original", key : "" }
 			var found = false;
 			for (var i = 0; i < Utils.unicodeTable.length; i++) {
 				if (tmp.indexOf (Utils.unicodeTable[i]) == 0) {
-					result  = result + "[img]https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/emojis-micro/" + Utils.feofConvert (Utils.unicodeTable[i]) + ".png[/img]";
+					result  = result + "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-micro/" + Utils.feofConvert (Utils.unicodeTable[i]) + ".png?raw=true[/img]";
 					tmp = tmp.substring (1 + Utils.unicodeTable[i].length);
 					found = true;
 					break;
