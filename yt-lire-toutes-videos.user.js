@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper
 // @name          [YT] Lire toutes les vidéos
-// @version       0.3
+// @version       0.4
 // @namespace     www.youtube.com
 // @description   lire les dernières vidéos mises en ligne.
 // @include       https://www.youtube.com/*
