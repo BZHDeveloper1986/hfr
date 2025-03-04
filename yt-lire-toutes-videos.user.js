@@ -28,6 +28,8 @@ var obs = new MutationObserver(function (mutations, observer) {
 	if (plid == null)
 		return;
 	var span = document.querySelector (".page-header-view-model-wiz__page-header-title span");
+	if (span == null)
+		return; // pas encore chargé.
 	span.onclick = e => {
 		window.location.href = "https://www.youtube.com/playlist?list=" + plid;
 	};
