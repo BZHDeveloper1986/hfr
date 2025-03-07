@@ -1,17 +1,18 @@
 // ==UserScript==
 // @author        PetitJean
 // @name          [HFR] blabla-gogol
-// @version       0.0.98
+// @version       0.1.0
 // @namespace     forum.hardware.fr
 // @description   remplace chaque post de gogols par un chaton kawaii
-// @icon          https://gitlab.com/BZHDeveloper/HFR/raw/master/hfr-logo.png
-// @downloadURL   https://gitlab.com/BZHDeveloper/HFR/raw/master/hfr_blabla_gogol.user.js
-// @updateURL     https://gitlab.com/BZHDeveloper/HFR/raw/master/hfr_blabla_gogol.user.js
+// @downloadURL   https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_blabla_gogol.user.js?ref_type=heads
+// @updateURL     https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_blabla_gogol.user.js?ref_type=heads
 // @require       https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @include       https://forum.hardware.fr/forum2.php*
 // @include       https://forum.hardware.fr/forum1.php*
 // @include       https://forum.hardware.fr/hfr/*
 // @include       https://forum.hardware.fr/
+// @include       https://forum.hardware.fr/message.php*
+// @include       https://forum.hardware.fr/apercu.php
 // @noframes
 // @grant         GM_info
 // @grant         GM_deleteValue
@@ -35,6 +36,7 @@
 // 0.0.95 : La compatibilité GM4 serait mieux avec le polyfill, hein.
 // 0.0.96 : Ajout des pages des catégories.
 // 0.0.97 : Mise à jour de l'avatar.
+// 0.1.0  : Mise à jour des URL, ajout du minou dans la réponse classique
 
 function isGM4() {
 	if (typeof (GM) !== "object")
@@ -99,7 +101,10 @@ for (var i = 0; i < cases.length; i++) {
 var messages = document.querySelectorAll (".message");
 for (var i = 0; i < messages.length; i++) {
 	var message = messages.item (i);
-	var pseudo = message.querySelector(".s2").textContent.replace ("\u200B", "").toLowerCase();
+	var s2 = message.querySelector(".s2");
+	if (s2 == null)
+		continue;
+	var pseudo = s2.textContent.replace ("\u200B", "").toLowerCase();
 	if (list.includes (pseudo)) {
 		message.querySelector(".s2").textContent = "kawaii !!!";
 		var ac = message.querySelector(".avatar_center");
@@ -108,40 +113,52 @@ for (var i = 0; i < messages.length; i++) {
 		var status = message.querySelector (".MoodStatus");
 		if (status != null)
 			status.parentElement.removeChild (status);
-		message.querySelector (".messCase2").querySelector("p").parentElement.innerHTML = "<img src=\"http://forum-images.hardware.fr/images/perso/killall-9.gif\" />";
+		message.querySelector (".messCase2").querySelector("p").parentElement.innerHTML = "<img src=\"https://forum-images.hardware.fr/images/perso/killall-9.gif\" />";
 	}
 }
-var q = document.querySelectorAll (".s1");
-for (var i = 0; i < q.length; i++) {
-	var qt = q.item (i);
-	if (qt.querySelector ("a") == null)
-		continue;
-	var text = qt.querySelector("a").textContent.toLowerCase();
-	if (text.indexOf ("a écrit :") < 0)
-		continue;
-	var old = qt.parentElement.parentElement.parentElement.parentElement.classList.contains ("oldcitation");
-	var pseudo = qt.querySelector("a").textContent.replace ("\u200B", "").split ("a écrit")[0].trim().toLowerCase();
-	if (list.includes (pseudo)) {
-		qt.querySelector("a").textContent = "kawaii a écrit :";
-		var td = qt.parentElement;
-		while (td.firstChild != null)
-			td.removeChild (td.firstChild);
-		td.appendChild (qt);
-		if (old) {
-			var hr = document.createElement ("hr");
-			hr.setAttribute ("size", "1");
-			td.appendChild (hr);
-		} else {
-			td.appendChild (document.createElement ("br"));
-			td.appendChild (document.createElement ("br"));
-		}
-		var img = document.createElement ("img");
-		img.setAttribute ("src", "http://forum-images.hardware.fr/images/perso/killall-9.gif");
-		td.appendChild (img);
-		if (old) {
-			hr = document.createElement ("hr");
-			hr.setAttribute ("size", "1");
-			td.appendChild (hr);
+
+function replaceInOldQuote (doc) {
+	var q = doc.querySelectorAll (".s1");
+	for (var i = 0; i < q.length; i++) {
+		var qt = q.item (i);
+		if (qt.querySelector ("a") == null)
+			continue;
+		var text = qt.querySelector("a").textContent.toLowerCase();
+		if (text.indexOf ("a écrit :") < 0)
+			continue;
+		var old = qt.parentElement.parentElement.parentElement.parentElement.classList.contains ("oldcitation");
+		var pseudo = qt.querySelector("a").textContent.replace ("\u200B", "").split ("a écrit")[0].trim().toLowerCase();
+		if (list.includes (pseudo)) {
+			qt.querySelector("a").textContent = "kawaii a écrit :";
+			var td = qt.parentElement;
+			while (td.firstChild != null)
+				td.removeChild (td.firstChild);
+			td.appendChild (qt);
+			if (old) {
+				var hr = document.createElement ("hr");
+				hr.setAttribute ("size", "1");
+				td.appendChild (hr);
+			} else {
+				td.appendChild (document.createElement ("br"));
+				td.appendChild (document.createElement ("br"));
+			}
+			var img = document.createElement ("img");
+			img.setAttribute ("src", "https://forum-images.hardware.fr/images/perso/killall-9.gif");
+			td.appendChild (img);
+			if (old) {
+				hr = document.createElement ("hr");
+				hr.setAttribute ("size", "1");
+				td.appendChild (hr);
+			}
 		}
 	}
+}
+
+replaceInOldQuote (document);
+
+var iframe = document.querySelector("#apercu_frame");
+if (iframe) {
+	iframe.addEventListener ("load", e => {
+		replaceInOldQuote (iframe.contentDocument);
+	});
 }
