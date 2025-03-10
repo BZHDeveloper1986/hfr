@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.54
+// @version       1.4.55
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.55         tant pis pour les GIF sous Fofox.
 // 1.4.54         Nouvelle URL pour les emojis.
 // 1.4.53         le dev est un idiot.
 // 1.4.52         correction d'URL.
@@ -1950,21 +1951,39 @@ original : { desc : "original", key : "" }
 		}
 	}
 
-	static allowDrop (event) { event.preventDefault(); }
+	static allowDrop (event) {
+		event.preventDefault();
+	}
+	
+	static stringIsGIF (str) {
+		try {
+			var url = new URL (str);
+			return url.pathname.endsWith(".gif");
+		}
+		catch {}
+		return false;
+	}
 	
 	static drop (event) {
 		console.log ("drop event");
-		console.log (event.dataTransfer.items.length);
+		console.log (event.dataTransfer);
 		event.preventDefault();
 		var loading = new Loading();
 		var dt = event.dataTransfer;
 		if (dt.items.length == 0)
 			return;
-		var hf = false;
+		var hf = false, hu = false;
 		for (var i = 0; i < dt.items.length; i++)
 			if (dt.items[i].kind == "file")
 				hf = true;
-		if (hf) {
+		var uri = event.dataTransfer.getData ("text/uri-list");
+		if (uri != null)
+			hu = true;
+		if (hu && Utils.stringIsGIF (uri)) {
+			Utils.insertText (event.target, "[url=" + uri + "][img]" + uri + "[/img][/url]");	
+			
+		}
+		else if (hf) {
 			for (var i = 0; i < dt.items.length; i++) {
 				var item = dt.items[i];
 				console.log (item);
