@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.55
+// @version       1.4.56
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.56         BlueSky : normalisation du texte enrichi
 // 1.4.55         tant pis pour les GIF sous Fofox.
 // 1.4.54         Nouvelle URL pour les emojis.
 // 1.4.53         le dev est un idiot.
@@ -707,6 +708,11 @@ class Utils {
 	
 	static get hashDialog() { return Utils.#hdialog; }
 	
+	static isMac() {
+		const userAgent = window.navigator.userAgent;
+		const platform = window.navigator?.userAgentData?.platform || window.navigator.platform;
+	}
+	
 	static addCss (url) {
 		var head = document.getElementsByTagName('head')[0];
 		if (!head) { return; }
@@ -1281,7 +1287,7 @@ original : { desc : "original", key : "" }
 				quote.subquote = Utils.getSkeet (`https://bsky.app/profile/${subdid}/post/${subp}`, subdid, subp, true);
 			}
 		}
-		quote.text = Utils.formatText (text);
+		quote.text = Utils.normalizeText (text);
 		return quote.toString();
 	}
 	
