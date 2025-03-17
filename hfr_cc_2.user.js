@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.56
+// @version       1.4.57
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -1986,7 +1986,7 @@ original : { desc : "original", key : "" }
 		if (uri != null)
 			hu = true;
 		if (hu && Utils.stringIsGIF (uri)) {
-			Utils.insertText (event.target, "[url=" + uri + "][img]" + uri + "[/img][/url]");	
+			Utils.insertText (event.target, "[url=" + uri + "][img]https://rehost.diberie.com/Rehost?url=" + uri + "[/img][/url]");	
 			
 		}
 		else if (hf) {
