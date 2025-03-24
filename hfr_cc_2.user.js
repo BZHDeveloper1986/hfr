@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.57
+// @version       1.4.58
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.58         Choix du service d'envoi d'images.
 // 1.4.56         BlueSky : normalisation du texte enrichi
 // 1.4.55         tant pis pour les GIF sous Fofox.
 // 1.4.54         Nouvelle URL pour les emojis.
@@ -247,7 +248,7 @@ class Video extends Widget {
 	}
 }
 
-class Image extends Widget {
+class Picture extends Widget {
 	constructor (source) {
 		super ("img");
 		this.set ("src", source);
@@ -337,7 +338,7 @@ class Button extends Widget {
 	constructor (title) {
 		super ("span");
 		
-		this.#img = new Image ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAEg0lEQVR42mKAgVFgYmLyxtjY+D+l2MzM7ApZDgBq/rtx48b/s2fPBhu0/uRNYjFY/fz58/9v3rwZQHo1wMiWBdE14rVtc2zbtm3btm0b0dqKs+HaCr7tX1unkq9pvZ5JclqvcAq3bjU+X9w1gZSUFAJgsGb1S8WAfFZWFmVnZxPsaPJhYGBwPz+3YbhZW1vfpEJgdXWVhoaGdkUAmdvc3BQCb7755gsMH/5cwk7Xubw/ME4ZGRmdtLKyOmxubn6Mfx9UIZCbm0s5OTl6ESibeU/kHRwcyMzMTD6bmJgctbOzO+Lm5nYuMDCQYmNjKT09nVJTUykyMpL4d2IC+1UIzM3NUV9fnxipXPpcEew9fMnV1ZVCQkIoPj6eMjIyxFlycrI4Dg8PJ39/f/Lw8LgEkeeMHFAhUFZWRsXFxUKgdP4TRXjbwIDy8vLEkZ+fHxxogAICExMT1NXVJQQKZz5SAhAAaRhWBHd3d80EGhoaqKqqSgjkTn2gBCAAHRUnzs7OZG9vTzY2NhfQdNyAh9npae6P0yiTWgI4Ae3t7UIga/xdRTAwNKTKykriY0WWlpYwDP2z3GS/8+f3+b2ZT0Q0v5syXmICJ1EytQQ6OjqosbFR38lH5eXlxBESekjbHGCZ+7QS6O7upqamJjE8+dG3inDJMRum4eFhmYS7JjAwMEBtbW1CIL5vWxEMmUBpaakQQBPrImBqaqqZQGtrK9XV1QmB6O5NRTAyNhYCxvze29uriEB+fr7mY9jT0yMEwjvWFQEESkpKJAMLCwt7I4DoLx3D4NYVRTBmx5gDyEBnZ+feCCCCwcFBIRDQtKQIJqamVFRUJBnY2NjYGwEcJ9QTBHzqFxTB1NSMCgsLJQPNzc06CfCFpZkAIri0kHjWzinCJQIcmdqFhB29wZjgIfQ9v//KU/GURgIFBQUEKCXgUTUlBKCDDFRXV19N4Hp20s+OT/j6+l6Ijo6moKAgcnFxwaWlQuBmKCKC6elprQRcC3vIwj2IR7AR3wOGvAOYEyJCBj744APRhT120MLpPo5TNTk5ifkizRoXFyf7wNUEbmc8y4o/6xi7UMIiQd7e3nLnJyQkIBrc93h2Sea/e++914zfT2BCrq2t0fz8PGaEnLC0tDToqCwkNzLuZDzCeFIdnnjiCU82ehJGYBSnBSnHluPj4wPnx6APO2+88UakhYXF0ZqaGsgJMOTQ4Ng5uSQg8LdeSysrfMCKFzGsEBGMYm5gGcU2xOQOX9VPKXwNy8itra0VOZwwLK0xMTG4ps+z/Iy+/xuOIVrUEnVFRDDKpbhUgj8vyfL1+xbfksfQeJmZmXAMOdRfokd5WOZpfdf2s9jx0Ei4/5FOGIZRW1vb02y0awfhLW7CE1hKsa4FBweTk5PTRTjnbAZBRt8SfMab7zk0HjKBpRPp5A0IRg+9+uqr914t/9JLL93CpJvQN6x7nN+xpHyD7IjALgg8wjjItT3t5eVFnp6exDv+Kfymw+j13JT/TwrYYuLAJklqNIgALZwJxLeA+DyQ3wisA4QYhjIAACqkfZkBRe3AAAAAAElFTkSuQmCC");
+		this.#img = new Picture ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAEg0lEQVR42mKAgVFgYmLyxtjY+D+l2MzM7ApZDgBq/rtx48b/s2fPBhu0/uRNYjFY/fz58/9v3rwZQHo1wMiWBdE14rVtc2zbtm3btm0b0dqKs+HaCr7tX1unkq9pvZ5JclqvcAq3bjU+X9w1gZSUFAJgsGb1S8WAfFZWFmVnZxPsaPJhYGBwPz+3YbhZW1vfpEJgdXWVhoaGdkUAmdvc3BQCb7755gsMH/5cwk7Xubw/ME4ZGRmdtLKyOmxubn6Mfx9UIZCbm0s5OTl6ESibeU/kHRwcyMzMTD6bmJgctbOzO+Lm5nYuMDCQYmNjKT09nVJTUykyMpL4d2IC+1UIzM3NUV9fnxipXPpcEew9fMnV1ZVCQkIoPj6eMjIyxFlycrI4Dg8PJ39/f/Lw8LgEkeeMHFAhUFZWRsXFxUKgdP4TRXjbwIDy8vLEkZ+fHxxogAICExMT1NXVJQQKZz5SAhAAaRhWBHd3d80EGhoaqKqqSgjkTn2gBCAAHRUnzs7OZG9vTzY2NhfQdNyAh9npae6P0yiTWgI4Ae3t7UIga/xdRTAwNKTKykriY0WWlpYwDP2z3GS/8+f3+b2ZT0Q0v5syXmICJ1EytQQ6OjqosbFR38lH5eXlxBESekjbHGCZ+7QS6O7upqamJjE8+dG3inDJMRum4eFhmYS7JjAwMEBtbW1CIL5vWxEMmUBpaakQQBPrImBqaqqZQGtrK9XV1QmB6O5NRTAyNhYCxvze29uriEB+fr7mY9jT0yMEwjvWFQEESkpKJAMLCwt7I4DoLx3D4NYVRTBmx5gDyEBnZ+feCCCCwcFBIRDQtKQIJqamVFRUJBnY2NjYGwEcJ9QTBHzqFxTB1NSMCgsLJQPNzc06CfCFpZkAIri0kHjWzinCJQIcmdqFhB29wZjgIfQ9v//KU/GURgIFBQUEKCXgUTUlBKCDDFRXV19N4Hp20s+OT/j6+l6Ijo6moKAgcnFxwaWlQuBmKCKC6elprQRcC3vIwj2IR7AR3wOGvAOYEyJCBj744APRhT120MLpPo5TNTk5ifkizRoXFyf7wNUEbmc8y4o/6xi7UMIiQd7e3nLnJyQkIBrc93h2Sea/e++914zfT2BCrq2t0fz8PGaEnLC0tDToqCwkNzLuZDzCeFIdnnjiCU82ehJGYBSnBSnHluPj4wPnx6APO2+88UakhYXF0ZqaGsgJMOTQ4Ng5uSQg8LdeSysrfMCKFzGsEBGMYm5gGcU2xOQOX9VPKXwNy8itra0VOZwwLK0xMTG4ps+z/Iy+/xuOIVrUEnVFRDDKpbhUgj8vyfL1+xbfksfQeJmZmXAMOdRfokd5WOZpfdf2s9jx0Ei4/5FOGIZRW1vb02y0awfhLW7CE1hKsa4FBweTk5PTRTjnbAZBRt8SfMab7zk0HjKBpRPp5A0IRg+9+uqr914t/9JLL93CpJvQN6x7nN+xpHyD7IjALgg8wjjItT3t5eVFnp6exDv+Kfymw+j13JT/TwrYYuLAJklqNIgALZwJxLeA+DyQ3wisA4QYhjIAACqkfZkBRe3AAAAAAElFTkSuQmCC");
 		this.#img.set ("title", title);
 		this.#img.set ("height", 20);
 		this.#img.set ("class", "hfr-cc-button");
@@ -373,7 +374,7 @@ class Button extends Widget {
 	}
 }
 
-class Loading extends Image {
+class Loading extends Picture {
 	constructor() {
 		super ("data:image/png;base64,R0lGODdhEAAQAHcAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQJCgAAACwAAAAAEAAQAMIAAAAAAABmZmbMzMyZmZkAAAAAAAAAAAADIwi63EzEjeGAECAEMCvrXiiOH7WAZKoq2niVFSSZ68xRaK0nACH5BAkKAAAALAMAAwAKAAoAwgAAAGZmZpmZmQAAAMzMzAAAAAAAAAAAAAMcCAoRq4SAOCV9FQjxxsCgxjWAFz4XaklLCrFKAgAh+QQJCgAAACwDAAMACgAKAMIAAACZmZnMzMxmZmYAAAAAAAAAAAAAAAADGwgKEatCgDglfYCQ+sbAINcAXvhcj8YtKCQtCQAh+QQJCgAAACwDAAMACgAKAMIAAADMzMyZmZlmZmYAAAAAAAAAAAAAAAADGggKEauNOULkU2PYJcT9VtSBT3Rlm0JdppIAACH5BAkKAAAALAMAAwAKAAoAwgAAAMzMzJmZmWZmZgAAAAAAAAAAAAAAAAMbCAoRqw0QAsZg7gEh8ItaGI1ZuIAP5y2WNj0JACH5BAkKAAAALAMAAwAKAAoAwgAAAMzMzAAAAJmZmWZmZgAAAAAAAAAAAAMaCAoRq0IAQsAYzL3MV9sg932hpz1f9Fwb9SQAIfkECQoAAAAsAwADAAoACgDCAAAAzMzMAAAAZmZmmZmZAAAAAAAAAAAAAxoIChGrYwBCmBPiqWYf1yAnOuCDhU7kkQv1JAAh+QQJCgAAACwDAAMACgAKAMIAAADMzMwAAABmZmaZmZkAAAAAAAAAAAADGggKEauEMNfAGE9VIV7NIDeN4HOBVeQ565MAADs=");
 	}
@@ -691,6 +692,120 @@ class Quote {
 	}
 }
 
+class UploadService {
+	isInvalid (file) {
+		return file.size > 20000000;
+	}
+	
+	static getService (service) {
+		if (service == "rehost")
+			return new Rehost();
+		return new Imgur();
+	}
+}
+
+class Rehost extends UploadService {
+	upload (file, resolve, reject) {
+		var form = new FormData();
+		form.append ("image", file);
+		Utils.request ({
+			method : "POST",
+			data : form,
+			url : "https://rehost.diberie.com/Host/UploadFiles?SelectedAlbumId=undefined&PrivateMode=false&SendMail=false&KeepTags=&Comment=&SelectedExpiryType=0",
+			onabort : function() { reject ("envoi annulé"); }, 
+			ontimeout : function() { reject ("délai dépassé"); },
+			onerror : function (response) {
+				reject ("erreur lors de l'envoi d'image");
+			},
+			onload : function (response) {
+				var object = JSON.parse (response.responseText);
+				var res = {
+					gif : object.isGIF == true ? true : false,
+					url : object.picURL,
+					images : [{
+						url : object.picURL,
+						id : "image"
+					}]
+				};
+				if (!res.gif) {
+					res.images.push ({
+						id : "réduite",
+						url : object.resizedURL
+					});
+					res.images.push ({
+						id : "miniature",
+						url : object.thumbURL
+					});
+					res.thumb = object.thumbURL;
+				}
+				resolve (res);
+			}
+		});
+	}
+}
+
+class Imgur extends UploadService {
+	upload (file, resolve, reject) {
+		var form = new FormData();
+		form.append ("image", file);
+		Utils.request ({
+			method : "POST",
+			data : form,
+			headers : {		
+				"Authorization" : "Client-ID d1619618d2ac442"
+			},
+			url : "https://api.imgur.com/3/image",
+			onabort : function() { reject ("envoi annulé"); }, 
+			ontimeout : function() { reject ("délai dépassé"); },
+			onerror : function (response) {
+				reject ("erreur lors de l'envoi d'image");
+			},
+			onload : function (response) {
+				var object = JSON.parse (response.responseText);
+				console.log (object);
+				if (!object.success)
+					reject (object);
+				var res = {
+					gif : object.data.type == "image/gif",
+					url : object.data.link,
+					images : [{
+						url : object.data.link,
+						id : "image"
+					}]
+				};
+				if (!res.gif) {
+					res.images.push ({
+						id : "petit carré",
+						url : object.data.link.replace (object.data.id, object.data.id + "s")
+					});
+					res.images.push ({
+						id : "grand carré",
+						url : object.data.link.replace (object.data.id, object.data.id + "b")
+					});
+					res.images.push ({
+						id : "petite miniature",
+						url : object.data.link.replace (object.data.id, object.data.id + "t")
+					});
+					res.images.push ({
+						id : "moyenne miniature",
+						url : object.data.link.replace (object.data.id, object.data.id + "m")
+					});
+					res.images.push ({
+						id : "large miniature",
+						url : object.data.link.replace (object.data.id, object.data.id + "l")
+					});
+					res.images.push ({
+						id : "grosse miniature",
+						url : object.data.link.replace (object.data.id, object.data.id + "h")
+					});
+					res.thumb = object.data.link.replace (object.data.id, object.data.id + "l");
+				}
+				resolve (res);
+			}
+		});
+	}
+}
+
 class Utils {
 	static #oit;
 	static #table_;
@@ -757,11 +872,11 @@ class Utils {
 			}
 			else if (file.type.indexOf ("image/") == 0) {
 				area.disabled = true;
-				Utils.dropImage (file).then (data => {
-					var src = data.link;
-					if (data.type != "image/gif")
-						src = data.link.replace (data.id, data.id + "l");
-					Utils.insertText (area, "[url=" + data.link + "][img]" + src + "[/img][/url]");
+				Utils.dropImage (file).then (upload => {
+					var src = upload.url;
+					if (!upload.gif)
+						src = upload.thumb;
+					Utils.insertText (area, "[url=" + upload.url + "][img]" + src + "[/img][/url]");
 					loading.destroy();
 					area.disabled = false;
 					resolve();
@@ -794,20 +909,6 @@ class Utils {
 		button.attach (btn);
 	}
 	
-	static get ImageType() {
-		if (Utils.#oit == null)
-			Utils.#oit = {
-small_square : { desc : "petit carré", key : "s" },
-big_square : { desc : "grand carré", key : "b" },
-small_thumbnail : { desc : "petite miniature", key : "t" },
-medium_thumbnail : { desc : "moyenne miniature", key : "m" },
-large_thumbnail : { desc : "large miniature", key : "l" },
-huge_thumbnail : { desc : "grosse miniature", key : "h" },
-original : { desc : "original", key : "" }
-			};
-		return Utils.#oit;
-	}
-	
 	static isGM4() {
 		return typeof (GM) === "object" && typeof (GM.info) === "object" && GM.info.scriptHandler == "Greasemonkey" && parseFloat(GM.info.version) >= 4;
 	}
@@ -824,6 +925,39 @@ original : { desc : "original", key : "" }
 			return GM.xmlHttpRequest (object);
 		else
 			return GM_xmlhttpRequest (object);
+	}
+	
+	static setValue (key, data) {
+		if (!Utils.isGM4()) {
+			GM_setValue (key, data);
+			return;
+		}
+		if (typeof (data) === "object")
+			localStorage.setItem (GM.info.script.name + " :: " + key, JSON.stringify (data));
+		else
+			localStorage.setItem (GM.info.script.name + " :: " + key, data);
+	}
+	
+	static getValue (key, default_value) {
+		if (!Utils.isGM4())
+			return GM_getValue (key, default_value);
+		var rk = GM.info.script.name + " :: " + key;
+		if (!localStorage.hasOwnProperty (rk))
+			return default_value;
+		var data = localStorage.getItem (rk);
+		try {
+			var obj = JSON.parse (data);
+			return obj;
+		}
+		catch(e) {}
+		return data;	
+	}
+	
+	static registerCommand (title, callback) {
+		if (Utils.isGM4())
+			GM.registerMenuCommand (title, callback);
+		else
+			GM_registerMenuCommand (title, callback);
 	}
 	
 	static init (callback) {
@@ -1628,34 +1762,14 @@ original : { desc : "original", key : "" }
 		});
 	}
 	
-	static uploadImage (file, resolve, reject) {
-		if (file.size > 20000000) {
-			reject("fichier trop gros");
+	static uploadImage (file, res, rej) {
+		var svc = Utils.getValue ("hfr-copie-colle-service");
+		var service = UploadService.getService (svc);
+		if (service.isInvalid (file)) {
+			rej ("fichier invalid pour ls service " + svc);
 			return;
 		}
-		var form = new FormData();
-		form.append ("image", file);
-		Utils.request ({
-			method : "POST",
-			data : form,
-			headers : {		
-				"Authorization" : "Client-ID d1619618d2ac442"
-			},
-			url : "https://api.imgur.com/3/image",
-			onabort : function() { reject ("envoi annulé"); }, 
-			ontimeout : function() { reject ("délai dépassé"); },
-			onerror : function (response) {
-				reject ("erreur lors de l'envoi d'image");
-			},
-			onload : function (response) {
-				var object = JSON.parse (response.responseText);
-				if (object.success) {
-					resolve (object.data);
-				}
-				else
-					reject (object);
-			}
-		});
+		service.upload (file, res, rej);
 	}
 	
 	static pasteImage (item, type) {
@@ -1733,59 +1847,7 @@ original : { desc : "original", key : "" }
 		console.log ("crotte");
 		console.log (event);
 		if (event.code == "KeyD" && event.ctrlKey && event.altKey) {
-			if (Utils.hashDialog == null) {
-				var dialog = new Dialog();
-				var box = new Box();
-				dialog.closed (d => { d.hide(); });
-				dialog.shown (d => {
-					box.clear();
-					var list = Utils.listImages();
-					for (var data of list) {
-						console.log (data);
-						console.log ("***");
-						var w = new Widget ("div");
-						var img = new Image (data.link);
-						img.width = 150;
-						w.add (img);
-						var btn = new TextButton ("effacer");
-						btn.set ("hash", data.deletehash);
-						btn.setData ("data-widget", w);
-						btn.clicked (b => {
-							Utils.request({
-							method : "DELETE",
-							headers : {		
-								"Authorization" : "Client-ID d1619618d2ac442"
-							},
-							url : "https://api.imgur.com/3/image/" + b.get ("hash"),
-							onerror : function (response) {
-								console.log (response);
-							},
-							onload : function (response) {
-								var result = JSON.parse (response.responseText);
-								if (result.success) {
-									box.remove (b.getData ("data-widget"));
-									Utils.unregisterImage (b.get ("hash"));
-									if (box.children.length == 0)
-										d.hide();
-								}
-							}
-						});
-						});
-						w.add (btn);
-						box.add (w);
-						box.element.appendChild (document.createElement ("br"));
-					}
-				});
-				dialog.title = "Images mises en ligne";
-				var sw = new ScrolledWindow();
-				sw.child = box;
-				dialog.content = sw;
-				Utils.hashDialog = dialog;
-			}
-			if (!Utils.hashDialog.displayed)
-				Utils.hashDialog.display();
-			console.log (Utils.hashDialog.displayed);
-			event.preventDefault();
+			// a refaire
 		}
 	}
 	
@@ -1793,60 +1855,7 @@ original : { desc : "original", key : "" }
 		console.log (event);
 		var loading = new Loading();
 		if (event.code == "KeyD" && event.ctrlKey && event.altKey) {
-			if (Utils.hashDialog == null) {
-				var dialog = new Dialog();
-				var box = new Box();
-				dialog.closed (d => { d.hide(); });
-				dialog.shown (d => {
-					box.clear();
-					var list = Utils.listImages();
-					for (var data of list) {
-						console.log (data);
-						console.log ("***");
-						var w = new Widget ("div");
-						var img = new Image (data.link);
-						img.width = 150;
-						w.add (img);
-						var btn = new TextButton ("effacer");
-						btn.set ("hash", data.deletehash);
-						btn.setData ("data-widget", w);
-						btn.clicked (b => {
-							console.log (b);
-							Utils.request({
-								method : "DELETE",
-								headers : {		
-									"Authorization" : "Client-ID d1619618d2ac442"
-								},
-								url : "https://api.imgur.com/3/image/" + b.get ("hash"),
-								onerror : function (response) {
-									console.log (response);
-								},
-								onload : function (response) {
-									var result = JSON.parse (response.responseText);
-									if (result.success) {
-										box.remove (b.getData ("data-widget"));
-										Utils.unregisterImage (b.get ("hash"));
-										if (box.children.length == 0)
-											d.hide();
-									}
-								}
-							});
-						});
-						w.add (btn);
-						box.add (w);
-						box.element.appendChild (document.createElement ("br"));
-					}
-				});
-				dialog.title = "Images mises en ligne";
-				var sw = new ScrolledWindow();
-				sw.child = box;
-				dialog.content = sw;
-				Utils.hashDialog = dialog;
-			}
-			if (!Utils.hashDialog.displayed)
-				Utils.hashDialog.display();
-			console.log (Utils.hashDialog.displayed);
-			event.preventDefault();
+			// a refaire
 		}
 		else if (event.code == "KeyV" && (event.ctrlKey && navigator.platform.indexOf ("Mac") != 0 || event.metaKey && navigator.platform.indexOf ("Mac") == 0)) {
 			console.log (navigator);
@@ -1893,23 +1902,21 @@ original : { desc : "original", key : "" }
 								else if (type.indexOf ("image/") == 0) {
 									event.target.disabled = true;
 									loading.attach (event.target);
-									Utils.pasteImage (item, type).then (data => {
-										console.log (data);
-										Utils.registerImage (data);
+									Utils.pasteImage (item, type).then (upload => {
 										if (event.altKey) {
-											var src = data.link;
-											if (data.type != "image/gif")
-												src = data.link.replace (data.id, data.id + "l");
-											Utils.insertText (event.target, "[url=" + data.link + "][img]" + src + "[/img][/url]");	
+											var src = upload.url;
+											if (!upload.gif)
+												src = upload.thumb;
+											Utils.insertText (event.target, "[url=" + upload.url + "][img]" + src + "[/img][/url]");	
 										}
 										else {
 											var dialog = new Dialog();
 											dialog.closed (d => { d.destroy(); });
 											dialog.title = "prévisualisation de l'image";
-											var src = data.link;
-											if (data.type != "image/gif")
-												src = data.link.replace (data.id, data.id + "l");
-											var img = new Image (src);
+											var src = upload.url;
+											if (!upload.gif)
+												src = upload.thumb;
+											var img = new Picture (src);
 											img.loaded ((w,h) => {
 												if (w > 400) {
 													img.height = 400 * h / w;
@@ -1921,20 +1928,19 @@ original : { desc : "original", key : "" }
 												}
 											});
 											dialog.content = img;
-											if (data.type == "image/gif") {
+											if (upload.gif) {
 												var button = new TextButton ("gif");
-												button.set ("bbcode", "[url=" + data.link + "][img]" + data.link + "[/img][/url]");
+												button.set ("bbcode", "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");
 												button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
 												dialog.addButton (button);
 											}
 											else
-												for (var key of Object.keys (Utils.ImageType)) {
-													var desc = Utils.ImageType[key];
-													var button = new TextButton (desc.desc);
-													button.set ("bbcode", "[url=" + data.link + "][img]" + data.link.replace (data.id, data.id + desc.key) + "[/img][/url]");
+												upload.images.forEach (img => {
+													var button = new TextButton (img.id);
+													button.set ("bbcode", "[url=" + upload.url + "][img]" + img.url + "[/img][/url]");
 													button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
 													dialog.addButton (button);
-												}
+												});
 											dialog.display();
 										}
 										loading.destroy();
@@ -2012,22 +2018,21 @@ original : { desc : "original", key : "" }
 				else if (item.type.indexOf ("image/") == 0) {
 					event.target.disabled = true;
 					loading.attach (event.target);
-					Utils.dropImage (item.getAsFile()).then (data => {
-						Utils.registerImage (data);
+					Utils.dropImage (item.getAsFile()).then (upload => {
 						if (event.altKey) {
-							var src = data.link;
-							if (data.type != "image/gif")
-								src = data.link.replace (data.id, data.id + "l");
-							Utils.insertText (event.target, "[url=" + data.link + "][img]" + src + "[/img][/url]");	
+							var src = upload.url;
+							if (!upload.gif)
+								src = upload.thumb;
+							Utils.insertText (event.target, "[url=" + upload.url + "][img]" + src + "[/img][/url]");	
 						}
 						else {
 							var dialog = new Dialog();
 							dialog.closed (d => { d.destroy(); });
 							dialog.title = "prévisualisation de l'image";
-							var src = data.link;
-							if (data.type != "image/gif")
-								src = data.link.replace (data.id, data.id + "l");
-							var img = new Image (src);
+							var src = upload.url;
+							if (!upload.gif)
+								src = upload.thumb;
+							var img = new Picture (src);
 							img.loaded ((w,h) => {
 								if (w > 400) {
 									img.height = 400 * h / w;
@@ -2038,23 +2043,21 @@ original : { desc : "original", key : "" }
 									img.height = 400;
 								}
 							});
-							console.log("toto 4");
 							dialog.content = img;
-							if (data.type == "image/gif") {
+							if (upload.gif) {
 								var button = new TextButton ("gif");
-								button.set ("bbcode", "[url=" + data.link + "][img]" + data.link + "[/img][/url]");
+								button.set ("bbcode", "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");
 								button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
 								dialog.addButton (button);
 							}
 							else
-								for (var key of Object.keys (Utils.ImageType)) {
-									var desc = Utils.ImageType[key];
-									var button = new TextButton (desc.desc);
-									button.set ("bbcode", "[url=" + data.link + "][img]" + data.link.replace (data.id, data.id + desc.key) + "[/img][/url]");
+								upload.images.forEach (img => {
+									var button = new TextButton (img.id);
+									button.set ("bbcode", "[url=" + upload.url + "][img]" + img.url + "[/img][/url]");
 									button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
 									dialog.addButton (button);
-								}
-								dialog.display();
+								});
+							dialog.display();
 						}
 						loading.destroy();
 						event.target.disabled = false;
@@ -2089,6 +2092,12 @@ original : { desc : "original", key : "" }
 			}
 	}
 }
+
+Utils.registerCommand ("Copie/Colle -> choix du service", () => {
+	var service = prompt ("Entrez ici le service d'image désiré (imgur, ou rehost)", Utils.getValue ("hfr-copie-colle-service", ""));
+	if (service == "imgur" || service == "rehost")
+		Utils.setValue ("hfr-copie-colle-service", service);
+});
 
 Utils.init (table => {
 	Utils.unicodeTable = table;
