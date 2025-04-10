@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.58
+// @version       1.4.59
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
@@ -766,6 +766,25 @@ class Imgur extends UploadService {
 				if (!object.success)
 					reject (object);
 				var res = {
+					hash : object.data.deletehash,
+					delete : function (callback) {
+						Utils.request ({
+							method : "DELETE",
+							headers : {		
+								"Authorization" : "Client-ID d1619618d2ac442"
+							},
+							url : "https://api.imgur.com/3/image/" + this.hash,
+							onerror : function (response) {
+								console.log (response);
+							},
+							onload : function (response) {
+								var result = JSON.parse (response.responseText);
+								if (result.success) {
+									callback();
+								}
+							}
+						});
+					},
 					gif : object.data.type == "image/gif",
 					url : object.data.link,
 					images : [{
