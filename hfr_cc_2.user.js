@@ -1,12 +1,12 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.59
+// @version       1.4.60
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
-// @icon          https://gitlab.gnome.org/BZHDeveloper/HFR/raw/main/hfr-logo.png
-// @downloadURL   https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
-// @updateURL     https://gitlab.gnome.org/BZHDeveloper/hfr/-/raw/main/hfr_cc_2.user.js
+// @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
+// @downloadURL   https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
+// @updateURL     https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
 // @require       https://vjs.zencdn.net/8.0.4/video.js
 // @include       https://forum.hardware.fr/*
 // @noframes
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.60         Gitlab s'emmerdifie, on va tenter Github.
 // 1.4.58         Choix du service d'envoi d'images.
 // 1.4.56         BlueSky : normalisation du texte enrichi
 // 1.4.55         tant pis pour les GIF sous Fofox.
