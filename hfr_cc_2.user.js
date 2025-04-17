@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.60
+// @version       1.4.61
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.61         Collage des images Google Docs.
 // 1.4.60         Gitlab s'emmerdifie, on va tenter Github.
 // 1.4.58         Choix du service d'envoi d'images.
 // 1.4.56         BlueSky : normalisation du texte enrichi
@@ -1679,6 +1680,25 @@ class Utils {
 		});
 	}
 	
+	static pasteHtml (item) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var blob = await item.getType ("text/html");
+				var text = await blob.text();
+				var doc = new DOMParser().parseFromString (text, "text/html");
+				var sel = doc.querySelectorAll ("b > span > span > img");
+				console.log (sel);
+				if (sel.length == 1) {
+					var url = sel.item (0).getAttribute ("src");
+					var bbcode = "[url=https://rehost.diberie.com/Rehost?url=" + url + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + url + "[/img][/url]";
+					resolve (bbcode);
+				}
+				else
+					reject (text);
+			})();
+		});
+	}
+	
 	static pasteText (item) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
@@ -1885,7 +1905,27 @@ class Utils {
 			else
 				navigator.clipboard.read().then(array => {
 					for (var item of array) {
-						if (item.types.indexOf ("text/plain") >= 0) {
+						var is_img = false;
+						for (var type of item.types)
+							if (type.indexOf ("image/") == 0)
+								is_img = true;
+						if (item.types.indexOf ("text/html") >= 0 && !is_img) {
+							console.log ("caca");
+							event.target.disabled = true;
+							loading.attach (event.target);
+							Utils.pasteHtml (item).then (bbcode => {
+								Utils.insertText (event.target, bbcode);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							}).catch (e => {
+								Utils.insertText (event.target, e);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							});
+						}
+						else if (item.types.indexOf ("text/plain") >= 0) {
 							event.target.disabled = true;
 							loading.attach (event.target);
 							Utils.pasteText (item).then (text => {
