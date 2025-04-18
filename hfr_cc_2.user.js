@@ -1687,7 +1687,7 @@ class Utils {
 				var blob = await item.getType ("text/html");
 				var text = await blob.text();
 				var doc = new DOMParser().parseFromString (text, "text/html");
-				var sel = doc.querySelectorAll ("b > span > span > img");
+				var sel = doc.querySelectorAll ("span[id^='docs-internal-guid'] > span > img");
 				console.log (sel);
 				if (sel.length == 1) {
 					var url = sel.item (0).getAttribute ("src");
