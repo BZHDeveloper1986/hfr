@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.61
+// @version       1.4.62
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.62         Correction du contrôle image GDoc
 // 1.4.61         Collage des images Google Docs.
 // 1.4.60         Gitlab s'emmerdifie, on va tenter Github.
 // 1.4.58         Choix du service d'envoi d'images.
@@ -1891,6 +1892,12 @@ class Utils {
 		}
 	}
 	
+	static isGDoc (item) {
+		if (item.types.length != 1)
+			return false;
+		return item.types[0] == "text/html";
+	}
+	
 	static stroke (event) {
 		console.log (event);
 		var loading = new Loading();
@@ -1905,11 +1912,7 @@ class Utils {
 			else
 				navigator.clipboard.read().then(array => {
 					for (var item of array) {
-						var is_img = false;
-						for (var type of item.types)
-							if (type.indexOf ("image/") == 0)
-								is_img = true;
-						if (item.types.indexOf ("text/html") >= 0 && !is_img) {
+						if (Utils.isGDoc (item)) {
 							console.log ("caca");
 							event.target.disabled = true;
 							loading.attach (event.target);
