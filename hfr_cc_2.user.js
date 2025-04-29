@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.62
+// @version       1.4.63
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.63         modification des # chez Bluesky.
 // 1.4.62         Correction du contrôle image GDoc
 // 1.4.61         Collage des images Google Docs.
 // 1.4.60         Gitlab s'emmerdifie, on va tenter Github.
@@ -1366,7 +1367,12 @@ class Utils {
 		if (data.value.facets)
 			for (var i = data.value.facets.length - 1; i >= 0; i--) {
 				var facet = data.value.facets[i];
-				if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
+				if (facet.features[0]["$type"] == "app.bsky.richtext.facet#tag") {
+					var htag = facet.features[0].tag;
+					var tag = `[url=https://bsky.app/hashtag/${htag}][b]#${htag}[/b][/url]`;
+					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + tag + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
+				}
+				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
 					var mid = facet.features[0].did;
 					var mh = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
 					var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
