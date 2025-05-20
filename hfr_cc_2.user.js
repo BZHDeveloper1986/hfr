@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.63
+// @version       1.4.65
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.65         Unicode 16.0
 // 1.4.63         modification des # chez Bluesky.
 // 1.4.62         Correction du contrôle image GDoc
 // 1.4.61         Collage des images Google Docs.
