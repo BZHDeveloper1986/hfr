@@ -1,6 +1,14 @@
 {
-	"version" : 15.1,
+	"version" : 16,
 	"unicode_table" : [
+		"1f1e8-1f1f6",
+		"1fa8f",
+		"1fa89",
+		"1fabe",
+		"1fac6",
+		"1fadc",
+		"1fadf",
+		"1fae9",
 		"1f1e6-1f1ff",
 		"1f171",
 		"1f198",

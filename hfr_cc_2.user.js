@@ -993,7 +993,7 @@ class Utils {
 		if (!(data instanceof Object))
 			data = {};
 		// mise à jour si vieille version Unicode
-		if (!(data.unicode_table instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 15.1) {
+		if (!(data.unicode_table instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 16) {
 			Utils.request({
 				method : "GET",
 				responseType : "json",
