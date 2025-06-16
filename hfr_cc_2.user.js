@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.65
+// @version       1.4.66
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.66         ajout de Truth Social (instance mastodon)
 // 1.4.65         Unicode 16.0
 // 1.4.63         modification des # chez Bluesky.
 // 1.4.62         Correction du contrôle image GDoc
@@ -101,6 +102,10 @@ class Expr {
 	
 	static get mastodon() {
 		return new Expr ("^(https://(?<instance>[a-z\\.]+)/@\\w+(@[a-z\\.]+)?/(?<tid>\\d+))$");
+	}
+	
+	static get truthsocial() {
+		return new Expr ("^(https://(?<instance>[a-z\\.]+)/@\\w+(@[a-z\\.]+)?/posts/(?<tid>\\d+))$");
 	}
 	
 	static get zippy() {
@@ -1358,6 +1363,33 @@ class Utils {
 		});
 	}
 	
+	static pasteTS (link) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var res = Expr.truthsocial.exec (link);
+				var tid = res.groups.tid;
+				var url = `https://truthsocial.com/api/v1/statuses/${tid}`;
+				Utils.request({
+					method : "GET",
+					url : url,
+					onabort : function() { reject (link); },
+					onerror : function() { reject (link); },
+					ontimeout : function() { reject (link); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
+					onload : function (response) {
+						Utils.jsonToPouet (response.responseText, link).then (text => {
+							resolve (text);
+						}).catch (err => {
+							console.log (err);
+							reject (link);
+						});
+					}
+				});
+			})();
+		});
+	}
+	
 	static jsonToSkeet (data, profile, link, sub) {
 		console.log (data);
 		var did_plc = data.uri.split ("at://")[1].split ("/")[0];
@@ -1653,6 +1685,14 @@ class Utils {
 						reject (text);
 					});
 				}
+				else if (Expr.truthsocial.match (text)) {
+					Utils.pasteTS (text).then (txt => {
+						resolve (txt);
+					}).catch (e => {
+						console.log (e);
+						reject (text);
+					});
+				}
 				else if (Expr.mastodon.match (text)) {
 					Utils.pasteMastodon (text).then (txt => {
 						resolve (txt);
@@ -1730,6 +1770,14 @@ class Utils {
 				}
 				else if (Expr.mastodon.match (text)) {
 					Utils.pasteMastodon (text).then (txt => {
+						resolve (txt);
+					}).catch (e => {
+						console.log (e);
+						reject (text);
+					});
+				}
+				else if (Expr.truthsocial.match (text)) {
+					Utils.pasteTS (text).then (txt => {
 						resolve (txt);
 					}).catch (e => {
 						console.log (e);
