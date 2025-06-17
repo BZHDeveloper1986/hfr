@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.66
+// @version       1.4.67
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.67         vidéos Mastodon
 // 1.4.66         ajout de Truth Social (instance mastodon)
 // 1.4.65         Unicode 16.0
 // 1.4.63         modification des # chez Bluesky.
@@ -2369,6 +2370,17 @@ Utils.init (table => {
 					index++;
 				}
 			}
+		}
+		else if (u.searchParams.get ("hfr-url-type") == "mastodon") {
+			var video = document.createElement ("video");
+			video.setAttribute ("id", "hfr-video-" + index);
+			video.setAttribute ("class", "video-js");
+			video.setAttribute ("controls", "");
+			video.setAttribute ("height", "400");
+			link.parentNode.replaceChild(video, link);
+			console.log ("url : " + href);
+			video.setAttribute ("src", href);
+			index++;
 		}
 		else if (href.indexOf ("https://x.com/i/status/") == 0) {
 			var src = new URL (link.firstElementChild.getAttribute ("src"));
