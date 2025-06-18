@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.67
+// @version       1.4.68
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.68         édition casse-bonbons
 // 1.4.67         vidéos Mastodon
 // 1.4.66         ajout de Truth Social (instance mastodon)
 // 1.4.65         Unicode 16.0
@@ -646,9 +647,9 @@ class Skeet {
 			var pms = [];
 			if (this.#quote != null)
 				pms.push (this.#quote);
-			pms.push (Promise.resolve ("[:teepodavignon:8][citation=1,1,1][nom][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] "));
+			pms.push (Promise.resolve ("[quote][b][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] "));
 			pms.push (Promise.resolve (this.#pfl.toString()));
-			pms.push (Promise.resolve ("[/url][/nom]" + this.#txt + "[/citation]"));
+			pms.push (Promise.resolve ("[/url][/b]\n" + this.#txt + "[/quote]"));
 			Promise.all (pms).then (values => {
 				resolve (values.join(""));
 			}).catch (e => {
@@ -1116,12 +1117,12 @@ class Utils {
 			"Government" : "[img]https://i.imgur.com/AYsrHeC.png[/img]",
 			"Business" : "[img]https://i.imgur.com/6C4thzC.png[/img]"
 		};
-		builder.append ("[:teepodavignon:8][citation=1,1,1][nom][url=https://x.com/i/status/" + tweet.id_str + "][:salami dubongout:4] " + Utils.normalizeText (Utils.formatText (tweet.user.name)));
+		builder.append ("[quote][b][url=https://x.com/i/status/" + tweet.id_str + "]𝕏 " + Utils.normalizeText (Utils.formatText (tweet.user.name)));
 		if (tweet.user.verified_type == "Government" || tweet.user.verified_type == "Business")
 			builder.append (" " + obj[tweet.user.verified_type]);
 		else if (tweet.user.is_blue_verified || tweet.user.verified)
 			builder.append (" [:yoann riou:9]");
-		builder.append (" (@" + tweet.user.screen_name + ")[/url][/nom]");
+		builder.append (" (@" + tweet.user.screen_name + ")[/url][/b]\n");
 		var array = [...(tweet.text)];
 		for (var i = 0; i < array.length; i++) {
 			var _mention = null, _hashtag = null, _url = null, _media = null;
@@ -1185,24 +1186,6 @@ class Utils {
 					builder.append ("[url=https://rehost.diberie.com/Rehost?url=" + md.media_url_https + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + md.media_url_https + "[/img][/url]");
 			}
 		}
-		/*
-		else if (tweet.video) {
-			builder.append ("\n");
-			var video_src = "";
-			for (var i = 0; i < tweet.video.variants.length; i++)
-				if (tweet.video.variants[i].type == "video/mp4")
-					video_src = tweet.video.variants[i].src;
-			var url_data = (video_src == "") ? "" : "&hfr-url-data=" + encodeURIComponent (video_src);
-			url_data += (tweet.video.contentType == "gif") ? "&gif=true" : "";
-			builder.append ("[url=https://x.com/i/status/" + tweet.id_str + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + tweet.video.poster + url_data + "[/img][/url]");
-		}
-		else if (tweet.photos) {
-			builder.append ("\n");
-			for (var photo of tweet.photos) {
-				builder.append ("[url=https://rehost.diberie.com/Rehost?url=" + photo.url + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + photo.url + "[/img][/url]");
-			}
-		}
-		*/
 		else if (tweet.card) {
 			var regex = /^poll(?<count>\d)choice_text_only$/;
 			var res = regex.exec (tweet.card.name);
@@ -1229,7 +1212,7 @@ class Utils {
 				builder.append ("[quote]" + tweet.card.binding_values.title.string_value + "[/quote]");
 			}
 		}
-		builder.append ("[/citation]");		
+		builder.append ("[/quote]");		
 		
 		if (tweet.quoted_tweet) {
 			builder.prepend ("\n");
@@ -1272,7 +1255,7 @@ class Utils {
 				var id = data.account.acct;
 				var instance = new URL (data.account.url).host;
 				var name = Utils.formatText (data.account.display_name);
-				builder.append (`[:teepodavignon:8][citation=1,1,1][nom][url=${uri}][img]https://rehost.diberie.com/Picture/Get/f/110911[/img] ${name} (@${id}@${instance})[/url][/nom]`);
+				builder.append (`[quote][b][url=${uri}][img]https://rehost.diberie.com/Picture/Get/f/110911[/img] ${name} (@${id}@${instance})[/url][/b]\n`);
 				var p = doc.querySelector ("p");
 				while (p != null) {
 					var c = p.firstChild;
@@ -1326,7 +1309,7 @@ class Utils {
 							builder.append (`[url=${src}][img]https://rehost.diberie.com/Rehost?size=min&url=${preview}[/img][/url]`);
 						}
 					});
-				builder.append (`[/citation]`);
+				builder.append (`[/quote]`);
 				resolve (builder.toString());
 			}
 			catch (e) {
