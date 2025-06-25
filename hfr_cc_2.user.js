@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.68
+// @version       1.4.69
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.69         réorganisation des emojis, ajout des emojis "directionnels"
 // 1.4.68         édition casse-bonbons
 // 1.4.67         vidéos Mastodon
 // 1.4.66         ajout de Truth Social (instance mastodon)
@@ -1001,7 +1002,7 @@ class Utils {
 		if (!(data instanceof Object))
 			data = {};
 		// mise à jour si vieille version Unicode
-		if (!(data.unicode_table instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 16) {
+		if (!(data.unicode_table instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 16.1) {
 			Utils.request({
 				method : "GET",
 				responseType : "json",
