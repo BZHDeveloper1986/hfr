@@ -939,6 +939,8 @@ class Utils {
 			Utils.processFiles (event.target, files);
 		});
 		button.attach (btn);
+		var emoji = new Picture ("https://github.com/BZHDeveloper1986/hfr/blob/main/emojis/1f600.png?raw=true");
+		emoji.attach (btn);
 	}
 	
 	static isGM4() {
@@ -1071,6 +1073,10 @@ class Utils {
 	static formatText (text) {
 		if (!Utils.isFormattable (text))
 			return text;
+		var emoji = "emojis";
+		var emoji_size = Utils.getValue ("hfr-copie-colle-emoji", "micro");
+		if (emoji_size != "normal")
+			emoji += `-${emoji_size}`;
 		var array = Array.from (text);
 		var uarray = [];
 		for (var i = 0; i < array.length; i++) {
@@ -1082,7 +1088,7 @@ class Utils {
 			var found = false;
 			for (var i = 0; i < Utils.unicodeTable.length; i++) {
 				if (tmp.indexOf (Utils.unicodeTable[i]) == 0) {
-					result  = result + "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-micro/" + Utils.feofConvert (Utils.unicodeTable[i]) + ".png?raw=true[/img]";
+					result  = result + "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (Utils.unicodeTable[i]) + ".png?raw=true[/img]";
 					tmp = tmp.substring (1 + Utils.unicodeTable[i].length);
 					found = true;
 					break;
@@ -2200,6 +2206,11 @@ Utils.registerCommand ("Copie/Colle -> choix du service", () => {
 	var service = prompt ("Entrez ici le service d'image désiré (imgur, ou rehost)", Utils.getValue ("hfr-copie-colle-service", ""));
 	if (service == "imgur" || service == "rehost")
 		Utils.setValue ("hfr-copie-colle-service", service);
+});
+
+Utils.registerCommand ("Copie/Colle -> taille des emojis", () => {
+	var taille = prompt ("Entrez ici la taille de l'emoji (micro, mini ou normal) ('micro' par défaut)", Utils.getValue ("hfr-copie-colle-emoji", "micro"));
+	Utils.setValue ("hfr-copie-colle-emoji", (taille == "mini" || taille == "normal") ? taille : "micro");
 });
 
 Utils.init (table => {
