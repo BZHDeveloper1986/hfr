@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.68
+// @version       1.4.69
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -842,11 +842,11 @@ class Utils {
 	static #table_;
 	static #hdialog;
 	
-	static set unicodeTable (table) {
+	static set emojis (table) {
 		Utils.#table_ = table;
 	}
 	
-	static get unicodeTable() {
+	static get emojis() {
 		return Utils.#table_;
 	}
 	
@@ -938,7 +938,7 @@ class Utils {
 			Utils.processFiles (event.target, files);
 		});
 		button.attach (btn);
-		var emoji = new Picture ("https://github.com/BZHDeveloper1986/hfr/blob/main/emojis/1f600.png?raw=true");
+		var emoji = new Picture ("https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-micro/1f600.png?raw=true");
 		emoji.attach (btn);
 	}
 	
@@ -1003,19 +1003,19 @@ class Utils {
 		if (!(data instanceof Object))
 			data = {};
 		// mise à jour si vieille version Unicode
-		if (!(data.unicode_table instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 16) {
+		if (!(data.emojis instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 16) {
 			Utils.request({
 				method : "GET",
 				responseType : "json",
 				url : "https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/emojis-data.json",
 				onload : function (response) {
 					localStorage.setItem ("hfr-cc-data", JSON.stringify (response.response));
-					callback (response.response.unicode_table);
+					callback (response.response.emojis);
 				}
 			});
 		}
 		else
-			callback (data.unicode_table);
+			callback (data.emojis);
 	}
 	
 	static isFormattable (text) {
@@ -1026,8 +1026,8 @@ class Utils {
 		}
 		var tmp = uarray.join ("-");
 		var found = false;
-		for (var i = 0; i < Utils.unicodeTable.length; i++) {
-			if (tmp.indexOf (Utils.unicodeTable[i]) > -1) {
+		for (var i = 0; i < Utils.emojis.length; i++) {
+			if (tmp.indexOf (Utils.emojis[i].code) > -1) {
 				found = true;
 				break;
 			}
@@ -1060,10 +1060,10 @@ class Utils {
 	
 	static feofConvert (code) {
 		var fe0f = code.lastIndexOf ("-fe0f") + 5 == code.length;
-		for (var i = 0; i < Utils.unicodeTable.length; i++) {
-			if (Utils.unicodeTable[i] == code)
+		for (var i = 0; i < Utils.emojis.length; i++) {
+			if (Utils.emojis[i].code == code)
 				return code;
-			if (!fe0f && Utils.unicodeTable[i] == (code + "-fe0f"))
+			if (!fe0f && Utils.emojis[i].code == (code + "-fe0f"))
 				return code + "-fe0f";
 		}
 		return code;
@@ -1085,10 +1085,10 @@ class Utils {
 		var result = ""; 
 		while (tmp.length > 0) {
 			var found = false;
-			for (var i = 0; i < Utils.unicodeTable.length; i++) {
-				if (tmp.indexOf (Utils.unicodeTable[i]) == 0) {
-					result  = result + "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (Utils.unicodeTable[i]) + ".png?raw=true[/img]";
-					tmp = tmp.substring (1 + Utils.unicodeTable[i].length);
+			for (var i = 0; i < Utils.emojis.length; i++) {
+				if (tmp.indexOf (Utils.emojis[i].code) == 0) {
+					result  = result + "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (Utils.emojis[i].code) + ".png?raw=true[/img]";
+					tmp = tmp.substring (1 + Utils.emojis[i].length);
 					found = true;
 					break;
 				}
@@ -2213,7 +2213,7 @@ Utils.registerCommand ("Copie/Colle -> taille des emojis", () => {
 });
 
 Utils.init (table => {
-	Utils.unicodeTable = table;
+	Utils.emojis = table;
 	Utils.addCss ("https://vjs.zencdn.net/8.0.4/video-js.css");
 	Utils.addJs ("https://vjs.zencdn.net/8.0.4/video.js");
 	
