@@ -1006,7 +1006,7 @@ class Utils {
 		console.log ("data");
 		console.log (data);
 		console.log (data.emojis instanceof Array);
-		if (!(data.emojis instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 17) {
+		if (!(data.emojis instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 16.2) {
 			console.log ("prout");
 			Utils.request({
 				method : "GET",
