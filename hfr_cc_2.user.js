@@ -1003,7 +1003,11 @@ class Utils {
 		if (!(data instanceof Object))
 			data = {};
 		// mise à jour si vieille version Unicode
-		if (!(data.emojis instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 16) {
+		console.log ("data");
+		console.log (data);
+		console.log (data.emojis instanceof Array);
+		if (!(data.emojis instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 17) {
+			console.log ("prout");
 			Utils.request({
 				method : "GET",
 				responseType : "json",
