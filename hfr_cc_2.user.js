@@ -1011,7 +1011,7 @@ class Utils {
 			Utils.request({
 				method : "GET",
 				responseType : "json",
-				url : "https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/emojis-data.json",
+				url : "https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/emojis-data-2.json",
 				onload : function (response) {
 					localStorage.setItem ("hfr-cc-data", JSON.stringify (response.response));
 					callback (response.response.emojis);
