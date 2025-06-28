@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.69
+// @version       1.4.70
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.70         ajoute d'une boîte texte de recherche des emojis
 // 1.4.68         édition casse-bonbons
 // 1.4.67         vidéos Mastodon
 // 1.4.66         ajout de Truth Social (instance mastodon)
@@ -938,8 +939,38 @@ class Utils {
 			Utils.processFiles (event.target, files);
 		});
 		button.attach (btn);
-		var emoji = new Picture ("https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-micro/1f600.png?raw=true");
+		var emoji = new Picture ("https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-mini/1f600.png?raw=true");
 		emoji.attach (btn);
+		var search = document.createElement ("input");
+		var div = document.createElement ("div");
+		div.setAttribute ("class", "prout");
+		search.setAttribute ("type", "text");
+		search.addEventListener ("keyup", e => {
+			var child = div.firstElementChild;
+			while (child != null) {
+				div.removeChild (child);
+				child = div.firstElementChild;
+			}
+			var c = 0;
+			for (var i = 0; i < Utils.emojis.length; i++) {
+				console.log (e.target.value);
+				if (Utils.emojis[i].description.toLowerCase().indexOf (e.target.value.toLowerCase()) > -1) {
+					var img = document.createElement ("img");
+					div.appendChild (img);
+					img.addEventListener ("error", () => {
+						div.removeChild (img);
+					});
+					img.setAttribute ("src", "https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-mini/" + Utils.emojis[i].code + ".png?raw=true");
+					img.setAttribute ("data-bbcode", "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-mini/" + Utils.emojis[i].code + ".png?raw=true[/img]");
+					img.addEventListener ("click", () => { event.target.value += img.getAttribute ("data-bbcode"); });
+					c++;
+					if (c == 10)
+						break;
+				}
+			}
+		});
+		btn.parentElement.appendChild (div);
+		btn.parentElement.insertBefore (search, btn);
 	}
 	
 	static isGM4() {
@@ -1088,11 +1119,12 @@ class Utils {
 		var tmp = uarray.join ("-");
 		var result = ""; 
 		while (tmp.length > 0) {
+			console.log (tmp.length);
 			var found = false;
 			for (var i = 0; i < Utils.emojis.length; i++) {
 				if (tmp.indexOf (Utils.emojis[i].code) == 0) {
 					result  = result + "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (Utils.emojis[i].code) + ".png?raw=true[/img]";
-					tmp = tmp.substring (1 + Utils.emojis[i].length);
+					tmp = tmp.substring (1 + Utils.emojis[i].code.length);
 					found = true;
 					break;
 				}
