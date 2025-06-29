@@ -20,7 +20,7 @@
 // ==/UserScript==
 
 // Historique
-// 1.4.70         ajoute d'une boîte texte de recherche des emojis
+// 1.4.70         ajoute d'une boîte text 
 // 1.4.68         édition casse-bonbons
 // 1.4.67         vidéos Mastodon
 // 1.4.66         ajout de Truth Social (instance mastodon)
@@ -869,10 +869,12 @@ class Utils {
 		head.appendChild (link);
 	}
 	
-	static addJs (url) {
+	static addJs (url, module) {
 		var head = document.getElementsByTagName('head')[0];
 		var script = document.createElement ("script");
 		script.setAttribute ("src", url);
+		if (module)
+			script.setAttribute ("type", "module");
 		head.appendChild (script);
 	}
 	
@@ -1063,12 +1065,15 @@ class Utils {
 	
 	static feofConvert (code) {
 		var fe0f = code.lastIndexOf ("-fe0f") + 5 == code.length;
-		for (var i = 0; i < Utils.emojis.length; i++) {
-			if (Utils.emojis[i].code == code)
-				return code;
-			if (!fe0f && Utils.emojis[i].code == (code + "-fe0f"))
-				return code + "-fe0f";
+		if (fe0f) {
+			var c = code.substring (0, code.lastIndexOf("-fe0f"));
+			for (var i = 0; i < Utils.emojis.length; i++)
+				if (c == Utils.emojis[i].code)
+					return code;
 		}
+		for (var i = 0; i < Utils.emojis.length; i++)
+			if (Utils.emojis[i].code == code)
+				return code;	
 		return code;
 	}
 	
@@ -2220,6 +2225,7 @@ Utils.init (table => {
 	Utils.emojis = table;
 	Utils.addCss ("https://vjs.zencdn.net/8.0.4/video-js.css");
 	Utils.addJs ("https://vjs.zencdn.net/8.0.4/video.js");
+	Utils.addJs ("https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js", true);
 	
 	document.addEventListener ("keydown", Utils.bstroke);	
 	
