@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.70
+// @version       1.4.71
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -939,38 +939,6 @@ class Utils {
 			Utils.processFiles (event.target, files);
 		});
 		button.attach (btn);
-		var emoji = new Picture ("https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-mini/1f600.png?raw=true");
-		emoji.attach (btn);
-		var search = document.createElement ("input");
-		var div = document.createElement ("div");
-		div.setAttribute ("class", "prout");
-		search.setAttribute ("type", "text");
-		search.addEventListener ("keyup", e => {
-			var child = div.firstElementChild;
-			while (child != null) {
-				div.removeChild (child);
-				child = div.firstElementChild;
-			}
-			var c = 0;
-			for (var i = 0; i < Utils.emojis.length; i++) {
-				console.log (e.target.value);
-				if (Utils.emojis[i].description.toLowerCase().indexOf (e.target.value.toLowerCase()) > -1) {
-					var img = document.createElement ("img");
-					div.appendChild (img);
-					img.addEventListener ("error", () => {
-						div.removeChild (img);
-					});
-					img.setAttribute ("src", "https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-mini/" + Utils.emojis[i].code + ".png?raw=true");
-					img.setAttribute ("data-bbcode", "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/emojis-mini/" + Utils.emojis[i].code + ".png?raw=true[/img]");
-					img.addEventListener ("click", () => { event.target.value += img.getAttribute ("data-bbcode"); });
-					c++;
-					if (c == 10)
-						break;
-				}
-			}
-		});
-		btn.parentElement.appendChild (div);
-		btn.parentElement.insertBefore (search, btn);
 	}
 	
 	static isGM4() {
