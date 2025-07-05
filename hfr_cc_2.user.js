@@ -1065,15 +1065,14 @@ class Utils {
 	
 	static feofConvert (code) {
 		var fe0f = code.lastIndexOf ("-fe0f") + 5 == code.length;
-		if (fe0f) {
-			var c = code.substring (0, code.lastIndexOf("-fe0f"));
+		if (!fe0f)
 			for (var i = 0; i < Utils.emojis.length; i++)
-				if (c == Utils.emojis[i].code)
+				if (Utils.emojis[i].code == code)
 					return code;
-		}
+		var c = code.substring (0, code.lastIndexOf("-fe0f"));
 		for (var i = 0; i < Utils.emojis.length; i++)
-			if (Utils.emojis[i].code == code)
-				return code;	
+			if (c == Utils.emojis[i].code)
+				return code;
 		return code;
 	}
 	
@@ -1481,7 +1480,7 @@ class Utils {
 				quote.subquote = Utils.getSkeet (`https://bsky.app/profile/${subdid}/post/${subp}`, subdid, subp, true);
 			}
 		}
-		quote.text = Utils.normalizeText (text);
+		quote.text = Utils.formatText (Utils.normalizeText (text));
 		return quote.toString();
 	}
 	
