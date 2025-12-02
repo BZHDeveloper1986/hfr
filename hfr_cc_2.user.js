@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.71
+// @version       1.4.72
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -592,10 +592,8 @@ class SkeetProfile {
 
 	static fetch (str) {
 		var prout = 0;
-		console.log ("prout " + prout++);
 		return new Promise ((resolve, reject) => {
 			var url = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=" + str;
-			console.log (url);
 			Utils.request({
 				method : "GET",
 				url : url,
@@ -605,7 +603,6 @@ class SkeetProfile {
 				headers : { "Cookie" : "" },
 				anonymous : true,
 				onload : function (response) {
-					console.log ("prout " + prout++);
 					try {
 						var json = JSON.parse (response.responseText);
 						var prf = new SkeetProfile (json.did, json.handle, json.displayName);
@@ -775,7 +772,6 @@ class Imgur extends UploadService {
 			},
 			onload : function (response) {
 				var object = JSON.parse (response.responseText);
-				console.log (object);
 				if (!object.success)
 					reject (object);
 				var res = {
@@ -1004,11 +1000,7 @@ class Utils {
 		if (!(data instanceof Object))
 			data = {};
 		// mise à jour si vieille version Unicode
-		console.log ("data");
-		console.log (data);
-		console.log (data.emojis instanceof Array);
 		if (!(data.emojis instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 16.2) {
-			console.log ("prout");
 			Utils.request({
 				method : "GET",
 				responseType : "json",
@@ -1091,7 +1083,6 @@ class Utils {
 		var tmp = uarray.join ("-");
 		var result = ""; 
 		while (tmp.length > 0) {
-			console.log (tmp.length);
 			var found = false;
 			for (var i = 0; i < Utils.emojis.length; i++) {
 				if (tmp.indexOf (Utils.emojis[i].code) == 0) {
@@ -1389,7 +1380,6 @@ class Utils {
 	}
 	
 	static jsonToSkeet (data, profile, link, sub) {
-		console.log (data);
 		var did_plc = data.uri.split ("at://")[1].split ("/")[0];
 		var quote = new Skeet (link);
 		quote.profile = profile;
@@ -1473,8 +1463,6 @@ class Utils {
 				var rec = data.value.embed.record;
 				if (rec.record)
 					rec = rec.record;
-				console.log ("log");
-				console.log (rec);
 				var subdid = rec.uri.split ("at://")[1].split ("/")[0];
 				var subp = rec.uri.split ("app.bsky.feed.post/")[1];
 				quote.subquote = Utils.getSkeet (`https://bsky.app/profile/${subdid}/post/${subp}`, subdid, subp, true);
@@ -1733,7 +1721,6 @@ class Utils {
 				var text = await blob.text();
 				var doc = new DOMParser().parseFromString (text, "text/html");
 				var sel = doc.querySelectorAll ("span[id^='docs-internal-guid'] > span > img");
-				console.log (sel);
 				if (sel.length == 1) {
 					var url = sel.item (0).getAttribute ("src");
 					var bbcode = "[url=https://rehost.diberie.com/Rehost?url=" + url + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + url + "[/img][/url]";
@@ -1823,7 +1810,6 @@ class Utils {
 			return;
 		}
 		var form = new FormData();
-		console.log (file);
 		form.append ("file", file);
 		Utils.request ({
 			method : "POST",
@@ -1938,8 +1924,6 @@ class Utils {
 	}
 	
 	static bstroke (event) {
-		console.log ("crotte");
-		console.log (event);
 		if (event.code == "KeyD" && event.ctrlKey && event.altKey) {
 			// a refaire
 		}
@@ -1952,21 +1936,17 @@ class Utils {
 	}
 	
 	static stroke (event) {
-		console.log (event);
 		var loading = new Loading();
 		if (event.code == "KeyD" && event.ctrlKey && event.altKey) {
 			// a refaire
 		}
 		else if (event.code == "KeyV" && (event.ctrlKey && navigator.platform.indexOf ("Mac") != 0 || event.metaKey && navigator.platform.indexOf ("Mac") == 0)) {
-			console.log (navigator);
-			console.log (navigator.clipboard);
 			if (!navigator?.clipboard?.read)
 				alert ("navigator.clipboard.read : fonction non présente ou non activée.\nVous êtes sur Firefox : suivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_240.htm#t67904757")
 			else
 				navigator.clipboard.read().then(array => {
 					for (var item of array) {
 						if (Utils.isGDoc (item)) {
-							console.log ("caca");
 							event.target.disabled = true;
 							loading.attach (event.target);
 							Utils.pasteHtml (item).then (bbcode => {
@@ -1985,7 +1965,6 @@ class Utils {
 							event.target.disabled = true;
 							loading.attach (event.target);
 							Utils.pasteText (item).then (text => {
-								console.log ("prout");
 								Utils.insertText (event.target, Utils.formatText (text));
 								loading.destroy();
 								event.target.disabled = false;
@@ -2093,8 +2072,6 @@ class Utils {
 	}
 	
 	static drop (event) {
-		console.log ("drop event");
-		console.log (event.dataTransfer);
 		event.preventDefault();
 		var loading = new Loading();
 		var dt = event.dataTransfer;
@@ -2381,7 +2358,6 @@ Utils.init (table => {
 			video.setAttribute ("controls", "");
 			video.setAttribute ("height", "400");
 			link.parentNode.replaceChild(video, link);
-			console.log ("url : " + href);
 			video.setAttribute ("src", href);
 			index++;
 		}
