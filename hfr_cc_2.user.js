@@ -1,13 +1,13 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.72
+// @version       1.4.73
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
 // @downloadURL   https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
 // @updateURL     https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
-// @require       https://vjs.zencdn.net/8.0.4/video.js
+// @require       https://unpkg.com/video.js/dist/video.min.js
 // @include       https://forum.hardware.fr/*
 // @noframes
 // @grant         GM.info
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.73         Twitter : nique-toi Elon
 // 1.4.70         ajoute d'une boîte text 
 // 1.4.68         édition casse-bonbons
 // 1.4.67         vidéos Mastodon
@@ -957,6 +958,30 @@ class Utils {
 			return GM_xmlhttpRequest (object);
 	}
 	
+	static convertVideoURL (url) {
+		return new Promise ((resolve, reject) => {
+			Utils.request({
+				method : "GET",
+				url : url,
+				onabort : function() { reject (url); },
+				onerror : function() { reject (url); },
+				ontimeout : function() { reject (url); },
+				headers : { "Cookie" : "" },
+				anonymous : true,
+				responseType : "blob",
+				onload : function (response) {
+					try {
+						resolve (URL.createObjectURL (response.response));
+					}
+					catch (e) {
+						console.log (e);
+						reject (url);
+					}
+				}
+			});
+		});
+	}
+	
 	static setValue (key, data) {
 		if (!Utils.isGM4()) {
 			GM_setValue (key, data);
@@ -1103,12 +1128,13 @@ class Utils {
 	}
 	
 	static tweetVideoUrl (info) {
+		console.log (info);
 		var list = [];
 		for (var i = 0; i < info.variants.length; i++) {
 			var v = info.variants[i];
 			if (info.variants[i].content_type == "application/x-mpegURL")
 				v.bitrate = 0;
-			list.push (info.variants[i]);
+			list.push (v);
 		}
 		list.sort ((a,b) => { return b.bitrate - a.bitrate; });
 		if (list.length > 0)
@@ -2286,7 +2312,7 @@ Utils.init (table => {
 			}
 		});
 	});
-	observer.observe(document, {attributes: false, childList: true, characterData: false, subtree: true}); 
+	observer.observe(document, {attributes: false, childList: true, characterData: false, subtree: true});
 		
 	document.querySelectorAll (".cLink").forEach (function (link) {
 		if (typeof (link.getAttribute ("href")) !== "string")
@@ -2367,8 +2393,14 @@ Utils.init (table => {
 			var ct = src.searchParams.get("hfr-media-type");
 			if (url != null) {
 				var video = document.createElement ("video");
+				video.onclick = () => {
+					if (video.cc_loaded != true)
+						Utils.convertVideoURL (url).then (uri => {
+							video.setAttribute ("src", uri);
+							video.cc_loaded = true;
+						});
+				};
 				video.setAttribute ("id", "hfr-video-" + index);
-				video.setAttribute ("class", "video-js");
 				if (src.searchParams.get("gif") == "true") {
 					video.setAttribute ("loop", "");
 					video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
@@ -2377,11 +2409,6 @@ Utils.init (table => {
 					video.setAttribute ("controls", "");
 				video.setAttribute ("height", "400");
 				link.parentNode.replaceChild(video, link);
-				var player = videojs ("hfr-video-" + index, {controlBar: {fullscreenToggle: true}});
-				player.src ({
-					type : ct,
-					src : url
-				});
 				index++;
 			}
 		}
