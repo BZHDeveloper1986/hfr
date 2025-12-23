@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.73
+// @version       1.4.74
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -2192,7 +2192,7 @@ class Utils {
 			for (var i = 0; i < dt.items.length; i++) {
 				var item = dt.items[i];
 				console.log (item);
-				 if (item.kind == "string") {
+				 if (item.type == "text/plain") {
 					event.target.disabled = true;
 					loading.attach (event.target);
 					item.getAsString (str => {
