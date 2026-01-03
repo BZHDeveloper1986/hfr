@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.74
+// @version       1.4.75
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.4.75         Correction d'un bug avec les vidéos Reddit.
 // 1.4.73         Twitter : nique-toi Elon
 // 1.4.70         ajoute d'une boîte text 
 // 1.4.68         édition casse-bonbons
@@ -85,7 +86,6 @@ class Expr {
 	
 	constructor (str) {
 		this.#patt = str;
-		var reg = new RegExp (str);
 	}
 	
 	exec (str) {
@@ -117,13 +117,14 @@ class Expr {
 	}
 	
 	static get reddit() {
-		return new Expr ("^https://www\\.reddit\\.com/r/\\w+/comments/\\w+/[àáâãäåçèéêëìíîïðòóôõöùúûüýÿ\\w%]+/$");
+		return new Expr ("^(https://www\\.reddit\\.com/r/\\w+/comments/\\w+/[àáâãäåçèéêëìíîïðòóôõöùúûüýÿ\\w%]+/(\\?hfr\\-reddit\\-video\\=[\\w%\\.]+)?)$");
 	}
 	
 	static get bluesky() {
 		return new Expr ("^(https://(?<instance>[\\w\\.]+)/profile/(?<id>[\\w\\.:-]+)/post/(?<hash>\\w+))$");
 	}
 }
+
 
 class Widget {
 	#list;
@@ -1606,59 +1607,54 @@ class Utils {
 		});
 	}
 	
-	static formatReddit (text) {
+	static formatReddit (link, text) {
 		return new Promise ((resolve, reject) => {
 			var doc = new DOMParser().parseFromString (text, "text/html");
-			var data = doc.querySelector ("#data").textContent;
-			data = data.split ("window.___r = ")[1];
-			data = data.substring (0, data.lastIndexOf (";"));
 			try {
-				var json = JSON.parse (data);
-				var model = json.posts.models[Object.keys (json.posts.models)[0]];
-				
-				var tn = null;
-				if (model.thumbnail != null && model.thumbnail.url != null)
-					tn = model.thumbnail.url;
-					
-				var lnk = model.permalink;
-				
-				var image = null;
-				if (model.media != null && model.media.type == "image")
-					image = model.media.content;
-				
-				var video = null;
-				if (model.media != null && model.media.type == "video") {
-					video = model.media.hlsUrl;
-					var url = new URL (tn);
-					url.searchParams.append ("hfr-reddit-video", encodeURIComponent(video));
-					tn = url.toString();
-				}
-				
-				var gif = null;
-				if (model.media != null && model.media.type == "gifvideo") {
-					gif = model.media.content;
-					var url = new URL (tn);
-					url.searchParams.append ("hfr-reddit-gif", encodeURIComponent(gif));
-					tn = url.toString();
-				}
-				
+				var post = doc.querySelector ("shreddit-post");
+				var author = post.querySelector (".author-name").textContent;
+				var subr = post.querySelector (".subreddit-name").textContent.trim();
+				var title = post.querySelector ("[slot='title']").textContent.trim();
+				var txt = post.querySelector ("[slot='text-body'] div[id]");
+				var ctn = post.querySelector ("[slot='post-media-container']");
 				var builder = new Builder();
-				builder.append (`[:teepodavignon:8][citation=1,1,1][nom][url=${model.permalink}][:jean robin:10] ${model.author} a publié[/url][/nom]`);
-				builder.append (`${model.title}`);
-				if (model.media != null) {
+				builder.append (`[:teepodavignon:8][citation=1,1,1][nom][url=${link}][:jean robin:10] ${author} a publié sur ${subr}[/url][/nom]`);
+				builder.append (`[b]${title}[/b]\n`);
+				if (txt != null)
+					builder.append (Utils.formatText (txt.textContent.trim()));
+				if (ctn != null) {
 					builder.append ("\n");
-					if (image != null)
-						builder.append (`[url=${lnk}][img]${tn}[/img][/url]`);
-					else if (video != null)
-						builder.append (`[url=${lnk}][img]${tn}[/img][/url]`);
-					else if (gif != null)
-						builder.append (`[url=${lnk}][img]${tn}[/img][/url]`);
+					var img = ctn.querySelector ("img");
+					var carousel = ctn.querySelector ("gallery-carousel");
+					var player = ctn.querySelector ("shreddit-player");
+					if (player != null) {
+						var src =  link + "?hfr-reddit-video=" + encodeURIComponent (player.getAttribute ("src"));
+						var preview = player.querySelector (".preview-image").getAttribute ("src");
+						builder.append (`[url=${src}][img]${preview}[/img][/url]`);
+					}
+					else if (carousel != null) {
+						carousel.querySelectorAll ("li > img").forEach (image => {
+							console.log (image);
+							var src = image.getAttribute ("src");
+							if (src == null)
+								src = image.getAttribute ("data-lazy-src");
+							var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (src);
+							builder.append (`[url=${src}][img]${preview}[/img][/url]`);
+						});
+					}
+					else if (img != null) {
+						var src = img.getAttribute ("src");
+						var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (img.getAttribute ("src"));
+						builder.append (`[url=${src}][img]${preview}[/img][/url]`);
+					}
 				}
 				builder.append ("[/citation]");
 				resolve (builder.toString());
 			}
-			catch (e) { console.log (e); }
-			reject (link);
+			catch (e) {
+				console.log (e);
+				reject (link);
+			}	
 		});
 	}
 	
@@ -1674,7 +1670,7 @@ class Utils {
 					headers : { "Cookie" : "" },
 					anonymous : true,
 					onload : function (response) {
-						Utils.formatReddit (response.responseText).then (text => {
+						Utils.formatReddit (link, response.responseText).then (text => {
 							resolve (text);
 						}).catch (err => {
 							console.log (err);
@@ -2330,29 +2326,22 @@ Utils.init (table => {
 		if (link.firstElementChild == null || link.firstElementChild.nodeName.toLowerCase() != "img")
 			return;
 		if (Expr.reddit.match (href)) {
-			var src = new URL (link.firstElementChild.getAttribute ("src"));
-			if (src.searchParams.get ("hfr-reddit-gif") != null) {
-				var gif = decodeURIComponent (src.searchParams.get ("hfr-reddit-gif"));
-				var video = document.createElement ("video");
-				video.setAttribute ("loop", "");
-				video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
-				video.setAttribute ("src", gif);
-				video.setAttribute ("height", "200");
-				link.parentNode.replaceChild(video, link);
-			}
-			else if (src.searchParams.get ("hfr-reddit-video") != null) {
+			var src = new URL (href);
+			console.log (src);
+			if (src.searchParams.get ("hfr-reddit-video") != null) {
 				var v = decodeURIComponent (src.searchParams.get ("hfr-reddit-video"));
 				var video = document.createElement ("video");
+				video.setAttribute ("src", v);
 				video.setAttribute ("id", "hfr-video-" + index);
-				video.setAttribute ("class", "video-js");
-				video.setAttribute ("controls", "");
+				console.log (src.pathname);
+				if (!new URL(v).pathname.endsWith(".gif"))
+					video.setAttribute ("controls", "");
+				else {
+					video.setAttribute ("loop", "");
+					video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
+				}
 				video.setAttribute ("height", "400");
 				link.parentNode.replaceChild(video, link);
-				var player = videojs ("hfr-video-" + index, {controlBar: {fullscreenToggle: true}});
-				player.src ({
-					type : "application/x-mpegURL",
-					src : v
-				});
 				index++;
 			}
 		}
