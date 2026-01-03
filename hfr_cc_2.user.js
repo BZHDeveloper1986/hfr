@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.75
+// @version       1.4.76
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -1630,6 +1630,9 @@ class Utils {
 					if (player != null) {
 						var src =  link + "?hfr-reddit-video=" + encodeURIComponent (player.getAttribute ("src"));
 						var preview = player.querySelector (".preview-image").getAttribute ("src");
+						if (player.getAttribute ("post-type") == "gif") {
+							src = preview = post.getAttribute ("content-href");
+						}
 						builder.append (`[url=${src}][img]${preview}[/img][/url]`);
 					}
 					else if (carousel != null) {
@@ -2316,7 +2319,14 @@ Utils.init (table => {
 		var href = link.getAttribute ("href");
 		if (href[0] == '/')
 			href = "https://forum.hardware.fr" + href;
-		var u = new URL (href);
+		console.log (href);
+		var u = null;
+		try {
+			u = new URL (href);
+		}
+		catch {
+			return;
+		}
 		if (u.hostname == "store10.gofile.io" && u.pathname.indexOf ("/download") == 0 && u.searchParams.get("isAudio") == "true") {
 			var audio = document.createElement ("audio");
 			audio.setAttribute ("src", href);
