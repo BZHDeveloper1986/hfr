@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.76
+// @version       1.4.77
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -1620,9 +1620,16 @@ class Utils {
 				var builder = new Builder();
 				builder.append (`[:teepodavignon:8][citation=1,1,1][nom][url=${link}][:jean robin:10] ${author} a publié sur ${subr}[/url][/nom]`);
 				builder.append (`[b]${title}[/b]\n`);
+				if (ctn != null) {
+					var sub = ctn.querySelector ("[property='schema:articleBody']");
+					if (sub != null)
+						txt = sub;
+				}
 				if (txt != null)
 					builder.append (Utils.formatText (txt.textContent.trim()));
 				if (ctn != null) {
+					var sub = ctn.querySelector ("[property='schema:articleBody']");
+					if (sub != null)
 					builder.append ("\n");
 					var img = ctn.querySelector ("img");
 					var carousel = ctn.querySelector ("gallery-carousel");
