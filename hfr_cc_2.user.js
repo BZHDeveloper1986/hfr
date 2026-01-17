@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.77
+// @version       1.4.78
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -1613,7 +1613,7 @@ class Utils {
 			try {
 				var post = doc.querySelector ("shreddit-post");
 				var author = post.querySelector (".author-name").textContent;
-				var subr = post.querySelector (".subreddit-name").textContent.trim();
+				var subr = post.querySelector ("a.subreddit-name").textContent.trim();
 				var title = post.querySelector ("[slot='title']").textContent.trim();
 				var txt = post.querySelector ("[slot='text-body'] div[id]");
 				var ctn = post.querySelector ("[slot='post-media-container']");
