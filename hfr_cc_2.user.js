@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.4.78
+// @version       1.5
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5            Refonte complète du code : utilisation de classes, promesses, etc.
 // 1.4.75         Correction d'un bug avec les vidéos Reddit.
 // 1.4.73         Twitter : nique-toi Elon
 // 1.4.70         ajoute d'une boîte text 
@@ -121,10 +122,523 @@ class Expr {
 	}
 	
 	static get bluesky() {
-		return new Expr ("^(https://(?<instance>[\\w\\.]+)/profile/(?<id>[\\w\\.:-]+)/post/(?<hash>\\w+))$");
+		return new Expr ("^(https://(?<instance>[\\w\\.]+)/profile/(?<handle>[\\w\\.]+)/post/(?<hash>\\w+))$");
 	}
 }
 
+class Video {
+	#pst;
+	#uri;
+	#ctn;
+	#gif;
+
+	get poster() { return this.#pst; }
+	set poster (p) { this.#pst = p; }
+
+	get url() { return this.#uri; }
+	set url (u) { this.#uri = u; }
+
+	get contentType() { return this.#ctn; }
+	set contentType (c) { this.#ctn = c; }
+
+	get isGif() { return this.#gif; }
+	set isGif (g) { this.#gif = g; }
+
+	toString() {
+		var u = new URL (this.url);
+		if (this.isGif)
+			u.searchParams.append ("gif", "true");
+		return `[url=${u}][img]${this.poster}[/img][/url]\n`;
+	}
+}
+
+class Social {
+	static match (url) {
+		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.reddit.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url);
+	}
+
+	static load (url) {
+		if (Expr.twitter.match (url))
+			return Twitter.load (url);
+		if (Expr.bluesky.match (url))
+			return BlueSky.load (url);
+		if (Expr.reddit.match (url))
+			return Reddit.load (url);
+		if (Expr.mastodon.match (url) || Expr.truthsocial.match (url))
+			return Mastodon.load (url);
+		return Promise.reject (url);
+	}
+
+	#lnk;
+	#usr;
+	#inf;
+	#icn;
+	#txt;
+	#qut;
+	#imgs;
+	#vids;
+
+	constructor () {
+		this.#imgs = [];
+		this.#vids = [];
+	}
+
+	set link (l) { this.#lnk = l; }
+	get link() { return this.#lnk; }
+
+	set user (u) { this.#usr = u; }
+	get user() { return this.#usr; }
+
+	set info (i) { this.#inf = i; }
+	get info() { return this.#inf; }
+
+	set icon (i) { this.#icn = i; }
+	get icon() { return this.#icn; }
+
+	set text (t) { this.#txt = t; }
+	get text() { return this.#txt; }
+
+	set quote (q) { this.#qut = q; }
+	get quote() { return this.#qut; }
+
+	get images() { return this.#imgs; }
+
+	get videos() { return this.#vids; }
+
+	toString() {
+		var builder = new Builder();
+		if (this.quote)
+			builder.append (`${this.quote}\n`);
+		builder.append (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n`);
+		builder.append (`${this.text}\n`);
+		this.videos.forEach (v => builder.append (v.toString()));
+		this.images.forEach (i => builder.append (i.toString()));
+		builder.append ("[/quote]\n");
+		return builder.toString();
+	}
+}
+
+class Reddit extends Social {
+	constructor() {
+		super();
+
+		this.icon = "[:jean robin:10]";
+	}
+
+	static format (url, text) {
+		return new Promise ((resolve, reject) => {
+			try {
+				var doc = new DOMParser().parseFromString (text, "text/html");
+				var post = doc.querySelector ("shreddit-post");
+				var title = post.querySelector ("[slot='title']").textContent.trim();
+				var t = post.querySelector ("[slot='text-body'] div[id]");
+				var ctn = post.querySelector ("[slot='post-media-container']");
+				var red = new Reddit();
+				red.link = url;
+				red.user = post.querySelector (".author-name").textContent;
+				red.info = "a publié sur " + post.querySelector ("a.subreddit-name").textContent.trim();
+				var txt = `[b]${title}[/b]\n`;
+				if (ctn != null) {
+					var sub = ctn.querySelector ("[property='schema:articleBody']");
+					if (sub != null)
+						t = sub;
+				}
+				if (t != null)
+					txt += Utils.normalizeText (t.textContent.trim());
+				red.text = txt;
+				if (ctn != null) {
+					var img = ctn.querySelector ("img");
+					var carousel = ctn.querySelector ("gallery-carousel");
+					var player = ctn.querySelector ("shreddit-player");
+					if (player != null) {
+						if (player.getAttribute ("post-type") == "gif") {
+							red.images.push ({
+								url : post.getAttribute ("content-href"),
+								toString : () => { return `[img]${post.getAttribute ("content-href")}[/img]`; }
+							});
+						} else {
+							var vid = new Video();
+							vid.url = player.getAttribute ("src");
+							vid.poster = player.querySelector (".preview-image").getAttribute ("src");
+							console.log ("poster : " + vid.poster);
+							vid.contentType = "application/x-mpegURL";
+							red.videos.push (vid);
+						}
+					}
+					else if (carousel != null) {
+						carousel.querySelectorAll ("li > img").forEach (image => {
+							console.log (image);
+							var src = image.getAttribute ("src");
+							if (src == null)
+								src = image.getAttribute ("data-lazy-src");
+							var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (src);
+							red.images.push ({
+								url : src,
+								toString : () => { return `[url=${src}][img]${preview}[/img][/url]`; }
+							});
+						});
+					}
+					else if (img != null) {
+						var src = img.getAttribute ("src");
+						var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (img.getAttribute ("src"));
+						red.images.push ({
+							url : src,
+							toString : () => { return `[url=${src}][img]${preview}[/img][/url]`; }
+						});
+					}
+				}
+				resolve (red);
+			}
+			catch (e) {
+				console.log (e);
+				reject (url);
+			}
+		});
+	}
+
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				Utils.request({
+					method : "GET",
+					url : url,
+					onabort : function() { reject (link); },
+					onerror : function() { reject (link); },
+					ontimeout : function() { reject (link); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
+					onload : function (response) {
+						Reddit.format (url, response.responseText).then (red => resolve (red)).catch (err => {
+							console.log (err);
+							reject (url);
+						});
+					}
+				});
+			})();
+		});
+	}
+}
+
+class Twitter extends Social {
+	static normalize (str) {
+		return Utils.normalizeText (str
+			.replaceAll (/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g, "[url=$&][b]$&[/b][/url]")
+			.replaceAll (/#\w+/g, match => { return "[url=https://x.com/hashtag/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+			.replaceAll (/@\w+/g, match => { return "[url=https://x.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
+	}
+
+	static tweetVideoUrl (media) {
+		for (var i = 0; i < media.video_info.variants.length; i++) {
+			var vid = new Video();
+			var v = media.video_info.variants[i];
+			if (v.content_type == "application/x-mpegURL")
+				continue;
+			var url = new URL (v.url);
+			url.searchParams.delete ("tag");
+			vid.url = url.toString();
+			vid.contentType = v.content_type;
+			vid.poster = media.media_url_https;
+			return vid;
+		}
+		return { url : "" };
+	}
+
+	constructor (data) {
+		super();
+		
+		this.icon = "[img]https://i.imgur.com/pd0aoXr.png[/img]";
+		this.link = "https://twitter.com/i/status/" + data.id_str;
+		this.user = Utils.normalizeText (Utils.formatText (data.user.name));
+		var obj = {
+			"Basic" : "[:yoann riou:9]",
+			"Government" : "[img]https://i.imgur.com/AYsrHeC.png[/img]",
+			"Business" : "[img]https://i.imgur.com/6C4thzC.png[/img]"
+		};
+		if (data.user.is_blue_verified || data.user.verified) {
+			data.user.verified = true;
+			data.user.verified_type = "Basic";
+		}
+		this.info = `@${data.user.screen_name} ${data.user.verified ? obj[data.user.verified_type] + " " : ""}`;
+		console.log (data);
+		this.text = Twitter.normalize (data.text);
+		console.log (data.user.screen_name);
+		if (data.mediaDetails && data.mediaDetails.length > 0) {
+			data.mediaDetails.forEach (media => {
+				if (media.type == "video") {
+					this.videos.push (Twitter.tweetVideoUrl (media));
+				}
+				if (media.type == "animated_gif") {
+					var gif = new Video();
+					gif.url = media.video_info.variants[0].url;
+					gif.contentType = media.video_info.variants[0].content_type;
+					gif.poster = media.media_url_https;
+					gif.isGif = true;
+					this.videos.push (gif);
+				}
+				if (media.type == "photo") {
+					this.images.push ({
+						url : media.media_url_https,
+						toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + media.media_url_https + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + media.media_url_https + "[/img][/url]" }
+					});
+				}
+			});
+		}
+		if (data.quoted_tweet)
+			this.quote = new Twitter (data.quoted_tweet);
+	}
+
+	static load (link) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var res = Expr.twitter.exec (link);
+				Utils.request({
+					method : "GET",
+					url : "https://cdn.syndication.twimg.com/tweet-result?token=43l77nyjhwo&id=" + res.groups.id,
+					onabort : function() { reject (link); },
+					onerror : function() { reject (link); },
+					ontimeout : function() { reject (link); },
+					onload : function (response) {
+						try {
+							var json = JSON.parse (response.responseText);
+							resolve (new Twitter (json));
+						}
+						catch (e) {
+							console.log (e);
+							reject (link);
+						}
+					}
+				});
+			})();
+		});
+	}
+}
+
+class BlueSky extends Social {
+	static load (url) {
+		var toto = 0;
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var res = Expr.bluesky.exec (url);
+				Utils.request({
+					method : "GET",
+					url : "https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + res.groups.handle,
+					onabort : function() { reject (url); },
+					onerror : function() { reject (url); },
+					ontimeout : function() { reject (url); },
+					onload : function (response) {
+						try {
+							var json = JSON.parse (response.responseText);
+							var u = `at://${json.did}/app.bsky.feed.post/${res.groups.hash}`;
+							var uri = `https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`;
+							Utils.request({
+								method : "GET",
+								url : uri,
+								onabort : function() { reject (url); },
+								onerror : function() { reject (url); },
+								ontimeout : function() { reject (url); },
+								onload : function (response) {
+									try {
+										var data = JSON.parse (response.responseText);
+										resolve (new BlueSky (data.thread.post, json.did, res.groups.hash));
+									}
+									catch (e) {
+										console.log (e);
+										reject (url);
+									}
+								}
+							});
+						}
+						catch (e) {
+							console.log (e);
+							reject (url);
+						}
+					}
+				});
+			})();
+		});
+	}
+
+	constructor (data) {
+		super();
+		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/327943[/img]";
+		var did = data.uri.split ("at://")[1].split ("/")[0];
+		var hash = data.uri.split ("app.bsky.feed.post/")[1];
+		this.link = `https://bsky.app/profile/${did}/post/${hash}`;
+		console.log (this.link);
+		this.user = Utils.normalizeText (Utils.formatText (data.author.displayName));
+		this.info = `@${data.author.handle}${data.author.verification != null ? " [:yoann riou:9]" : ""}`;
+		var record = (data.record != null) ? data.record : data.value;
+		var txt = record.text;
+		var arr = new TextEncoder().encode (txt);
+		if (record.facets != null)
+			for (var i = record.facets.length - 1; i >= 0; i--) {
+				var facet = record.facets[i];
+				if (facet.features[0]["$type"] == "app.bsky.richtext.facet#tag") {
+					var htag = facet.features[0].tag;
+					var tag = `[url=https://bsky.app/hashtag/${htag}][b]#${htag}[/b][/url]`;
+					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + tag + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
+				}
+				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
+					var mid = facet.features[0].did;
+					var mh = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
+					var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
+					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + mention + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
+				}
+				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
+					var txt = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
+					var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
+					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + url + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
+				}
+			}
+		txt = new TextDecoder().decode (arr);
+		this.text = Utils.normalizeText (txt);
+		if (data.embed != null) {
+			var med = (data.embed.media != null) ? data.embed.media : data.embed;
+			console.log (med);
+			if (med["$type"] == "app.bsky.embed.video#view") {
+				var vid = new Video();
+				vid.contentType = "application/x-mpegURL";
+				vid.url = med.playlist;
+				vid.poster = med.thumbnail;
+				this.videos.push (vid);
+			}
+			var imgs = Array.isArray (data.embed.images) ? data.embed.images : (Array.isArray (data.embed.media?.images) ? data.embed.media.images : []);
+			imgs.forEach (img => {
+				this.images.push ({
+					url : img.fullsize,
+					toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + img.fullsize + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + img.fullsize + "[/img][/url]" }
+				});
+			});
+			if (data.embed.external != null && imgs.length == 0) {
+				var u = new URL (data.embed.external.uri);
+				if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
+					this.images.push ({
+						url : data.embed.external.uri,
+						toString : () => { return `[img]${data.embed.external.uri}[/img]`; }
+					});
+			}
+			if (data.embed.record?.record != null)
+				this.quote = new BlueSky (data.embed.record.record);
+		}
+		if (Array.isArray (data.embeds))
+			data.embeds.forEach (embed => {
+				if (embed["$type"] == "app.bsky.embed.video#view") {
+					var vid = new Video();
+					vid.contentType = "application/x-mpegURL";
+					vid.url = embed.playlist;
+					vid.poster = embed.thumbnail;
+					this.videos.push (vid);
+				}
+				if (embed.images)
+					embed.images.forEach (img => {
+						this.images.push ({
+							url : img.fullsize,
+							toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + img.fullsize + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + img.fullsize + "[/img][/url]" }
+						});
+					});
+			});
+	}
+}
+
+class Mastodon extends Social {
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var match = Expr.mastodon.exec (url);
+				if (match == null)
+					match = Expr.truthsocial.exec (url);
+				var uri = `https://${match.groups.instance}/api/v1/statuses/${match.groups.tid}`;
+				Utils.request({
+					method : "GET",
+					url : uri,
+					onabort : function() { reject (url); },
+					onerror : function() { reject (url); },
+					ontimeout : function() { reject (url); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
+					onload : function (response) {
+						try {
+							var data = JSON.parse (response.responseText);
+							resolve (new Mastodon (data));
+						}
+						catch (e) {
+							console.log (e);
+							reject (url);
+						}
+					}
+				});
+			})();
+		});
+	}
+
+	constructor (data) {
+		super();
+
+		var doc = new DOMParser().parseFromString (data.content, "text/html");
+		var builder = new Builder();
+		doc.querySelectorAll ("p").forEach (p => {
+			p.childNodes.forEach (node => {
+				if (node.nodeType == Node.TEXT_NODE)
+					builder.append (Utils.normalizeText (node.textContent));
+				else if (node.nodeType == Node.ELEMENT_NODE) {
+					if (node.tagName.toLowerCase() == "br")
+						builder.append ("\n");
+					else if (node.classList.contains ("hashtag")) {
+						var tag = node.textContent;
+						var lnk = node.getAttribute ("href");
+						builder.append (`[b][url=${lnk}]${tag}[/url][/b]`);
+					}
+					else if (node.classList.contains ("h-card") && node.querySelector ("a.u-url") != null) {
+						var id = node.textContent;
+						var lnk = node.querySelector ("a.u-url").getAttribute ("href");
+						builder.append (`[b][url=${lnk}]${id}[/url][/b]`);
+					}
+					else if (node.tagName.toLowerCase() == "a")
+						builder.append (`[b][url]${node.getAttribute ("href")}[/url][/b]`);
+				}
+			});
+			builder.append ("\n");
+		});
+
+		if (data.poll != null)
+			data.poll.options.forEach (opt => {
+				var tit = opt.title;
+				var pct = opt.votes_count * 100 / data.poll.votes_count;
+				builder.append (`[*] ${tit} : ${pct} %\n`);
+			});
+		
+		if (data.media_attachments != null)
+			data.media_attachments.forEach (media => {
+				if (media.type == "image")
+					this.images.push ({
+						url : media.preview_url,
+						toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + media.url + "][img]https://rehost.diberie.com/Rehost?url=" + media.preview_url + "[/img][/url]" }
+					});
+				else if (media.type == "gifv") {
+					var gif = new Video();
+					gif.url = media.url;
+					gif.contentType = "video/mp4";
+					gif.poster = media.preview_url;
+					gif.isGif = true;
+					this.videos.push (gif);
+				}
+				else if (media.type == "video") {
+					var video = new Video();
+					video.url = media.url
+					video.contentType = "video/mp4";
+					video.poster = media.preview_url;
+					this.videos.push (video);
+				}
+			});
+
+		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/110911[/img]";
+		this.link = data.url;
+		this.user = Utils.normalizeText (data.account.display_name).replace (":verified:", "[:yoann riou:9]");
+		var p = data.account.url.split("/");
+		this.info = `${p[3]}@${p[2]}`;
+		this.text = Utils.normalizeText (builder.toString());
+	}
+}
 
 class Widget {
 	#list;
@@ -226,40 +740,6 @@ class ScrolledWindow extends Widget {
 		while (this.children.length > 0)
 			this.remove (this.children[0]);
 		this.add (widget);
-	}
-}
-
-class Video extends Widget {
-	#player;
-	
-	constructor() {
-		super ("video");
-		this.set ("class", "video-js");
-	}
-	
-	get controls() { return this.element.hasAttribute ("controls"); }
-	
-	set controls (b) {
-		if (b)
-			this.set ("controls", "");
-		else
-			this.element.removeAttribute ("controls");
-	}
-	
-	get id() {
-		return this.element.getAttribute ("id");
-	}
-	
-	set id (i) {
-		this.set ("id", i);
-		this.#player = videojs (i);
-	}
-	
-	setSource (source, type) {
-		this.#player.src ({
-			type : type,
-			src : source
-		});
 	}
 }
 
@@ -568,139 +1048,6 @@ class BuilderAsync {
 	
 	toString() {
 		return Promise.all(this.#table)
-	}
-}
-
-class SkeetProfile {
-	#did
-	#handle;
-	#name;
-
-	constructor (d, h, n) {
-		this.#did = d;
-		this.#handle = h;
-		this.#name = Utils.normalizeText (n);
-	}
-
-	get did() { return this.#did; }
-
-	get name() { return this.#name; }
-
-	get handle() { return this.#handle; }
-
-	toString() {
-		return `${this.#name} (${this.#handle})`;
-	}
-
-	static fetch (str) {
-		var prout = 0;
-		return new Promise ((resolve, reject) => {
-			var url = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=" + str;
-			Utils.request({
-				method : "GET",
-				url : url,
-				onabort : function() { reject (str); },
-				onerror : function() { reject (str); },
-				ontimeout : function() { reject (str); },
-				headers : { "Cookie" : "" },
-				anonymous : true,
-				onload : function (response) {
-					try {
-						var json = JSON.parse (response.responseText);
-						var prf = new SkeetProfile (json.did, json.handle, json.displayName);
-						resolve (prf);
-					}
-					catch (e) {
-						console.log (e);
-						reject (str);
-					}
-				}
-			});
-		});
-	}
-}
-
-class Skeet {
-	#uri
-	#quote
-	#txt
-	#pfl
-
-	constructor (lnk) {
-		this.#uri = lnk;
-	}
-
-	set uri (lnk) { this.#uri = lnk; }
-	get uri() { return this.#uri; }
-	
-	set subquote (q) { this.#quote = q; }
-	get subquote() { return this.#quote; }
-	
-	set text (str) { this.#txt = str; }
-	get text() { return this.#txt; }
-
-	set profile (p) { this.#pfl = p; }
-	get profile() { return this.#pfl; }
-
-	toString() {
-		return new Promise ((resolve, reject) => {
-			var pms = [];
-			if (this.#quote != null)
-				pms.push (this.#quote);
-			pms.push (Promise.resolve ("[quote][b][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] "));
-			pms.push (Promise.resolve (this.#pfl.toString()));
-			pms.push (Promise.resolve ("[/url][/b]\n" + this.#txt + "[/quote]"));
-			Promise.all (pms).then (values => {
-				resolve (values.join(""));
-			}).catch (e => {
-				console.log (e);
-				reject (this.#uri);
-			});
-		});
-	}
-}
-
-class Quote {
-	#name
-	#uri
-	#quote
-	#txt
-	
-	constructor (link) { this.#uri = link; }
-	
-	set uri (str) { this.#uri = str; }
-	get uri() { return this.#uri; }
-	
-	set author (str) { this.#name = str; }
-	get author() { return this.#name; }
-	
-	set subquote (q) { this.#quote = q; }
-	get subquote() { return this.#quote; }
-	
-	set text (str) { this.#txt = str; }
-	get text() { return this.#txt; }
-	
-	toString() {
-		return new Promise ((resolve, reject) => {
-			var pms = [
-				Promise.resolve ("[citation=1,1,1][nom][url=" + this.#uri + "][img]https://rehost.diberie.com/Picture/Get/f/327943[/img] " + this.#name + "[/url][/nom]" + this.#txt)
-			];
-			if (Quote.isQuote (this.#quote))
-				pms.push (this.#quote.toString());
-			pms.push (Promise.resolve ("[/citation]"));
-			Promise.all (pms).then (values => {
-				resolve (values.join(""));
-			}).catch (e => {
-				console.log (e);
-				reject (this.#uri);
-			});
-		});
-	}
-	
-	static isQuote (obj) {
-		if (typeof (obj) != "object")
-			return false;
-		return obj.hasOwnProperty ("uri") && obj.hasOwnProperty ("author");
 	}
 }
 
@@ -1078,7 +1425,12 @@ class Utils {
 				code -= 120335;
 			res_arr.push (String.fromCodePoint (code));
 		}
-		return res_arr.join("");
+		var ereg = /[#*0-9]\uFE0F?\u20E3|[\xA9\xAE\u203C\u2049\u2122\u2139\u2194-\u2199\u21A9\u21AA\u231A\u231B\u2328\u23CF\u23ED-\u23EF\u23F1\u23F2\u23F8-\u23FA\u24C2\u25AA\u25AB\u25B6\u25C0\u25FB\u25FC\u25FE\u2600-\u2604\u260E\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262A\u262E\u262F\u2638-\u263A\u2640\u2642\u2648-\u2653\u265F\u2660\u2663\u2665\u2666\u2668\u267B\u267E\u267F\u2692\u2694-\u2697\u2699\u269B\u269C\u26A0\u26A7\u26AA\u26B0\u26B1\u26BD\u26BE\u26C4\u26C8\u26CF\u26D1\u26E9\u26F0-\u26F5\u26F7\u26F8\u26FA\u2702\u2708\u2709\u270F\u2712\u2714\u2716\u271D\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u27A1\u2934\u2935\u2B05-\u2B07\u2B1B\u2B1C\u2B55\u3030\u303D\u3297\u3299]\uFE0F?|[\u261D\u270C\u270D](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?|[\u270A\u270B](?:\uD83C[\uDFFB-\uDFFF])?|[\u23E9-\u23EC\u23F0\u23F3\u25FD\u2693\u26A1\u26AB\u26C5\u26CE\u26D4\u26EA\u26FD\u2705\u2728\u274C\u274E\u2753-\u2755\u2795-\u2797\u27B0\u27BF\u2B50]|\u26D3\uFE0F?(?:\u200D\uD83D\uDCA5)?|\u26F9(?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|\u2764\uFE0F?(?:\u200D(?:\uD83D\uDD25|\uD83E\uDE79))?|\uD83C(?:[\uDC04\uDD70\uDD71\uDD7E\uDD7F\uDE02\uDE37\uDF21\uDF24-\uDF2C\uDF36\uDF7D\uDF96\uDF97\uDF99-\uDF9B\uDF9E\uDF9F\uDFCD\uDFCE\uDFD4-\uDFDF\uDFF5\uDFF7]\uFE0F?|[\uDF85\uDFC2\uDFC7](?:\uD83C[\uDFFB-\uDFFF])?|[\uDFC4\uDFCA](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDFCB\uDFCC](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDCCF\uDD8E\uDD91-\uDD9A\uDE01\uDE1A\uDE2F\uDE32-\uDE36\uDE38-\uDE3A\uDE50\uDE51\uDF00-\uDF20\uDF2D-\uDF35\uDF37-\uDF43\uDF45-\uDF4A\uDF4C-\uDF7C\uDF7E-\uDF84\uDF86-\uDF93\uDFA0-\uDFC1\uDFC5\uDFC6\uDFC8\uDFC9\uDFCF-\uDFD3\uDFE0-\uDFF0\uDFF8-\uDFFF]|\uDDE6\uD83C[\uDDE8-\uDDEC\uDDEE\uDDF1\uDDF2\uDDF4\uDDF6-\uDDFA\uDDFC\uDDFD\uDDFF]|\uDDE7\uD83C[\uDDE6\uDDE7\uDDE9-\uDDEF\uDDF1-\uDDF4\uDDF6-\uDDF9\uDDFB\uDDFC\uDDFE\uDDFF]|\uDDE8\uD83C[\uDDE6\uDDE8\uDDE9\uDDEB-\uDDEE\uDDF0-\uDDF7\uDDFA-\uDDFF]|\uDDE9\uD83C[\uDDEA\uDDEC\uDDEF\uDDF0\uDDF2\uDDF4\uDDFF]|\uDDEA\uD83C[\uDDE6\uDDE8\uDDEA\uDDEC\uDDED\uDDF7-\uDDFA]|\uDDEB\uD83C[\uDDEE-\uDDF0\uDDF2\uDDF4\uDDF7]|\uDDEC\uD83C[\uDDE6\uDDE7\uDDE9-\uDDEE\uDDF1-\uDDF3\uDDF5-\uDDFA\uDDFC\uDDFE]|\uDDED\uD83C[\uDDF0\uDDF2\uDDF3\uDDF7\uDDF9\uDDFA]|\uDDEE\uD83C[\uDDE8-\uDDEA\uDDF1-\uDDF4\uDDF6-\uDDF9]|\uDDEF\uD83C[\uDDEA\uDDF2\uDDF4\uDDF5]|\uDDF0\uD83C[\uDDEA\uDDEC-\uDDEE\uDDF2\uDDF3\uDDF5\uDDF7\uDDFC\uDDFE\uDDFF]|\uDDF1\uD83C[\uDDE6-\uDDE8\uDDEE\uDDF0\uDDF7-\uDDFB\uDDFE]|\uDDF2\uD83C[\uDDE6\uDDE8-\uDDED\uDDF0-\uDDFF]|\uDDF3\uD83C[\uDDE6\uDDE8\uDDEA-\uDDEC\uDDEE\uDDF1\uDDF4\uDDF5\uDDF7\uDDFA\uDDFF]|\uDDF4\uD83C\uDDF2|\uDDF5\uD83C[\uDDE6\uDDEA-\uDDED\uDDF0-\uDDF3\uDDF7-\uDDF9\uDDFC\uDDFE]|\uDDF6\uD83C\uDDE6|\uDDF7\uD83C[\uDDEA\uDDF4\uDDF8\uDDFA\uDDFC]|\uDDF8\uD83C[\uDDE6-\uDDEA\uDDEC-\uDDF4\uDDF7-\uDDF9\uDDFB\uDDFD-\uDDFF]|\uDDF9\uD83C[\uDDE6\uDDE8\uDDE9\uDDEB-\uDDED\uDDEF-\uDDF4\uDDF7\uDDF9\uDDFB\uDDFC\uDDFF]|\uDDFA\uD83C[\uDDE6\uDDEC\uDDF2\uDDF3\uDDF8\uDDFE\uDDFF]|\uDDFB\uD83C[\uDDE6\uDDE8\uDDEA\uDDEC\uDDEE\uDDF3\uDDFA]|\uDDFC\uD83C[\uDDEB\uDDF8]|\uDDFD\uD83C\uDDF0|\uDDFE\uD83C[\uDDEA\uDDF9]|\uDDFF\uD83C[\uDDE6\uDDF2\uDDFC]|\uDF44(?:\u200D\uD83D\uDFEB)?|\uDF4B(?:\u200D\uD83D\uDFE9)?|\uDFC3(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?|\uDFF3\uFE0F?(?:\u200D(?:\u26A7\uFE0F?|\uD83C\uDF08))?|\uDFF4(?:\u200D\u2620\uFE0F?|\uDB40\uDC67\uDB40\uDC62\uDB40(?:\uDC65\uDB40\uDC6E\uDB40\uDC67|\uDC73\uDB40\uDC63\uDB40\uDC74|\uDC77\uDB40\uDC6C\uDB40\uDC73)\uDB40\uDC7F)?)|\uD83D(?:[\uDC3F\uDCFD\uDD49\uDD4A\uDD6F\uDD70\uDD73\uDD76-\uDD79\uDD87\uDD8A-\uDD8D\uDDA5\uDDA8\uDDB1\uDDB2\uDDBC\uDDC2-\uDDC4\uDDD1-\uDDD3\uDDDC-\uDDDE\uDDE1\uDDE3\uDDE8\uDDEF\uDDF3\uDDFA\uDECB\uDECD-\uDECF\uDEE0-\uDEE5\uDEE9\uDEF0\uDEF3]\uFE0F?|[\uDC42\uDC43\uDC46-\uDC50\uDC66\uDC67\uDC6B-\uDC6D\uDC72\uDC74-\uDC76\uDC78\uDC7C\uDC83\uDC85\uDC8F\uDC91\uDCAA\uDD7A\uDD95\uDD96\uDE4C\uDE4F\uDEC0\uDECC](?:\uD83C[\uDFFB-\uDFFF])?|[\uDC6E-\uDC71\uDC73\uDC77\uDC81\uDC82\uDC86\uDC87\uDE45-\uDE47\uDE4B\uDE4D\uDE4E\uDEA3\uDEB4\uDEB5](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDD74\uDD90](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?|[\uDC00-\uDC07\uDC09-\uDC14\uDC16-\uDC25\uDC27-\uDC3A\uDC3C-\uDC3E\uDC40\uDC44\uDC45\uDC51-\uDC65\uDC6A\uDC79-\uDC7B\uDC7D-\uDC80\uDC84\uDC88-\uDC8E\uDC90\uDC92-\uDCA9\uDCAB-\uDCFC\uDCFF-\uDD3D\uDD4B-\uDD4E\uDD50-\uDD67\uDDA4\uDDFB-\uDE2D\uDE2F-\uDE34\uDE37-\uDE41\uDE43\uDE44\uDE48-\uDE4A\uDE80-\uDEA2\uDEA4-\uDEB3\uDEB7-\uDEBF\uDEC1-\uDEC5\uDED0-\uDED2\uDED5-\uDED8\uDEDC-\uDEDF\uDEEB\uDEEC\uDEF4-\uDEFC\uDFE0-\uDFEB\uDFF0]|\uDC08(?:\u200D\u2B1B)?|\uDC15(?:\u200D\uD83E\uDDBA)?|\uDC26(?:\u200D(?:\u2B1B|\uD83D\uDD25))?|\uDC3B(?:\u200D\u2744\uFE0F?)?|\uDC41\uFE0F?(?:\u200D\uD83D\uDDE8\uFE0F?)?|\uDC68(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDC68\uDC69]\u200D\uD83D(?:\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?)|[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?)|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFC-\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFD-\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFD\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFE]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?))?|\uDC69(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?[\uDC68\uDC69]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?|\uDC69\u200D\uD83D(?:\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?))|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFC-\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFC-\uDFFF])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB\uDFFD-\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFD-\uDFFF])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB-\uDFFD\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFD\uDFFF])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB-\uDFFE]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFE])))?))?|\uDD75(?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|\uDE2E(?:\u200D\uD83D\uDCA8)?|\uDE35(?:\u200D\uD83D\uDCAB)?|\uDE36(?:\u200D\uD83C\uDF2B\uFE0F?)?|\uDE42(?:\u200D[\u2194\u2195]\uFE0F?)?|\uDEB6(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?)|\uD83E(?:[\uDD0C\uDD0F\uDD18-\uDD1F\uDD30-\uDD34\uDD36\uDD77\uDDB5\uDDB6\uDDBB\uDDD2\uDDD3\uDDD5\uDEC3-\uDEC5\uDEF0\uDEF2-\uDEF8](?:\uD83C[\uDFFB-\uDFFF])?|[\uDD26\uDD35\uDD37-\uDD39\uDD3C-\uDD3E\uDDB8\uDDB9\uDDCD\uDDCF\uDDD4\uDDD6-\uDDDD](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDDDE\uDDDF](?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDD0D\uDD0E\uDD10-\uDD17\uDD20-\uDD25\uDD27-\uDD2F\uDD3A\uDD3F-\uDD45\uDD47-\uDD76\uDD78-\uDDB4\uDDB7\uDDBA\uDDBC-\uDDCC\uDDD0\uDDE0-\uDDFF\uDE70-\uDE7C\uDE80-\uDE8A\uDE8E-\uDEC2\uDEC6\uDEC8\uDECD-\uDEDC\uDEDF-\uDEEA\uDEEF]|\uDDCE(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?|\uDDD1(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1|\uDDD1\u200D\uD83E\uDDD2(?:\u200D\uD83E\uDDD2)?|\uDDD2(?:\u200D\uD83E\uDDD2)?))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE])))?))?|\uDEF1(?:\uD83C(?:\uDFFB(?:\u200D\uD83E\uDEF2\uD83C[\uDFFC-\uDFFF])?|\uDFFC(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB\uDFFD-\uDFFF])?|\uDFFD(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])?|\uDFFE(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB-\uDFFD\uDFFF])?|\uDFFF(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB-\uDFFE])?))?)/g;
+		var emoji = "emojis";
+		var emoji_size = Utils.getValue ("hfr-copie-colle-emoji", "micro");
+		if (emoji_size != "normal")
+			emoji += `-${emoji_size}`;
+		return res_arr.join("").replaceAll (ereg, m => {return "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert ([...m].map (u => u.codePointAt(0).toString(16)).join("-")) + ".png?raw=true[/img]"; });
 	}
 	
 	static feofConvert (code) {
@@ -1128,454 +1480,6 @@ class Utils {
 		return result;
 	}
 	
-	static tweetVideoUrl (info) {
-		console.log (info);
-		var list = [];
-		for (var i = 0; i < info.variants.length; i++) {
-			var v = info.variants[i];
-			if (info.variants[i].content_type == "application/x-mpegURL")
-				v.bitrate = 0;
-			list.push (v);
-		}
-		list.sort ((a,b) => { return b.bitrate - a.bitrate; });
-		if (list.length > 0)
-			return list[0];
-		return { url : "" };
-	}
-	
-	static tweetToQuote (tweet) {
-		var builder = new Builder();
-		var obj = {
-			"Government" : "[img]https://i.imgur.com/AYsrHeC.png[/img]",
-			"Business" : "[img]https://i.imgur.com/6C4thzC.png[/img]"
-		};
-		builder.append ("[quote][b][url=https://x.com/i/status/" + tweet.id_str + "]𝕏 " + Utils.normalizeText (Utils.formatText (tweet.user.name)));
-		if (tweet.user.verified_type == "Government" || tweet.user.verified_type == "Business")
-			builder.append (" " + obj[tweet.user.verified_type]);
-		else if (tweet.user.is_blue_verified || tweet.user.verified)
-			builder.append (" [:yoann riou:9]");
-		builder.append (" (@" + tweet.user.screen_name + ")[/url][/b]\n");
-		var array = [...(tweet.text)];
-		for (var i = 0; i < array.length; i++) {
-			var _mention = null, _hashtag = null, _url = null, _media = null;
-			if (tweet.entities.user_mentions)
-				for (var mention of tweet.entities.user_mentions)
-					if (mention.indices[0] == i) {
-						_mention = mention;
-						break;
-					}
-			if (tweet.entities.hashtags)
-				for (var hashtag of tweet.entities.hashtags)
-					if (hashtag.indices[0] == i) {
-						_hashtag = hashtag;
-						break;
-					}
-			if (tweet.entities.urls)
-				for (var url of tweet.entities.urls)
-					if (url.indices[0] == i) {
-						_url = url;
-						break;
-					}
-			if (tweet.entities.media)
-				for (var media of tweet.entities.media)
-					if (media.indices[0] == i) {
-						_media = media;
-						break;
-					}
-			if (_mention) {
-				builder.append ("[url=https://x.com/" + _mention.screen_name + "][b]@" + _mention.screen_name + "[/b][/url]");
-				i += _mention.indices[1] - _mention.indices[0] - 1;
-			}
-			else if (_hashtag) {
-				builder.append ("[url=https://x.com/hashtag/" + _hashtag.text + "][b]#" + _hashtag.text + "[/b][/url]");
-				i += _hashtag.indices[1] - _hashtag.indices[0] - 1;
-			}
-			else if (_url) {
-				builder.append ("[url=" + _url.expanded_url + "][b]" + _url.display_url + "[/b][/url]");
-				i += _url.indices[1] - _url.indices[0] - 1;
-			}
-			else if (_media) {
-				i += _media.indices[1] - _media.indices[0] - 1;
-			}
-			else 
-				builder.append (array[i]);
-		}
-		if (tweet.mediaDetails && tweet.mediaDetails.length > 0) {
-			builder.append ("\n");
-			for (var i = 0; i < tweet.mediaDetails.length; i++) {
-				var md = tweet.mediaDetails[i];
-				if (md.type == "video") {
-					var v = Utils.tweetVideoUrl (md.video_info);
-					var url_data = (v.url == "") ? "" : "&hfr-url-data=" + encodeURIComponent (v.url) + "&hfr-media-type=" + encodeURIComponent (v.content_type);
-					builder.append ("[url=https://x.com/i/status/" + tweet.id_str + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + md.media_url_https + url_data + "[/img][/url]\n");
-				}
-				else if (md.type == "animated_gif") {
-					var video_src = md.video_info.variants[0].url;
-					var url_data = "&gif=true&hfr-url-data=" + encodeURIComponent (video_src);
-					builder.append ("[url=https://x.com/i/status/" + tweet.id_str + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + md.media_url_https + url_data + "[/img][/url]\n");
-				}
-				else if (md.type == "photo")
-					builder.append ("[url=https://rehost.diberie.com/Rehost?url=" + md.media_url_https + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + md.media_url_https + "[/img][/url]");
-			}
-		}
-		else if (tweet.card) {
-			var regex = /^poll(?<count>\d)choice_text_only$/;
-			var res = regex.exec (tweet.card.name);
-			if (res) {
-				builder.append ("\n");
-				var count = parseInt (res.groups.count);
-				var arr = [];
-				var total = 0;
-				for (var i = 1; i < count + 1; i++) {
-					var obj = {};
-					obj.label = tweet.card.binding_values["choice" + i + "_label"].string_value;
-					obj.count = parseInt (tweet.card.binding_values["choice" + i + "_count"].string_value);
-					total += obj.count;
-					arr.push (obj);
-				}
-				for (var i = 0; i < arr.length; i++) {
-					arr[i].pct = (arr[i].count * 100 / total).toFixed(2) + " %";
-					builder.append ("[*] " + arr[i].label + " (" + arr[i].pct + ")\n");
-				}
-			}
-			else if (tweet.card.name == "summary_large_image") {
-				builder.append ("\n");
-				builder.append ("[url=" + tweet.card.url + "][img]" + tweet.card.binding_values.thumbnail_image.image_value.url + "[/img][/url]");
-				builder.append ("[quote]" + tweet.card.binding_values.title.string_value + "[/quote]");
-			}
-		}
-		builder.append ("[/quote]");		
-		
-		if (tweet.quoted_tweet) {
-			builder.prepend ("\n");
-			builder.prepend (Utils.tweetToQuote (tweet.quoted_tweet));
-		}
-		return Utils.normalizeText (Utils.formatText (builder.toString()));
-	}
-	
-	static pasteTwitter (link) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.twitter.exec (link);
-				Utils.request({
-					method : "GET",
-					url : "https://cdn.syndication.twimg.com/tweet-result?token=43l77nyjhwo&id=" + res.groups.id,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onload : function (response) {
-						try {
-							var json = JSON.parse (response.responseText);
-							resolve (Utils.tweetToQuote (json));
-						}
-						catch (e) {
-							console.log (e);
-							reject (link);
-						}
-					}
-				});
-			})();
-		});
-	}
-	
-	static jsonToPouet (json, uri) {
-		return new Promise ((resolve, reject) => {
-			try {
-				var builder = new Builder();
-				var data = JSON.parse (json);
-				var doc = new DOMParser().parseFromString (data.content, "text/html");
-				var id = data.account.acct;
-				var instance = new URL (data.account.url).host;
-				var name = Utils.formatText (data.account.display_name);
-				builder.append (`[quote][b][url=${uri}][img]https://rehost.diberie.com/Picture/Get/f/110911[/img] ${name} (@${id}@${instance})[/url][/b]\n`);
-				var p = doc.querySelector ("p");
-				while (p != null) {
-					var c = p.firstChild;
-					while (c != null) {
-						if (c.nodeType == 3) {
-							var text = Utils.formatText (c.textContent);
-							builder.append (text);
-						}
-						else if (c.nodeType == 1) {
-							if (c.nodeName.toLowerCase() == "br")
-								builder.append ("\n");
-							else if (c.classList.contains ("h-card") && c.querySelector (".u-url.mention") != null) {
-								var a = c.querySelector ("a");
-								var id = a.textContent;
-								var lnk = a.getAttribute ("href");
-								builder.append (`[b][url=${lnk}]${id}[/url][/b]`);
-							}
-							else if (c.classList.contains ("hashtag")) {
-								var tag = c.querySelector ("span").textContent;
-								var lnk = c.getAttribute ("href");
-								builder.append (`[b][url=${lnk}]#${tag}[/url][/b]`);
-							}
-							else if (c.nodeName.toLowerCase() == "a") {
-								var lnk = c.getAttribute ("href");
-								builder.append (`[b][url]${lnk}[/url][/b]`);
-							}
-						}
-						c = c.nextSibling;
-					}
-					builder.append ("\n");
-					p = p.nextElementSibling;
-				}
-				if (data.poll != null)
-					data.poll.options.forEach (opt => {
-						var tit = opt.title;
-						var pct = opt.votes_count * 100 / data.poll.votes_count;
-						builder.append (`[*] ${tit} : ${pct} %\n`);
-					});
-				else if (data.media_attachments != null)
-					data.media_attachments.forEach (media => {
-						if (media.type == "image")
-							builder.append (`[url=${media.url}][img]${media.preview_url}[/img][/url]`);
-						else if (media.type == "gifv") {
-							var src = media.url + "?hfr-url-type=mastodon-gif";
-							var preview = media.preview_url;
-							builder.append (`[url=${src}][img]https://rehost.diberie.com/Rehost?size=min&url=${preview}[/img][/url]`);
-						}
-						else if (media.type == "video") {
-							var src = media.url + "?hfr-url-type=mastodon";
-							var preview = media.preview_url;
-							builder.append (`[url=${src}][img]https://rehost.diberie.com/Rehost?size=min&url=${preview}[/img][/url]`);
-						}
-					});
-				builder.append (`[/quote]`);
-				resolve (builder.toString());
-			}
-			catch (e) {
-				console.log (e);
-				reject (uri);
-			}
-		});
-	}
-	
-	static pasteMastodon (link) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.mastodon.exec (link);
-				var tid = res.groups.tid;
-				var instance = res.groups.instance;
-				var url = `https://${instance}/api/v1/statuses/${tid}`;
-				Utils.request({
-					method : "GET",
-					url : url,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						Utils.jsonToPouet (response.responseText, link).then (text => {
-							resolve (text);
-						}).catch (err => {
-							console.log (err);
-							reject (link);
-						});
-					}
-				});
-			})();
-		});
-	}
-	
-	static pasteTS (link) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.truthsocial.exec (link);
-				var tid = res.groups.tid;
-				var url = `https://truthsocial.com/api/v1/statuses/${tid}`;
-				Utils.request({
-					method : "GET",
-					url : url,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						Utils.jsonToPouet (response.responseText, link).then (text => {
-							resolve (text);
-						}).catch (err => {
-							console.log (err);
-							reject (link);
-						});
-					}
-				});
-			})();
-		});
-	}
-	
-	static jsonToSkeet (data, profile, link, sub) {
-		var did_plc = data.uri.split ("at://")[1].split ("/")[0];
-		var quote = new Skeet (link);
-		quote.profile = profile;
-		var text = data.value.text;
-		var arr = new TextEncoder().encode (text);
-		if (data.value.facets)
-			for (var i = data.value.facets.length - 1; i >= 0; i--) {
-				var facet = data.value.facets[i];
-				if (facet.features[0]["$type"] == "app.bsky.richtext.facet#tag") {
-					var htag = facet.features[0].tag;
-					var tag = `[url=https://bsky.app/hashtag/${htag}][b]#${htag}[/b][/url]`;
-					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + tag + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
-				}
-				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
-					var mid = facet.features[0].did;
-					var mh = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
-					var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
-					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + mention + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
-				}
-				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
-					var txt = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
-					var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
-					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + url + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
-				}
-			}
-		text = new TextDecoder().decode (arr);
-		if (data.value.embed) {
-			text += "\n";
-			if (data.value.embed.images) {
-				var imgs = data.value.embed.images;
-				for (var i = 0; i < imgs.length; i++) {
-					var lnk = imgs[i].image.ref["$link"];
-					text += `[url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}[/img][/url]`;
-				}
-			}
-			if (data.value.embed.video) {
-				var lnk = data.value.embed.video.ref["$link"];
-				var url = `https://video.bsky.app/watch/${did_plc}/${lnk}`;
-				var url_data = "?vdata=" + encodeURIComponent (url + "/playlist.m3u8");
-				text += `[url=${link}][img]${url}/thumbnail.jpg${url_data}[/img][/url]`;
-			}
-			if (data.value.embed.external && (data.value.embed.images == null || data.value.embed.images.length == 0)) {
-				var lnk = data.value.embed.external.uri;
-				var img = "";
-				var u = new URL(lnk);
-				if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
-					img = `[url=${lnk}][img]${lnk}[/img][/url]`;
-				else if (data.value.embed.external.thumb)
-					img = `[url=${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${data.value.embed.external.thumb.ref["$link"]}[/img][/url]`;
-				var qte = data.value.embed.external.title + ((data.value.embed.external.description != null) ? (" - " + data.value.embed.external.description) : "");
-				text += `[url=${lnk}][b]${lnk}[/b][/url]\n${img}[quote]${qte}[/quote]`;
-			}
-			if (data.value.embed.media) {
-				var med = data.value.embed.media;
-				if (med.images) {
-					var imgs = med.images;
-					for (var i = 0; i < imgs.length; i++) {
-						var lnk = imgs[i].image.ref["$link"];
-						text += `[url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${lnk}[/img][/url]`;
-					}
-				}
-				if (med.video) {
-					var lnk = med.video.ref["$link"];
-					var url = `https://video.bsky.app/watch/${did_plc}/${lnk}`;
-					var url_data = "?vdata=" + encodeURIComponent (url + "/playlist.m3u8");
-					text += `[url=${link}][img]${url}/thumbnail.jpg${url_data}[/img][/url]`;
-				}
-				if (med.external && (med.images == null || med.images.length == 0)) {
-					var lnk = med.external.uri;
-					var u = new URL(lnk);
-					var img = "";
-					if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
-						img = `[url=${lnk}][img]${lnk}[/img][/url]`;
-					else if (med.external.thumb)
-						img = `[url=${lnk}][img]https://rehost.diberie.com/Rehost?size=min&url=https://cdn.bsky.app/img/feed_thumbnail/plain/${did_plc}/${med.external.thumb.ref["$link"]}[/img][/url]`;
-					var qte = med.external.title + ((med.external.description != null) ? (" - " + med.external.description) : "");
-					text += `[url=${lnk}][b]${lnk}[/b][/url]\n${img}[quote]${qte}[/quote]`;
-				}
-			}
-			if (data.value.embed.record && sub == false) {
-				var rec = data.value.embed.record;
-				if (rec.record)
-					rec = rec.record;
-				var subdid = rec.uri.split ("at://")[1].split ("/")[0];
-				var subp = rec.uri.split ("app.bsky.feed.post/")[1];
-				quote.subquote = Utils.getSkeet (`https://bsky.app/profile/${subdid}/post/${subp}`, subdid, subp, true);
-			}
-		}
-		quote.text = Utils.formatText (Utils.normalizeText (text));
-		return quote.toString();
-	}
-	
-	static getSkeet (link, id, hash, sub) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.bluesky.exec (link);
-				SkeetProfile.fetch (id).then (profile => {
-					var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${profile.did}&collection=app.bsky.feed.post&rkey=${hash}`;
-					console.log (url);
-					Utils.request({
-						method : "GET",
-						url : url,
-						onabort : function() { reject (link); },
-						onerror : function() { reject (link); },
-						ontimeout : function() { reject (link); },
-						headers : { "Cookie" : "" },
-						anonymous : true,
-						onload : function (response) {
-							try {
-								var json = JSON.parse (response.responseText);
-								Utils.jsonToSkeet (json, profile, link, sub).then (text => {
-									resolve (text);
-								}).catch (e => {
-									console.log (e);
-									reject (link);
-								});
-							}
-							catch (e) {
-								console.log (e);
-								reject (link);
-							}
-						}
-					});
-				}).catch (e => {
-					console.log (e);
-					reject (link);
-				});
-			})();
-		});
-	}
-	
-	static pasteBluesky (link) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.bluesky.exec (link);
-				SkeetProfile.fetch (res.groups.id).then (profile => {
-					var url = `https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=${profile.did}&collection=app.bsky.feed.post&rkey=${res.groups.hash}`;
-					Utils.request({
-						method : "GET",
-						url : url,
-						onabort : function() { reject (link); },
-						onerror : function() { reject (link); },
-						ontimeout : function() { reject (link); },
-						headers : { "Cookie" : "" },
-						anonymous : true,
-						onload : function (response) {
-							try {
-								var json = JSON.parse (response.responseText);
-								Utils.jsonToSkeet (json, profile, link, false).then (text => {
-									resolve (text);
-								}).catch (e => {
-									console.log (e);
-									reject (link);
-								});
-							}
-							catch (e) {
-								console.log (e);
-								reject (link);
-							}
-						}
-					});
-				}).catch (e => {
-					console.log (e);
-					reject (link);
-				});
-			})();
-		});
-	}
-	
 	static pasteYoutube (link, id) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
@@ -1607,113 +1511,12 @@ class Utils {
 		});
 	}
 	
-	static formatReddit (link, text) {
-		return new Promise ((resolve, reject) => {
-			var doc = new DOMParser().parseFromString (text, "text/html");
-			try {
-				var post = doc.querySelector ("shreddit-post");
-				var author = post.querySelector (".author-name").textContent;
-				var subr = post.querySelector ("a.subreddit-name").textContent.trim();
-				var title = post.querySelector ("[slot='title']").textContent.trim();
-				var txt = post.querySelector ("[slot='text-body'] div[id]");
-				var ctn = post.querySelector ("[slot='post-media-container']");
-				var builder = new Builder();
-				builder.append (`[:teepodavignon:8][citation=1,1,1][nom][url=${link}][:jean robin:10] ${author} a publié sur ${subr}[/url][/nom]`);
-				builder.append (`[b]${title}[/b]\n`);
-				if (ctn != null) {
-					var sub = ctn.querySelector ("[property='schema:articleBody']");
-					if (sub != null)
-						txt = sub;
-				}
-				if (txt != null)
-					builder.append (Utils.formatText (txt.textContent.trim()));
-				if (ctn != null) {
-					var sub = ctn.querySelector ("[property='schema:articleBody']");
-					if (sub != null)
-					builder.append ("\n");
-					var img = ctn.querySelector ("img");
-					var carousel = ctn.querySelector ("gallery-carousel");
-					var player = ctn.querySelector ("shreddit-player");
-					if (player != null) {
-						var src =  link + "?hfr-reddit-video=" + encodeURIComponent (player.getAttribute ("src"));
-						var preview = player.querySelector (".preview-image").getAttribute ("src");
-						if (player.getAttribute ("post-type") == "gif") {
-							src = preview = post.getAttribute ("content-href");
-						}
-						builder.append (`[url=${src}][img]${preview}[/img][/url]`);
-					}
-					else if (carousel != null) {
-						carousel.querySelectorAll ("li > img").forEach (image => {
-							console.log (image);
-							var src = image.getAttribute ("src");
-							if (src == null)
-								src = image.getAttribute ("data-lazy-src");
-							var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (src);
-							builder.append (`[url=${src}][img]${preview}[/img][/url]`);
-						});
-					}
-					else if (img != null) {
-						var src = img.getAttribute ("src");
-						var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (img.getAttribute ("src"));
-						builder.append (`[url=${src}][img]${preview}[/img][/url]`);
-					}
-				}
-				builder.append ("[/citation]");
-				resolve (builder.toString());
-			}
-			catch (e) {
-				console.log (e);
-				reject (link);
-			}	
-		});
-	}
-	
-	static pasteReddit (link) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Utils.request({
-					method : "GET",
-					url : link,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						Utils.formatReddit (link, response.responseText).then (text => {
-							resolve (text);
-						}).catch (err => {
-							console.log (err);
-							reject (link);
-						});
-					}
-				});
-			})();
-		});
-	}
-	
 	static dropText (text) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				if (Expr.twitter.match (text)) {
-					Utils.pasteTwitter (text).then (txt => {
-						resolve (txt);
-					}).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else if (Expr.truthsocial.match (text)) {
-					Utils.pasteTS (text).then (txt => {
-						resolve (txt);
-					}).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else if (Expr.mastodon.match (text)) {
-					Utils.pasteMastodon (text).then (txt => {
-						resolve (txt);
+				if (Social.match (text)) {
+					Social.load (text).then (msg => {
+						resolve (msg.toString());
 					}).catch (e => {
 						console.log (e);
 						reject (text);
@@ -1769,41 +1572,9 @@ class Utils {
 			(async () => {
 				var blob = await item.getType ("text/plain");
 				var text = await blob.text();
-				if (Expr.reddit.match (text)) {
-					Utils.pasteReddit (text).then (txt => {
-						resolve (txt);
-					}).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else if (Expr.twitter.match (text)) {
-					Utils.pasteTwitter (text).then (txt => {
-						resolve (txt);
-					}).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else if (Expr.mastodon.match (text)) {
-					Utils.pasteMastodon (text).then (txt => {
-						resolve (txt);
-					}).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else if (Expr.truthsocial.match (text)) {
-					Utils.pasteTS (text).then (txt => {
-						resolve (txt);
-					}).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else if (Expr.bluesky.match (text)) {
-					Utils.pasteBluesky (text).then (txt => {
-						resolve (txt);
+				if (Social.match (text)) {
+					Social.load (text).then (msg => {
+						resolve (msg.toString());
 					}).catch (e => {
 						console.log (e);
 						reject (text);
@@ -2273,46 +2044,40 @@ Utils.init (table => {
 			}
 			if (link.firstElementChild == null || link.firstElementChild.nodeName.toLowerCase() != "img")
 				return;
-			if (Expr.reddit.match (href)) {
-				var src = new URL (link.firstElementChild.getAttribute ("src"));
-				if (src.searchParams.get ("hfr-reddit-gif") != null) {
-					var gif = decodeURIComponent (src.searchParams.get ("hfr-reddit-gif"));
-					var video = document.createElement ("video");
+			if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
+					href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
+					href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0) {
+				var video = document.createElement ("video");
+				if (u.searchParams.get("gif") == "true") {
 					video.setAttribute ("loop", "");
 					video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
-					video.setAttribute ("src", gif);
-					video.setAttribute ("height", "200");
-					link.parentNode.replaceChild(video, link);
 				}
-				else if (src.searchParams.get ("hfr-reddit-video") != null) {
-					var v = decodeURIComponent (src.searchParams.get ("hfr-reddit-video"));
-					var video = document.createElement ("video");
-					video.setAttribute ("id", "hfr-video-" + index);
-					video.setAttribute ("class", "video-js");
+				else
 					video.setAttribute ("controls", "");
-					video.setAttribute ("height", "400");
-					link.parentNode.replaceChild(video, link);
-					var player = videojs ("hfr-video-" + index, {controlBar: {fullscreenToggle: true}});
-					player.src ({
-						type : "application/x-mpegURL",
-						src : v
-					});
-					index++;
-				}
+				video.setAttribute ("height", "400");
+				video.setAttribute ("src", href);
+				link.parentNode.replaceChild(video, link);
 			}
-			else if (href.indexOf ("https://x.com/i/status/") == 0) {
+			else if (href.indexOf ("https://video.twimg.com/") == 0) {
 				var src = new URL (link.firstElementChild.getAttribute ("src"));
 				var url = src.searchParams.get("hfr-url-data");
+				var ct = src.searchParams.get("hfr-media-type");
 				if (url != null) {
 					var video = document.createElement ("video");
+					video.onclick = () => {
+						if (video.cc_loaded != true)
+							Utils.convertVideoURL (url).then (uri => {
+								video.setAttribute ("src", uri);
+								video.cc_loaded = true;
+							});
+					};
 					if (src.searchParams.get("gif") == "true") {
 						video.setAttribute ("loop", "");
 						video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
 					}
 					else
 						video.setAttribute ("controls", "");
-					video.setAttribute ("src", url);
-					video.setAttribute ("height", "200");
+					video.setAttribute ("height", "400");
 					link.parentNode.replaceChild(video, link);
 				}
 			}
@@ -2342,81 +2107,41 @@ Utils.init (table => {
 		}
 		if (link.firstElementChild == null || link.firstElementChild.nodeName.toLowerCase() != "img")
 			return;
-		if (Expr.reddit.match (href)) {
-			var src = new URL (href);
-			console.log (src);
-			if (src.searchParams.get ("hfr-reddit-video") != null) {
-				var v = decodeURIComponent (src.searchParams.get ("hfr-reddit-video"));
-				var video = document.createElement ("video");
-				video.setAttribute ("src", v);
-				video.setAttribute ("id", "hfr-video-" + index);
-				console.log (src.pathname);
-				if (!new URL(v).pathname.endsWith(".gif"))
-					video.setAttribute ("controls", "");
-				else {
-					video.setAttribute ("loop", "");
-					video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
-				}
-				video.setAttribute ("height", "400");
-				link.parentNode.replaceChild(video, link);
-				index++;
-			}
-		}
-		else if (Expr.bluesky.match (href)) {
-			var img = link.firstElementChild;
-			if (img != null && img.hasAttribute ("src")) {
-				var src = new URL (img.getAttribute ("src"));
-				var url = src.searchParams.get("vdata");
-				if (url != null) {
-					var video = document.createElement ("video");
-					video.setAttribute ("id", "hfr-video-" + index);
-					video.setAttribute ("class", "video-js");
-					video.setAttribute ("controls", "");
-					video.setAttribute ("height", "400");
-					link.parentNode.replaceChild(video, link);
-					var player = videojs ("hfr-video-" + index, {controlBar: {fullscreenToggle: true}});
-					player.src ({
-						type : "application/x-mpegURL",
-						src : url
-					});
-					index++;
-				}
-			}
-		}
-		else if (u.searchParams.get ("hfr-url-type") == "mastodon") {
+		if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
+				href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
+				href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0) {
 			var video = document.createElement ("video");
 			video.setAttribute ("id", "hfr-video-" + index);
-			video.setAttribute ("class", "video-js");
-			video.setAttribute ("controls", "");
+			if (u.searchParams.get("gif") == "true") {
+				video.setAttribute ("loop", "");
+				video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
+			}
+			else
+				video.setAttribute ("controls", "");
 			video.setAttribute ("height", "400");
-			link.parentNode.replaceChild(video, link);
 			video.setAttribute ("src", href);
+			link.parentNode.replaceChild(video, link);
 			index++;
 		}
-		else if (href.indexOf ("https://x.com/i/status/") == 0) {
-			var src = new URL (link.firstElementChild.getAttribute ("src"));
-			var url = src.searchParams.get("hfr-url-data");
-			var ct = src.searchParams.get("hfr-media-type");
-			if (url != null) {
-				var video = document.createElement ("video");
-				video.onclick = () => {
-					if (video.cc_loaded != true)
-						Utils.convertVideoURL (url).then (uri => {
-							video.setAttribute ("src", uri);
-							video.cc_loaded = true;
-						});
-				};
-				video.setAttribute ("id", "hfr-video-" + index);
-				if (src.searchParams.get("gif") == "true") {
-					video.setAttribute ("loop", "");
-					video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
-				}
-				else
-					video.setAttribute ("controls", "");
-				video.setAttribute ("height", "400");
-				link.parentNode.replaceChild(video, link);
-				index++;
+		else if (href.indexOf ("https://video.twimg.com/") == 0) {
+			var video = document.createElement ("video");
+			video.onclick = () => {
+				if (video.cc_loaded != true)
+					Utils.convertVideoURL (href).then (uri => {
+						video.setAttribute ("src", uri);
+						video.cc_loaded = true;
+					});
+			};
+			video.setAttribute ("id", "hfr-video-" + index);
+			if (u.searchParams.get("gif") == "true") {
+				video.setAttribute ("loop", "");
+				video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
 			}
+			else
+				video.setAttribute ("controls", "");
+			video.setAttribute ("height", "400");
+			link.parentNode.replaceChild(video, link);
+			index++;
 		}
 	});
 });
