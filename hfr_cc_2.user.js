@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5
+// @version       1.5.1
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.1          Correctif vidéo reddit pour firefox
 // 1.5            Refonte complète du code : utilisation de classes, promesses, etc.
 // 1.4.75         Correction d'un bug avec les vidéos Reddit.
 // 1.4.73         Twitter : nique-toi Elon
@@ -118,7 +119,11 @@ class Expr {
 	}
 	
 	static get reddit() {
-		return new Expr ("^(https://www\\.reddit\\.com/r/\\w+/comments/\\w+/[àáâãäåçèéêëìíîïðòóôõöùúûüýÿ\\w%]+/(\\?hfr\\-reddit\\-video\\=[\\w%\\.]+)?)$");
+		return new Expr ("^(https://www\\.reddit\\.com/r/\\w+/comments/\\w+/[àáâãäåçèéêëìíîïðòóôõöùúûüýÿ\\w%]+/)$");
+	}
+
+	static get shreddit() {
+		return new Expr ("^(https://www\\.reddit\\.com/r/\\w+/s/\\w+)$");
 	}
 	
 	static get bluesky() {
@@ -154,7 +159,8 @@ class Video {
 
 class Social {
 	static match (url) {
-		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.reddit.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url);
+		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
+			Expr.reddit.match (url) || Expr.shreddit.match (url);
 	}
 
 	static load (url) {
@@ -162,7 +168,7 @@ class Social {
 			return Twitter.load (url);
 		if (Expr.bluesky.match (url))
 			return BlueSky.load (url);
-		if (Expr.reddit.match (url))
+		if (Expr.reddit.match (url) || Expr.shreddit.match (url))
 			return Reddit.load (url);
 		if (Expr.mastodon.match (url) || Expr.truthsocial.match (url))
 			return Mastodon.load (url);
@@ -257,11 +263,15 @@ class Reddit extends Social {
 								toString : () => { return `[img]${post.getAttribute ("content-href")}[/img]`; }
 							});
 						} else {
+							var data = JSON.parse (player.getAttribute ("packaged-media-json"));
+							var perms = data.playbackMp4s.permutations;
+							perms.sort ((a, b) => b.source.dimensions.width - a.source.dimensions.width);
+							var src = perms[0].source.url;
+
 							var vid = new Video();
-							vid.url = player.getAttribute ("src");
+							vid.url = src;
 							vid.poster = player.querySelector (".preview-image").getAttribute ("src");
 							console.log ("poster : " + vid.poster);
-							vid.contentType = "application/x-mpegURL";
 							red.videos.push (vid);
 						}
 					}
@@ -271,7 +281,7 @@ class Reddit extends Social {
 							var src = image.getAttribute ("src");
 							if (src == null)
 								src = image.getAttribute ("data-lazy-src");
-							var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (src);
+							var preview = src;
 							red.images.push ({
 								url : src,
 								toString : () => { return `[url=${src}][img]${preview}[/img][/url]`; }
@@ -2109,7 +2119,7 @@ Utils.init (table => {
 			return;
 		if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 				href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
-				href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0) {
+				href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://packaged-media.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0) {
 			var video = document.createElement ("video");
 			video.setAttribute ("id", "hfr-video-" + index);
 			if (u.searchParams.get("gif") == "true") {
@@ -2119,7 +2129,9 @@ Utils.init (table => {
 			else
 				video.setAttribute ("controls", "");
 			video.setAttribute ("height", "400");
-			video.setAttribute ("src", href);
+			var src = document.createElement ("source");
+			src.setAttribute ("src", href);
+			video.appendChild (src);
 			link.parentNode.replaceChild(video, link);
 			index++;
 		}
