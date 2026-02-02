@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.2
+// @version       1.5.3
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.3          Affichage des liens si HTML avec description.
 // 1.5.1          Correctif vidéo reddit pour firefox
 // 1.5            Refonte complète du code : utilisation de classes, promesses, etc.
 // 1.4.75         Correction d'un bug avec les vidéos Reddit.
@@ -82,6 +83,39 @@
 // 1.4            ajout de reddit.
 // 1.3            fenêtre de visualisation de l'image avant collage.
 // 1.2            on repart de la v1.
+
+class Headers {
+	#obj;
+
+	constructor() {
+		this.#obj = {};
+	}
+
+	setHeader (name, value) {
+		if (!(name in this.#obj))
+			this.#obj[name] = [];
+		this.#obj[name].push (value);
+	}
+
+	getHeader (name) {
+		if (name in this.#obj)
+			return this.#obj[name];
+		return [];
+	}
+
+	static parse (str) {
+		var headers = new Headers();
+		var p = str.split ("\n");
+		p.forEach (line => {
+			var l = line;
+			var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
+			l.substring (l.indexOf (":") + 1).split (";").forEach (v => {
+				headers.setHeader (k, v.trim());
+			});
+		});
+		return headers;
+	}
+}
 
 class Expr {
 	#patt;
@@ -292,13 +326,11 @@ class Reddit extends Social {
 							var vid = new Video();
 							vid.url = src;
 							vid.poster = player.querySelector (".preview-image").getAttribute ("src");
-							console.log ("poster : " + vid.poster);
 							red.videos.push (vid);
 						}
 					}
 					else if (carousel != null) {
 						carousel.querySelectorAll ("li > img").forEach (image => {
-							console.log (image);
 							var src = image.getAttribute ("src");
 							if (src == null)
 								src = image.getAttribute ("data-lazy-src");
@@ -390,9 +422,7 @@ class Twitter extends Social {
 			data.user.verified_type = "Basic";
 		}
 		this.info = `@${data.user.screen_name} ${data.user.verified ? obj[data.user.verified_type] + " " : ""}`;
-		console.log (data);
 		this.text = Twitter.normalize (data.text);
-		console.log (data.user.screen_name);
 		if (data.mediaDetails && data.mediaDetails.length > 0) {
 			data.mediaDetails.forEach (media => {
 				if (media.type == "video") {
@@ -495,7 +525,6 @@ class BlueSky extends Social {
 		var did = data.uri.split ("at://")[1].split ("/")[0];
 		var hash = data.uri.split ("app.bsky.feed.post/")[1];
 		this.link = `https://bsky.app/profile/${did}/post/${hash}`;
-		console.log (this.link);
 		this.user = Utils.normalizeText (Utils.formatText (data.author.displayName));
 		this.info = `@${data.author.handle}${data.author.verification != null ? " [:yoann riou:9]" : ""}`;
 		var record = (data.record != null) ? data.record : data.value;
@@ -525,7 +554,6 @@ class BlueSky extends Social {
 		this.text = Utils.normalizeText (txt);
 		if (data.embed != null) {
 			var med = (data.embed.media != null) ? data.embed.media : data.embed;
-			console.log (med);
 			if (med["$type"] == "app.bsky.embed.video#view") {
 				var vid = new Video();
 				vid.contentType = "application/x-mpegURL";
@@ -1597,6 +1625,45 @@ class Utils {
 			})();
 		});
 	}
+
+	static pasteDefault (link) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				Utils.request({
+					method : "GET",
+					url : link,
+					onabort : function() { reject (link); },
+					ontimeout : function() { reject (link); },
+					onerror : function() { reject (link); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
+					onload : function (response) {
+						try {
+							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
+							var m = doc.querySelector ("head > meta[property='og:image']");
+							if (m == null)
+								reject (link);
+							else {
+								var img = m.getAttribute ("content");
+								var title = doc.querySelector ("head > title").textContent;
+								var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
+								var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
+								var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
+								if (detail == "non")
+									resolve (`[url=${link}][b]${title}[/b][/url]\n\n[url=${link}][img]${img}[/img][/url]`);
+								else
+									resolve (`[url=${link}]${site}[/url]\n\n[url=${link}][b]${title}[/b][/url]\n\n[url=${link}]${desc}[/url]\n\n[url=${link}][img]${img}[/img][/url]`);
+							}
+						}
+						catch (e) {
+							console.log (e);
+							reject (link);
+						}
+					}
+				});
+			})();
+		});
+	}
 	
 	static pasteText (item) {
 		return new Promise ((resolve, reject) => {
@@ -1612,27 +1679,28 @@ class Utils {
 					});
 				}
 				else {
-					try {
-						var url = new URL (text);
-						var id = null;
-						if (url.host == "youtube.com" || url.host == "www.youtube.com")
-							id = url.searchParams.get ("v");
-						else if (url.host == "youtu.be") {
-							id = url.pathname;
-							if (id != null)
-								id = id.substring (1);
-						}
-						if (id != null)
-							Utils.pasteYoutube (text, id).then (txt => {
-								resolve (txt);
-							}).catch (e => {
-								console.log (e);
+					Utils.request({
+						method : "HEAD",
+						url : text,
+						onabort : function() { reject (text); },
+						ontimeout : function() { reject (text); },
+						onerror : function() { reject (text); },
+						headers : { "Cookie" : "" },
+						anonymous : true,
+						onload : function (response) {
+							var headers = Headers.parse (response.responseHeaders);
+							if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
+								Utils.pasteDefault (text).then (txt => {
+									resolve (txt);
+								}).catch (e => {
+									console.log (e);
+									reject (text);
+								});
+							}
+							else
 								reject (text);
-							});
-						else
-							reject (text);
-					}
-					catch (e) { console.log (e); reject (text); }
+						}
+					});
 				}
 			})();
 		});
@@ -1925,7 +1993,6 @@ class Utils {
 		else if (hf) {
 			for (var i = 0; i < dt.items.length; i++) {
 				var item = dt.items[i];
-				console.log (item);
 				if (item.type == "application/x-moz-nativeimage") {
 					alert ("Vous êtes sur Firefox et la fonctionnalité de glisser des images entre les onglets n'est pas activée\nsuivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_265.htm#t71266097");
 				}
@@ -1999,7 +2066,6 @@ class Utils {
 		else
 			for (var i = 0; i < dt.items.length; i++) {
 				var item = dt.items[i];
-				console.log (item);
 				 if (item.type == "text/plain") {
 					event.target.disabled = true;
 					loading.attach (event.target);
@@ -2029,6 +2095,11 @@ Utils.registerCommand ("Copie/Colle -> choix du service", () => {
 Utils.registerCommand ("Copie/Colle -> taille des emojis", () => {
 	var taille = prompt ("Entrez ici la taille de l'emoji (micro, mini ou normal) ('micro' par défaut)", Utils.getValue ("hfr-copie-colle-emoji", "micro"));
 	Utils.setValue ("hfr-copie-colle-emoji", (taille == "mini" || taille == "normal") ? taille : "micro");
+});
+
+Utils.registerCommand ("Copie/Colle -> détail des liens", () => {
+	var detail = prompt ("Entrez ici si vous voulez le détail des liens collés (oui ou non) ('non' par défaut)", Utils.getValue ("hfr-copie-colle-detail", "non"));
+	Utils.setValue ("hfr-copie-colle-detail", (detail == "oui") ? "oui" : "non");
 });
 
 Utils.init (table => {
@@ -2097,7 +2168,6 @@ Utils.init (table => {
 		var href = link.getAttribute ("href");
 		if (href[0] == '/')
 			href = "https://forum.hardware.fr" + href;
-		console.log (href);
 		var u = null;
 		try {
 			u = new URL (href);
