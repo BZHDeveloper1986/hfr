@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.1
+// @version       1.5.2
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -155,7 +155,28 @@ class Video {
 			u.searchParams.append ("gif", "true");
 		return `[url=${u}][img]${this.poster}[/img][/url]\n`;
 	}
+	
+	static #index;
+
+	static create (href, is_gif = false) {
+		
+	}
 }
+
+Element.prototype.createPlayer = function (is_gif) {
+	var video = document.createElement ("video");
+	if (is_gif) {
+		video.setAttribute ("loop", "");
+		video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
+	}
+	else
+		video.setAttribute ("controls", "");
+	video.setAttribute ("height", "400");
+	video.setAttribute ("class", "video-js");
+	this.parentNode.replaceChild (video, this);
+	video.player = videojs (video);
+	return video;
+};
 
 class Social {
 	static match (url) {
@@ -2057,39 +2078,14 @@ Utils.init (table => {
 			if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 					href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 					href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0) {
-				var video = document.createElement ("video");
-				if (u.searchParams.get("gif") == "true") {
-					video.setAttribute ("loop", "");
-					video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
-				}
-				else
-					video.setAttribute ("controls", "");
-				video.setAttribute ("height", "400");
-				video.setAttribute ("src", href);
-				link.parentNode.replaceChild(video, link);
+				var video = link.createPlayer (u.searchParams.get("gif") == "true");
+				video.player.src ({ src : href });
 			}
 			else if (href.indexOf ("https://video.twimg.com/") == 0) {
-				var src = new URL (link.firstElementChild.getAttribute ("src"));
-				var url = src.searchParams.get("hfr-url-data");
-				var ct = src.searchParams.get("hfr-media-type");
-				if (url != null) {
-					var video = document.createElement ("video");
-					video.onclick = () => {
-						if (video.cc_loaded != true)
-							Utils.convertVideoURL (url).then (uri => {
-								video.setAttribute ("src", uri);
-								video.cc_loaded = true;
-							});
-					};
-					if (src.searchParams.get("gif") == "true") {
-						video.setAttribute ("loop", "");
-						video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
-					}
-					else
-						video.setAttribute ("controls", "");
-					video.setAttribute ("height", "400");
-					link.parentNode.replaceChild(video, link);
-				}
+				var video = link.createPlayer (u.searchParams.get("gif") == "true");
+				Utils.convertVideoURL (href).then (uri => {
+					video.player.src ({ src : uri, type : "video/mp4" });
+				});
 			}
 		});
 	});
@@ -2120,40 +2116,15 @@ Utils.init (table => {
 		if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 				href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 				href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://packaged-media.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0) {
-			var video = document.createElement ("video");
-			video.setAttribute ("id", "hfr-video-" + index);
-			if (u.searchParams.get("gif") == "true") {
-				video.setAttribute ("loop", "");
-				video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
-			}
-			else
-				video.setAttribute ("controls", "");
-			video.setAttribute ("height", "400");
-			var src = document.createElement ("source");
-			src.setAttribute ("src", href);
-			video.appendChild (src);
-			link.parentNode.replaceChild(video, link);
-			index++;
+
+			var video = link.createPlayer (u.searchParams.get("gif") == "true");
+			video.player.src ({ src : href });
 		}
 		else if (href.indexOf ("https://video.twimg.com/") == 0) {
-			var video = document.createElement ("video");
-			video.onclick = () => {
-				if (video.cc_loaded != true)
-					Utils.convertVideoURL (href).then (uri => {
-						video.setAttribute ("src", uri);
-						video.cc_loaded = true;
-					});
-			};
-			video.setAttribute ("id", "hfr-video-" + index);
-			if (u.searchParams.get("gif") == "true") {
-				video.setAttribute ("loop", "");
-				video.setAttribute ("oncanplaythrough", "this.muted=true; this.play()");
-			}
-			else
-				video.setAttribute ("controls", "");
-			video.setAttribute ("height", "400");
-			link.parentNode.replaceChild(video, link);
-			index++;
+			var video = link.createPlayer (u.searchParams.get("gif") == "true");
+			Utils.convertVideoURL (href).then (uri => {
+				video.player.src ({ src : uri, type : "video/mp4" });
+			});
 		}
 	});
 });
