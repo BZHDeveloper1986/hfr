@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.3
+// @version       1.5.4
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.4          Correction Instagram
 // 1.5.3          Affichage des liens si HTML avec description.
 // 1.5.1          Correctif vidéo reddit pour firefox
 // 1.5            Refonte complète du code : utilisation de classes, promesses, etc.
@@ -163,6 +164,10 @@ class Expr {
 	static get bluesky() {
 		return new Expr ("^(https://(?<instance>[\\w\\.]+)/profile/(?<handle>[\\w\\.]+)/post/(?<hash>\\w+))$");
 	}
+
+	static get instagram() {
+		return new Expr ("^(https://(www\\.)?instagram\\.com/(\\w+/)?(p|reel)/(?<shortcode>[-_a-zA-Z0-9]+)/?)");
+	}
 }
 
 class Video {
@@ -214,8 +219,10 @@ Element.prototype.createPlayer = function (is_gif) {
 
 class Social {
 	static match (url) {
+		console.log ("Matching URL: " + url);
+		console.log (Expr.instagram.match (url))
 		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
-			Expr.reddit.match (url) || Expr.shreddit.match (url);
+			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.instagram.match (url);
 	}
 
 	static load (url) {
@@ -227,6 +234,8 @@ class Social {
 			return Reddit.load (url);
 		if (Expr.mastodon.match (url) || Expr.truthsocial.match (url))
 			return Mastodon.load (url);
+		if (Expr.instagram.match (url))
+			return Instagram.load (url);
 		return Promise.reject (url);
 	}
 
@@ -270,12 +279,94 @@ class Social {
 		var builder = new Builder();
 		if (this.quote)
 			builder.append (`${this.quote}\n`);
-		builder.append (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n`);
+		builder.append (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n\n`);
 		builder.append (`${this.text}\n`);
 		this.videos.forEach (v => builder.append (v.toString()));
 		this.images.forEach (i => builder.append (i.toString()));
 		builder.append ("[/quote]\n");
 		return builder.toString();
+	}
+}
+
+class Instagram extends Social {
+	constructor (doc, code) {
+		super();
+
+		this.icon = "[img]https://i.imgur.com/bhHTaFv.png[/img]";
+		this.link = `https://www.instagram.com/p/${code}/`;
+		this.user = Utils.normalizeText (doc.querySelector (".usermeta > .fullname h1").textContent.trim());
+		this.info = ((doc.querySelector (".usermeta svg.Zi--BadgeCert") != null) ? "[:yoann riou:9]" : "") + doc.querySelector (".usermeta > .username h2").textContent.trim();
+		this.text = Instagram.elementToBBCode (doc.querySelector ("div.desc"));
+
+		doc.querySelectorAll ("div.show .media-wrap").forEach (media => {
+			var img = media.querySelector ("img");
+			if (img != null) {
+				var src = img.getAttribute ("data-src");
+				if (src == null)
+					src = img.getAttribute ("src");
+				var url = encodeURIComponent (src);
+				console.log ("instagram : " + url);
+				this.images.push ({
+					url : url,
+					toString : function() { return "[url=https://rehost.diberie.com/Rehost?url=" + url + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + url + "[/img][/url]"; }
+				});
+			}
+			if (media.classList.contains ("proxy-video")) {
+				var video = media.querySelector ("video");
+				var vid = new Video();
+				vid.poster = "https://rehost.diberie.com/Rehost?url=" + encodeURIComponent (video.getAttribute ("poster"));
+				var u = new URL (video.getAttribute ("src"));
+				u.searchParams.append ("hfr-cc-insta", "true");
+				vid.url = u.toString();
+				vid.contentType = "video/mp4";
+				this.videos.push (vid);
+			}
+		});
+	}
+
+	static elementToBBCode (element) {
+		var builder = new Builder();
+		element.childNodes.forEach (node => {
+			if (node.nodeType == Node.TEXT_NODE)
+				builder.append (Utils.normalizeText (node.textContent).replaceAll (/#\w+/g, match => { return "[url=https://www.instagram.com/explore/tags/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
+			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "br")
+				builder.append ("\n");
+			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "a") {
+				var href = "https://www.instagram.com" + node.getAttribute ("href");
+				builder.append (`[b][url=${href}]${node.textContent}[/url][/b]`);
+			}
+			else if (node.nodeType == Node.ELEMENT_NODE)
+				builder.append (Instagram.elementToBBCode (node));
+		});
+		return builder.toString();
+	}
+
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var res = Expr.instagram.exec (url);
+				var code = res.groups.shortcode;
+				Utils.request({
+					method : "GET",
+					url : `https://imginn.com/p/${code}/`,
+					onabort : function() { reject (link); },
+					onerror : function() { reject (link); },
+					ontimeout : function() { reject (link); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
+					onload : function (response) {
+						try {
+							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
+							resolve (new Instagram (doc, code));
+						}
+						catch (e) {
+							console.log (e);
+							reject (url);
+						}
+					}
+				});
+			})();
+		});
 	}
 }
 
@@ -1558,8 +1649,11 @@ class Utils {
 							var img = "https://i.ytimg.com/vi/" + id + "/mqdefault.jpg";
 							var desc = Utils.formatText (obj.videoDetails.shortDescription);
 							var title = Utils.formatText (obj.videoDetails.title);
-							var txt = `[url=${link}][b]${title}[/b][/url]\n[url=${link}][img]${img}[/img][/url]`;
-							resolve (txt);
+							var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
+							if (detail == "non")
+								resolve (`[url=${link}][b]${title}[/b][/url]\n\n[url=${link}][img]${img}[/img][/url]`);
+							else
+								resolve (`[url=${link}][b]${title}[/b][/url]\n\n${desc}\n\n[url=${link}][img]${img}[/img][/url]`);
 						} catch (e) {
 							console.log (e);
 							reject (link);
@@ -1644,7 +1738,7 @@ class Utils {
 							if (m == null)
 								reject (link);
 							else {
-								var img = m.getAttribute ("content");
+								var img = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (m.getAttribute ("content"));
 								var title = doc.querySelector ("head > title").textContent;
 								var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
 								var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
@@ -1679,28 +1773,52 @@ class Utils {
 					});
 				}
 				else {
-					Utils.request({
-						method : "HEAD",
-						url : text,
-						onabort : function() { reject (text); },
-						ontimeout : function() { reject (text); },
-						onerror : function() { reject (text); },
-						headers : { "Cookie" : "" },
-						anonymous : true,
-						onload : function (response) {
-							var headers = Headers.parse (response.responseHeaders);
-							if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
-								Utils.pasteDefault (text).then (txt => {
-									resolve (txt);
-								}).catch (e => {
-									console.log (e);
-									reject (text);
-								});
-							}
-							else
-								reject (text);
+					try {
+						var url = new URL (text);
+						var id = null;
+						if (url.host == "youtube.com" || url.host == "www.youtube.com")
+							id = url.searchParams.get ("v");
+						else if (url.host == "youtu.be") {
+							id = url.pathname;
+							if (id != null)
+								id = id.substring (1);
 						}
-					});
+						console.log ("id : " + id);
+						if (id != null)
+							Utils.pasteYoutube (text, id).then (txt => {
+								resolve (txt);
+							}).catch (e => {
+								console.log (e);
+								reject (text);
+							});
+						else
+							Utils.request({
+								method : "HEAD",
+								url : text,
+								onabort : function() { reject (text); },
+								ontimeout : function() { reject (text); },
+								onerror : function() { reject (text); },
+								headers : { "Cookie" : "" },
+								anonymous : true,
+								onload : function (response) {
+									var headers = Headers.parse (response.responseHeaders);
+									if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
+										Utils.pasteDefault (text).then (txt => {
+											resolve (txt);
+										}).catch (e => {
+											console.log (e);
+											reject (text);
+										});
+									}
+									else
+										reject (text);
+								}
+							});
+					}
+					catch (e) {
+						console.log (e);
+						reject (text);					
+					}
 				}
 			})();
 		});
@@ -2148,7 +2266,7 @@ Utils.init (table => {
 				return;
 			if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 					href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
-					href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0) {
+					href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0 || u.searchParams.get("hfr-cc-insta") == "true") {
 				var video = link.createPlayer (u.searchParams.get("gif") == "true");
 				video.player.src ({ src : href });
 			}
@@ -2185,7 +2303,8 @@ Utils.init (table => {
 			return;
 		if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 				href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
-				href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://packaged-media.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0) {
+				href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://packaged-media.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0 ||
+				u.searchParams.get("hfr-cc-insta") == "true") {
 
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
 			video.player.src ({ src : href });
