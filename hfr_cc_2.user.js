@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.4
+// @version       1.5.4.1
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -328,7 +328,9 @@ class Instagram extends Social {
 		var builder = new Builder();
 		element.childNodes.forEach (node => {
 			if (node.nodeType == Node.TEXT_NODE)
-				builder.append (Utils.normalizeText (node.textContent).replaceAll (/#\w+/g, match => { return "[url=https://www.instagram.com/explore/tags/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
+				builder.append (Utils.normalizeText (node.textContent)
+					.replaceAll (/#\w+/g, match => { return "[url=https://www.instagram.com/explore/tags/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+					.replaceAll (/@\w+/g, match => { return "[url=https://www.instagram.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
 			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "br")
 				builder.append ("\n");
 			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "a") {
@@ -1956,11 +1958,15 @@ class Utils {
 	}
 	
 	static stroke (event) {
+		console.log (event);
 		var loading = new Loading();
 		if (event.code == "KeyD" && event.ctrlKey && event.altKey) {
 			// a refaire
 		}
 		else if (event.code == "KeyV" && (event.ctrlKey && navigator.platform.indexOf ("Mac") != 0 || event.metaKey && navigator.platform.indexOf ("Mac") == 0)) {
+			if (event.shiftKey) {
+				return;
+			}
 			if (!navigator?.clipboard?.read)
 				alert ("navigator.clipboard.read : fonction non présente ou non activée.\nVous êtes sur Firefox : suivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_240.htm#t67904757")
 			else
