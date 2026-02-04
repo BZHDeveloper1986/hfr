@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.5
+// @version       1.5.6
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.6          Taille de l'image de prévisualisation.
 // 1.5.4          Correction Instagram
 // 1.5.3          Affichage des liens si HTML avec description.
 // 1.5.1          Correctif vidéo reddit pour firefox
@@ -301,6 +302,7 @@ class Instagram extends Social {
 		doc.querySelectorAll ("div.show .media-wrap").forEach (media => {
 			var img = media.querySelector ("img");
 			if (img != null) {
+			console.log ("image width : " +  img.width);
 				var src = img.getAttribute ("data-src");
 				if (src == null)
 					src = img.getAttribute ("src");
@@ -1722,6 +1724,21 @@ class Utils {
 		});
 	}
 
+	static getImageInfo (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var img = new Image();
+				img.onload = function() {
+					resolve ({width: img.width, height: img.height});
+				};
+				img.onerror = function() {
+					reject (url);
+				};
+				img.src = url;
+			})();
+		});
+	}
+
 	static pasteDefault (link) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
@@ -1740,15 +1757,22 @@ class Utils {
 							if (m == null)
 								reject (link);
 							else {
-								var img = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (m.getAttribute ("content"));
-								var title = doc.querySelector ("head > title").textContent;
-								var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
-								var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
-								var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
-								if (detail == "non")
-									resolve (`[url=${link}][b]${title}[/b][/url]\n\n[url=${link}][img]${img}[/img][/url]`);
-								else
-									resolve (`[url=${link}]${site}[/url]\n\n[url=${link}][b]${title}[/b][/url]\n\n[url=${link}]${desc}[/url]\n\n[url=${link}][img]${img}[/img][/url]`);
+								var img = "https://rehost.diberie.com/Rehost?url=" + encodeURIComponent (m.getAttribute ("content"));
+								Utils.getImageInfo (m.getAttribute ("content")).then (info => {
+									var title = doc.querySelector ("head > title").textContent;
+									var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
+									var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
+									var w = Math.floor (info.width * 200 / info.height);
+									var h = 200;
+									var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
+									if (detail == "non")
+										resolve (`[url=${link}][b]${title}[/b][/url]\n[url=${link}][img=${w},${h}]${img}[/img][/url]`);
+									else
+										resolve (`[url=${link}]${site}[/url]\n\n[url=${link}][b]${title}[/b][/url]\n\n[url=${link}]${desc}[/url]\n[url=${link}][img=${w},${h}]${img}[/img][/url]`);
+								}).catch (e => {
+									console.log (e);
+									reject (link);
+								});
 							}
 						}
 						catch (e) {
