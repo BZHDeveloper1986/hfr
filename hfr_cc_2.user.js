@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.7
+// @version       1.5.8
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.8          Threads + correction instagram
 // 1.5.7          Correction emoji
 // 1.5.6          Taille de l'image de prévisualisation.
 // 1.5.4          Correction Instagram
@@ -106,6 +107,13 @@ class Headers {
 		return [];
 	}
 
+	get contentType() {
+		var a = this.getHeader ("content-type");
+		if (a.length == 0)
+			return "application/octet-stream";
+		return a[0];
+	}
+
 	static parse (str) {
 		var headers = new Headers();
 		var p = str.split ("\n");
@@ -176,6 +184,78 @@ class Expr {
 	}
 }
 
+let Hfr = {
+	fetch : function (url) {
+		return new Promise ((resolve, reject) => {
+			Utils.request({
+				method : "GET",
+				url : url,
+				onabort : function() { reject (url); },
+				onerror : function() { reject (url); },
+				ontimeout : function() { reject (url); },
+				headers : { "Cookie" : "" },
+				anonymous : true,
+				responseType : "blob",
+				onload : function (response) {
+					var headers = Headers.parse (response.responseHeaders);
+					resolve (response.response.slice (0, response.response.size, headers.contentType));
+				}
+			});
+		});
+	},
+	Image : class {
+		#uri;
+		#w;
+		#h;
+		#filled;
+		#src;
+
+		constructor (u) {
+			this.#uri = u;
+		}
+
+		get height() { return this.#h; }
+
+		get width() { return this.#w; }
+
+		get thumbHeight() {
+			return 200;
+		}
+
+		get thumbWidth() {
+			return Math.floor (this.width * 200 / this.height);
+		}
+
+		get url() { return this.#uri; }
+		set url (u) { this.#uri = u; }
+
+		toString() {
+			return `[url=${this.url}][img=${this.thumbWidth},${this.thumbHeight}]${this.#src}[/img][/url]`;
+		}
+
+		build() {
+			return new Promise ((resolve, reject) => {
+				if (this.#filled == true)
+					return Promise.resolve (this.toString());
+				Hfr.fetch (this.url).then (file => {
+					UploadService.getDefault().uploadAsync (file).then (o => {
+						console.log (o);
+						this.#h = o.height;
+						this.#w = o.width;
+						this.#src = o.url;
+						this.#filled = true;
+						resolve (this.toString());
+					}).catch (reject);
+				}).catch (reject);
+			});
+		}
+
+		static load (url) {
+			
+		}
+ 	}
+};
+
 class Video {
 	#pst;
 	#uri;
@@ -200,11 +280,9 @@ class Video {
 			u.searchParams.append ("gif", "true");
 		return `[url=${u}][img]${this.poster}[/img][/url]\n`;
 	}
-	
-	static #index;
 
-	static create (href, is_gif = false) {
-		
+	build() {
+		return Promise.resolve (this.toString());
 	}
 }
 
@@ -293,6 +371,25 @@ class Social {
 		builder.append ("[/quote]\n");
 		return builder.toString();
 	}
+
+	build() {
+		var arr = [];
+		if (this.quote)
+			arr.push (this.quote);
+		arr.push (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n\n`);
+		arr.push (`${this.text}\n`);
+		this.images.forEach (i => arr.push (i.build()));
+		this.videos.forEach (v => arr.push (v.build()));
+		arr.push ("[/quote]\n");
+		return new Promise ((resolve, reject) => {
+			Promise.all (arr).then (values => {
+				resolve (values.join(""));
+			}).catch (e => {
+				console.log (e);
+				reject();
+			});
+		});
+	}
 }
 
 class Threads extends Social {
@@ -330,10 +427,7 @@ class Threads extends Social {
 			if (img == null)
 				return;
 			var url = img.getAttribute ("src");
-			this.images.push ({
-				url : url,
-				toString : function() { return "[url=" + url + "][img]" + url + "[/img][/url]"; }
-			});
+			this.images.push (new Hfr.Image (url));
 		});
 		var cnt = doc.querySelector (".SingleInnerMediaContainerVideo");
 		if (cnt != null) {
@@ -394,10 +488,7 @@ class Instagram extends Social {
 					src = img.getAttribute ("src");
 				var url = encodeURIComponent (src);
 				console.log ("instagram : " + url);
-				this.images.push ({
-					url : url,
-					toString : function() { return "[url=https://rehost.diberie.com/Rehost?url=" + url + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + url + "[/img][/url]"; }
-				});
+				this.images.push (new Hfr.Image (url));
 			}
 			if (media.classList.contains ("proxy-video")) {
 				var video = media.querySelector ("video");
@@ -494,10 +585,7 @@ class Reddit extends Social {
 					var player = ctn.querySelector ("shreddit-player");
 					if (player != null) {
 						if (player.getAttribute ("post-type") == "gif") {
-							red.images.push ({
-								url : post.getAttribute ("content-href"),
-								toString : () => { return `[img]${post.getAttribute ("content-href")}[/img]`; }
-							});
+							red.images.push (new Hfr.Image (post.getAttribute ("content-href")));
 						} else {
 							var data = JSON.parse (player.getAttribute ("packaged-media-json"));
 							var perms = data.playbackMp4s.permutations;
@@ -618,10 +706,7 @@ class Twitter extends Social {
 					this.videos.push (gif);
 				}
 				if (media.type == "photo") {
-					this.images.push ({
-						url : media.media_url_https,
-						toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + media.media_url_https + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + media.media_url_https + "[/img][/url]" }
-					});
+					this.images.push (new Hfr.Image (media.media_url_https));
 				}
 			});
 		}
@@ -744,18 +829,12 @@ class BlueSky extends Social {
 			}
 			var imgs = Array.isArray (data.embed.images) ? data.embed.images : (Array.isArray (data.embed.media?.images) ? data.embed.media.images : []);
 			imgs.forEach (img => {
-				this.images.push ({
-					url : img.fullsize,
-					toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + img.fullsize + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + img.fullsize + "[/img][/url]" }
-				});
+				this.images.push (new Hfr.Image (img.fullsize));
 			});
 			if (data.embed.external != null && imgs.length == 0) {
 				var u = new URL (data.embed.external.uri);
 				if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
-					this.images.push ({
-						url : data.embed.external.uri,
-						toString : () => { return `[img]${data.embed.external.uri}[/img]`; }
-					});
+					this.images.push (new Hfr.Image (data.embed.external.uri));
 			}
 			if (data.embed.record?.record != null)
 				this.quote = new BlueSky (data.embed.record.record);
@@ -850,10 +929,7 @@ class Mastodon extends Social {
 		if (data.media_attachments != null)
 			data.media_attachments.forEach (media => {
 				if (media.type == "image")
-					this.images.push ({
-						url : media.preview_url,
-						toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + media.url + "][img]https://rehost.diberie.com/Rehost?url=" + media.preview_url + "[/img][/url]" }
-					});
+					this.images.push (new Hfr.Image (media.preview_url));
 				else if (media.type == "gifv") {
 					var gif = new Video();
 					gif.url = media.url;
@@ -1295,15 +1371,29 @@ class UploadService {
 	isInvalid (file) {
 		return file.size > 20000000;
 	}
+
+	uploadAsync (file) {
+		return new Promise ((resolve, reject) => {
+			this.upload (file, resolve, reject);
+		});
+	}
 	
 	static getService (service) {
 		if (service == "rehost")
 			return new Rehost();
 		return new Imgur();
 	}
+
+	static getDefault() {
+		var svc = Utils.getValue ("hfr-copie-colle-service");
+		if (svc == "rehost")
+			return new Rehost();
+		return new Imgur();
+	}
 }
 
 class Rehost extends UploadService {
+
 	upload (file, resolve, reject) {
 		var form = new FormData();
 		form.append ("image", file);
@@ -1317,27 +1407,36 @@ class Rehost extends UploadService {
 				reject ("erreur lors de l'envoi d'image");
 			},
 			onload : function (response) {
-				var object = JSON.parse (response.responseText);
-				var res = {
-					gif : object.isGIF == true ? true : false,
-					url : object.picURL,
-					images : [{
+				try {
+					var object = JSON.parse (response.responseText);
+					console.log ("obj : ");
+					console.log (object);
+					var res = {
+						gif : object.isGIF == true ? true : false,
 						url : object.picURL,
-						id : "image"
-					}]
-				};
-				if (!res.gif) {
-					res.images.push ({
-						id : "réduite",
-						url : object.resizedURL
-					});
-					res.images.push ({
-						id : "miniature",
-						url : object.thumbURL
-					});
-					res.thumb = object.thumbURL;
+						width : object.previewWidht,
+						height : object.previewHeight,
+						images : [{
+							url : object.picURL,
+							id : "image"
+						}]
+					};
+					if (!res.gif) {
+						res.images.push ({
+							id : "réduite",
+							url : object.resizedURL
+						});
+						res.images.push ({
+							id : "miniature",
+							url : object.thumbURL
+						});
+						res.thumb = object.thumbURL;
+					}
+					resolve (res);
 				}
-				resolve (res);
+				catch (e) {
+					reject (e);
+				}
 			}
 		});
 	}
@@ -1361,8 +1460,12 @@ class Imgur extends UploadService {
 			},
 			onload : function (response) {
 				var object = JSON.parse (response.responseText);
-				if (!object.success)
+				console.log ("obj : ");
+				console.log (object);
+				if (!object.success) {
 					reject (object);
+					return;
+				}
 				var res = {
 					hash : object.data.deletehash,
 					delete : function (callback) {
@@ -1385,6 +1488,8 @@ class Imgur extends UploadService {
 					},
 					gif : object.data.type == "image/gif",
 					url : object.data.link,
+					width : object.data.width,
+					height : object.data.height,
 					images : [{
 						url : object.data.link,
 						id : "image"
@@ -1873,9 +1978,7 @@ class Utils {
 				var blob = await item.getType ("text/plain");
 				var text = await blob.text();
 				if (Social.match (text)) {
-					Social.load (text).then (msg => {
-						resolve (msg.toString());
-					}).catch (e => {
+					Social.load (text).then (msg => msg.build()).then (txt => resolve (txt)).catch (e => {
 						console.log (e);
 						reject (text);
 					});
