@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.8
+// @version       1.5.9
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -2522,7 +2522,7 @@ Utils.init (table => {
 				u.searchParams.get("hfr-cc-insta") == "true") {
 
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
-			video.player.src ({ src : href });
+			video.player.src ({ src : href, type : "video/mp4"  });
 		}
 		else if (href.indexOf ("https://video.twimg.com/") == 0) {
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
