@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.10
+// @version       1.5.11
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -181,7 +181,7 @@ class Expr {
 	}
 
 	static get threads() {
-		return new Expr ("^(https://www\\.threads\\.com/@[\\w\\.]+/post/\\w+(\\?[\\w\\+\\-\\=\\&]+)?)$");
+		return new Expr ("^(https://www\\.threads\\.com/@[\\w\\.]+/post/[\\w\\-]+(\\?[\\w\\+\\-\\=\\&]+)?)$");
 	}
 }
 
@@ -2220,8 +2220,6 @@ class Utils {
 											dialog.closed (d => { d.destroy(); });
 											dialog.title = "prévisualisation de l'image";
 											var src = upload.url;
-											if (!upload.gif)
-												src = upload.thumb;
 											var img = new Picture (src);
 											var scale = new Scale (100, 300);
 											scale.set ("id", "taille-preview");
@@ -2332,8 +2330,6 @@ class Utils {
 					Utils.dropImage (item.getAsFile()).then (upload => {
 						if (event.altKey) {
 							var src = upload.url;
-							if (!upload.gif)
-								src = upload.thumb;
 							Utils.insertText (event.target, "[url=" + upload.url + "][img]" + src + "[/img][/url]");	
 						}
 						else {
@@ -2341,9 +2337,17 @@ class Utils {
 							dialog.closed (d => { d.destroy(); });
 							dialog.title = "prévisualisation de l'image";
 							var src = upload.url;
-							if (!upload.gif)
-								src = upload.thumb;
 							var img = new Picture (src);
+							var scale = new Scale (100, 300);
+							scale.set ("id", "taille-preview");
+							var label = new Label ("");
+							label.for ("taille-preview");
+							var box = new Box (true);
+							var hbox = new Box();
+							hbox.add (scale);
+							hbox.add (label);
+							box.add (img);
+							box.add (hbox);
 							img.loaded ((w,h) => {
 								if (w > 400) {
 									img.height = 400 * h / w;
@@ -2354,20 +2358,18 @@ class Utils {
 									img.height = 400;
 								}
 							});
-							dialog.content = img;
-							if (upload.gif) {
-								var button = new TextButton ("gif");
-								button.set ("bbcode", "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");
-								button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-								dialog.addButton (button);
-							}
-							else
-								upload.images.forEach (img => {
-									var button = new TextButton (img.id);
-									button.set ("bbcode", "[url=" + upload.url + "][img]" + img.url + "[/img][/url]");
-									button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-									dialog.addButton (button);
-								});
+							dialog.content = box;
+							var button = new TextButton ("ajouter");
+							scale.changed (val => {
+								var w = img.width, h = img.height;
+								img.height = val;
+								img.width = Math.floor (val*w/h);
+								label.text = `${val} px`;
+								button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
+							});
+							
+							button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
+							dialog.addButton (button);
 							dialog.display();
 						}
 						loading.destroy();
