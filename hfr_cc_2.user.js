@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.11
+// @version       1.5.12
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -2221,9 +2221,8 @@ class Utils {
 											dialog.title = "prévisualisation de l'image";
 											var src = upload.url;
 											var img = new Picture (src);
-											var button = new TextButton ("ajouter");
+											var button = new TextButton ("200 px");
 											var scale = new Scale (100, 300);
-											scale.set ("id", "taille-preview");
 											var box = new Box (true);
 											var hbox = new Box();
 											hbox.add (scale);
@@ -2232,13 +2231,14 @@ class Utils {
 											box.add (img);
 											img.loaded ((w,h) => {
 												if (w > 400) {
-													img.height = 400 * h / w;
+													img.height = Math.floor (400 * h / w);
 													img.width = 400;
 												}
 												if (h > 400) {
-													img.width = 400 * w / h;
+													img.width = Math.floor (400 * w / h);
 													img.height = 400;
 												}
+												button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 											});
 											dialog.content = box;
 											scale.changed (val => {
@@ -2248,7 +2248,6 @@ class Utils {
 												button.text = `${val} px`;
 												button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 											});
-											
 											button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
 											dialog.display();
 										}
@@ -2334,7 +2333,7 @@ class Utils {
 							dialog.closed (d => { d.destroy(); });
 							dialog.title = "prévisualisation de l'image";
 							var src = upload.url;
-							var button = new TextButton ("ajouter");
+							var button = new TextButton ("200 px");
 							var img = new Picture (src);
 							var scale = new Scale (100, 300);
 							scale.set ("id", "taille-preview");
@@ -2346,13 +2345,14 @@ class Utils {
 							box.add (img);
 							img.loaded ((w,h) => {
 								if (w > 400) {
-									img.height = 400 * h / w;
+									img.height = Math.floor (400 * h / w);
 									img.width = 400;
 								}
 								if (h > 400) {
-									img.width = 400 * w / h;
+									img.width = Math.floor (400 * w / h);
 									img.height = 400;
 								}
+								button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 							});
 							dialog.content = box;
 							scale.changed (val => {
@@ -2362,6 +2362,7 @@ class Utils {
 								button.text = `${val} px`;
 								button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 							});
+							scale.set ("value", 200);
 							
 							button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
 							dialog.display();
