@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.9
+// @version       1.5.10
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.10         Modification de la taille de l'image avant collage
 // 1.5.8          Threads + correction instagram
 // 1.5.7          Correction emoji
 // 1.5.6          Taille de l'image de prévisualisation.
@@ -180,7 +181,7 @@ class Expr {
 	}
 
 	static get threads() {
-		return new Expr ("^(https://www\\.threads\\.com/@[\\w\\.]+/post/\\w+)$");
+		return new Expr ("^(https://www\\.threads\\.com/@[\\w\\.]+/post/\\w+(\\?[\\w\\+\\-\\=\\&]+)?)$");
 	}
 }
 
@@ -410,11 +411,11 @@ class Threads extends Social {
 		return builder.toString();
 	}
 
-	constructor (doc) {
+	constructor (doc, url) {
 		super();
 
 		this.icon = "[img]https://i.imgur.com/wk7vohW.png[/img]";
-		this.link = doc.querySelector (".LinkContainer a").getAttribute ("href");
+		this.link = url;
 		this.user = doc.querySelector (".NameContainer .HeaderLink").textContent;
 		var tw = doc.querySelector (".TopicTagWrapper");
 		this.info = "";
@@ -456,7 +457,7 @@ class Threads extends Social {
 					onload : function (response) {
 						try {
 							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							resolve (new Threads (doc));
+							resolve (new Threads (doc, url));
 						}
 						catch (e) {
 							console.log (e);
@@ -1032,13 +1033,38 @@ class Widget {
 }
 
 class Box extends Widget {
-	constructor() {
+	#vrt;
+
+	constructor (vertical = false) {
 		super ("div");
+
+		this.#vrt = vertical;
+	}
+
+	add (widget) {
+		super.add (widget);
+		if (this.#vrt == true)
+			this.element.appendChild (document.createElement ("br"));
 	}
 	
 	clear() {
 		while (this.children.length > 0)
 			this.remove (this.children[0]);
+	}
+}
+
+class Scale extends Widget {
+	constructor (min, max) {
+		super ("input");
+		this.set ("type", "range");
+		this.set ("min", min);
+		this.set ("max", max);
+	}
+
+	changed (callback) {
+		this.element.addEventListener ("change", e => {
+			callback (e.target.value);
+		});
 	}
 }
 
@@ -1393,6 +1419,7 @@ class UploadService {
 }
 
 class Rehost extends UploadService {
+	get name() { return "rehost"; }
 
 	upload (file, resolve, reject) {
 		var form = new FormData();
@@ -1409,30 +1436,12 @@ class Rehost extends UploadService {
 			onload : function (response) {
 				try {
 					var object = JSON.parse (response.responseText);
-					console.log ("obj : ");
-					console.log (object);
-					var res = {
+					resolve ({
 						gif : object.isGIF == true ? true : false,
 						url : object.picURL,
 						width : object.previewWidht,
-						height : object.previewHeight,
-						images : [{
-							url : object.picURL,
-							id : "image"
-						}]
-					};
-					if (!res.gif) {
-						res.images.push ({
-							id : "réduite",
-							url : object.resizedURL
-						});
-						res.images.push ({
-							id : "miniature",
-							url : object.thumbURL
-						});
-						res.thumb = object.thumbURL;
-					}
-					resolve (res);
+						height : object.previewHeight
+					});
 				}
 				catch (e) {
 					reject (e);
@@ -1443,6 +1452,8 @@ class Rehost extends UploadService {
 }
 
 class Imgur extends UploadService {
+	get name() { return "imgur"; }
+
 	upload (file, resolve, reject) {
 		var form = new FormData();
 		form.append ("image", file);
@@ -1460,13 +1471,11 @@ class Imgur extends UploadService {
 			},
 			onload : function (response) {
 				var object = JSON.parse (response.responseText);
-				console.log ("obj : ");
-				console.log (object);
 				if (!object.success) {
 					reject (object);
 					return;
 				}
-				var res = {
+				resolve ({
 					hash : object.data.deletehash,
 					delete : function (callback) {
 						Utils.request ({
@@ -1489,40 +1498,8 @@ class Imgur extends UploadService {
 					gif : object.data.type == "image/gif",
 					url : object.data.link,
 					width : object.data.width,
-					height : object.data.height,
-					images : [{
-						url : object.data.link,
-						id : "image"
-					}]
-				};
-				if (!res.gif) {
-					res.images.push ({
-						id : "petit carré",
-						url : object.data.link.replace (object.data.id, object.data.id + "s")
-					});
-					res.images.push ({
-						id : "grand carré",
-						url : object.data.link.replace (object.data.id, object.data.id + "b")
-					});
-					res.images.push ({
-						id : "petite miniature",
-						url : object.data.link.replace (object.data.id, object.data.id + "t")
-					});
-					res.images.push ({
-						id : "moyenne miniature",
-						url : object.data.link.replace (object.data.id, object.data.id + "m")
-					});
-					res.images.push ({
-						id : "large miniature",
-						url : object.data.link.replace (object.data.id, object.data.id + "l")
-					});
-					res.images.push ({
-						id : "grosse miniature",
-						url : object.data.link.replace (object.data.id, object.data.id + "h")
-					});
-					res.thumb = object.data.link.replace (object.data.id, object.data.id + "l");
-				}
-				resolve (res);
+					height : object.data.height
+				});
 			}
 		});
 	}
@@ -2074,10 +2051,9 @@ class Utils {
 	}
 	
 	static uploadImage (file, res, rej) {
-		var svc = Utils.getValue ("hfr-copie-colle-service");
-		var service = UploadService.getService (svc);
+		var service = UploadService.getDefault();
 		if (service.isInvalid (file)) {
-			rej ("fichier invalid pour ls service " + svc);
+			rej ("fichier invalid pour ls service " + service.name);
 			return;
 		}
 		service.upload (file, res, rej);
@@ -2247,6 +2223,16 @@ class Utils {
 											if (!upload.gif)
 												src = upload.thumb;
 											var img = new Picture (src);
+											var scale = new Scale (100, 300);
+											scale.set ("id", "taille-preview");
+											var label = new Label ("");
+											label.for ("taille-preview");
+											var box = new Box (true);
+											var hbox = new Box();
+											hbox.add (scale);
+											hbox.add (label);
+											box.add (img);
+											box.add (hbox);
 											img.loaded ((w,h) => {
 												if (w > 400) {
 													img.height = 400 * h / w;
@@ -2257,20 +2243,18 @@ class Utils {
 													img.height = 400;
 												}
 											});
-											dialog.content = img;
-											if (upload.gif) {
-												var button = new TextButton ("gif");
-												button.set ("bbcode", "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");
-												button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-												dialog.addButton (button);
-											}
-											else
-												upload.images.forEach (img => {
-													var button = new TextButton (img.id);
-													button.set ("bbcode", "[url=" + upload.url + "][img]" + img.url + "[/img][/url]");
-													button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-													dialog.addButton (button);
-												});
+											dialog.content = box;
+											var button = new TextButton ("ajouter");
+											scale.changed (val => {
+												var w = img.width, h = img.height;
+												img.height = val;
+												img.width = Math.floor (val*w/h);
+												label.text = `${val} px`;
+												button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
+											});
+											
+											button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
+											dialog.addButton (button);
 											dialog.display();
 										}
 										loading.destroy();
