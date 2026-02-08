@@ -2221,16 +2221,15 @@ class Utils {
 											dialog.title = "prévisualisation de l'image";
 											var src = upload.url;
 											var img = new Picture (src);
+											var button = new TextButton ("ajouter");
 											var scale = new Scale (100, 300);
 											scale.set ("id", "taille-preview");
-											var label = new Label ("");
-											label.for ("taille-preview");
 											var box = new Box (true);
 											var hbox = new Box();
 											hbox.add (scale);
-											hbox.add (label);
-											box.add (img);
+											hbox.add (button);
 											box.add (hbox);
+											box.add (img);
 											img.loaded ((w,h) => {
 												if (w > 400) {
 													img.height = 400 * h / w;
@@ -2242,17 +2241,15 @@ class Utils {
 												}
 											});
 											dialog.content = box;
-											var button = new TextButton ("ajouter");
 											scale.changed (val => {
 												var w = img.width, h = img.height;
 												img.height = val;
 												img.width = Math.floor (val*w/h);
-												label.text = `${val} px`;
+												button.text = `${val} px`;
 												button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 											});
 											
 											button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-											dialog.addButton (button);
 											dialog.display();
 										}
 										loading.destroy();
@@ -2337,17 +2334,16 @@ class Utils {
 							dialog.closed (d => { d.destroy(); });
 							dialog.title = "prévisualisation de l'image";
 							var src = upload.url;
+							var button = new TextButton ("ajouter");
 							var img = new Picture (src);
 							var scale = new Scale (100, 300);
 							scale.set ("id", "taille-preview");
-							var label = new Label ("");
-							label.for ("taille-preview");
 							var box = new Box (true);
 							var hbox = new Box();
 							hbox.add (scale);
-							hbox.add (label);
-							box.add (img);
+							hbox.add (button);
 							box.add (hbox);
+							box.add (img);
 							img.loaded ((w,h) => {
 								if (w > 400) {
 									img.height = 400 * h / w;
@@ -2359,17 +2355,15 @@ class Utils {
 								}
 							});
 							dialog.content = box;
-							var button = new TextButton ("ajouter");
 							scale.changed (val => {
 								var w = img.width, h = img.height;
 								img.height = val;
 								img.width = Math.floor (val*w/h);
-								label.text = `${val} px`;
+								button.text = `${val} px`;
 								button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 							});
 							
 							button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-							dialog.addButton (button);
 							dialog.display();
 						}
 						loading.destroy();
