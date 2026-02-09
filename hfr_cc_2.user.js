@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.12
+// @version       1.5.13
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.13         Merci pour tout Marc
 // 1.5.10         Modification de la taille de l'image avant collage
 // 1.5.8          Threads + correction instagram
 // 1.5.7          Correction emoji
@@ -88,6 +89,12 @@
 // 1.4            ajout de reddit.
 // 1.3            fenêtre de visualisation de l'image avant collage.
 // 1.2            on repart de la v1.
+
+var banner = document.querySelector ("tbody > tr > td > span > a > a > img");
+if (banner != null) {
+	banner.src = "https://i.imgur.com/AYX3Pde.png";
+	console.log ("RIP Marc");
+}
 
 class Headers {
 	#obj;
@@ -1574,16 +1581,48 @@ class Utils {
 			else if (file.type.indexOf ("image/") == 0) {
 				area.disabled = true;
 				Utils.dropImage (file).then (upload => {
+					var dialog = new Dialog();
+					dialog.closed (d => { d.destroy(); });
+					dialog.title = "prévisualisation de l'image";
 					var src = upload.url;
-					if (!upload.gif)
-						src = upload.thumb;
-					Utils.insertText (area, "[url=" + upload.url + "][img]" + src + "[/img][/url]");
+					var img = new Picture (src);
+					var button = new TextButton ("400 px");
+					var scale = new Scale (100, 800);
+					scale.set ("value", 400);
+					var box = new Box (true);
+					var hbox = new Box();
+					hbox.add (scale);
+					hbox.add (button);
+					box.add (hbox);
+					box.add (img);
+					img.loaded ((w,h) => {
+						if (w > 800) {
+							img.height = Math.floor (800 * h / w);
+							img.width = 800;
+						}
+						if (h > 800) {
+							img.width = Math.floor (800 * w / h);
+							img.height = 800;
+						}
+						button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
+					});
+					dialog.content = box;
+					scale.changed (val => {
+						var w = img.width, h = img.height;
+						img.height = val;
+						img.width = Math.floor (val*w/h);
+						button.text = `${val} px`;
+						button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
+					});
+					button.clicked (self => { Utils.insertText (area, self.get ("bbcode")); dialog.destroy(); });
+					dialog.display();
 					loading.destroy();
 					area.disabled = false;
 					resolve();
 				}).catch (e => {
 					loading.destroy();
 					area.disabled = false;
+					console.log (e);
 					reject (e);
 				});
 			}
@@ -2221,8 +2260,9 @@ class Utils {
 											dialog.title = "prévisualisation de l'image";
 											var src = upload.url;
 											var img = new Picture (src);
-											var button = new TextButton ("200 px");
-											var scale = new Scale (100, 300);
+											var button = new TextButton ("400 px");
+											var scale = new Scale (100, 800);
+											scale.set ("value", 400);
 											var box = new Box (true);
 											var hbox = new Box();
 											hbox.add (scale);
@@ -2230,13 +2270,13 @@ class Utils {
 											box.add (hbox);
 											box.add (img);
 											img.loaded ((w,h) => {
-												if (w > 400) {
-													img.height = Math.floor (400 * h / w);
-													img.width = 400;
+												if (w > 800) {
+													img.height = Math.floor (800 * h / w);
+													img.width = 800;
 												}
 												if (h > 400) {
-													img.width = Math.floor (400 * w / h);
-													img.height = 400;
+													img.width = Math.floor (800 * w / h);
+													img.height = 800;
 												}
 												button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 											});
@@ -2333,10 +2373,9 @@ class Utils {
 							dialog.closed (d => { d.destroy(); });
 							dialog.title = "prévisualisation de l'image";
 							var src = upload.url;
-							var button = new TextButton ("200 px");
+							var button = new TextButton ("400 px");
 							var img = new Picture (src);
-							var scale = new Scale (100, 300);
-							scale.set ("id", "taille-preview");
+							var scale = new Scale (100, 800);
 							var box = new Box (true);
 							var hbox = new Box();
 							hbox.add (scale);
@@ -2344,13 +2383,13 @@ class Utils {
 							box.add (hbox);
 							box.add (img);
 							img.loaded ((w,h) => {
-								if (w > 400) {
-									img.height = Math.floor (400 * h / w);
-									img.width = 400;
+								if (w > 800) {
+									img.height = Math.floor (800 * h / w);
+									img.width = 800;
 								}
 								if (h > 400) {
-									img.width = Math.floor (400 * w / h);
-									img.height = 400;
+									img.width = Math.floor (800 * w / h);
+									img.height = 800;
 								}
 								button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 							});
@@ -2362,7 +2401,7 @@ class Utils {
 								button.text = `${val} px`;
 								button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 							});
-							scale.set ("value", 200);
+							scale.set ("value", 400);
 							
 							button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
 							dialog.display();
