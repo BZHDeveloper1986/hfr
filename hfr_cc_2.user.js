@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.14
+// @version       1.5.15
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.15         Simplification du code
 // 1.5.13         Merci pour tout Marc
 // 1.5.10         Modification de la taille de l'image avant collage
 // 1.5.8          Threads + correction instagram
@@ -1580,44 +1581,10 @@ class Utils {
 			}
 			else if (file.type.indexOf ("image/") == 0) {
 				area.disabled = true;
-				Utils.dropImage (file).then (upload => {
-					var dialog = new Dialog();
-					dialog.closed (d => { d.destroy(); });
-					dialog.title = "prévisualisation de l'image";
-					var src = upload.url;
-					var img = new Picture (src);
-					var button = new TextButton ("400 px");
-					var scale = new Scale (100, 800);
-					scale.set ("value", 400);
-					var box = new Box (true);
-					var hbox = new Box();
-					hbox.add (scale);
-					hbox.add (button);
-					box.add (hbox);
-					box.add (img);
-					img.loaded ((w,h) => {
-						if (w > 800) {
-							img.height = Math.floor (800 * h / w);
-							img.width = 800;
-						}
-						if (h > 800) {
-							img.width = Math.floor (800 * w / h);
-							img.height = 800;
-						}
-						button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
-					});
-					dialog.content = box;
-					scale.changed (val => {
-						var w = img.width, h = img.height;
-						img.height = val;
-						img.width = Math.floor (val*w/h);
-						button.text = `${val} px`;
-						button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
-					});
-					button.clicked (self => { Utils.insertText (area, self.get ("bbcode")); dialog.destroy(); });
-					dialog.display();
+				Utils.dropImage (file).then (Utils.displayImage).then (bbcode => {
 					loading.destroy();
 					area.disabled = false;
+					Utils.insertText (area, bbcode);
 					resolve();
 				}).catch (e => {
 					loading.destroy();
@@ -2250,47 +2217,22 @@ class Utils {
 									Utils.pasteImage (item, type).then (upload => {
 										if (event.altKey) {
 											Utils.insertText (event.target, "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");	
+											loading.destroy();
+											event.target.disabled = false;
+											event.target.focus();
 										}
-										else {
-											var dialog = new Dialog();
-											dialog.closed (d => { d.destroy(); });
-											dialog.title = "prévisualisation de l'image";
-											var src = upload.url;
-											var img = new Picture (src);
-											var button = new TextButton ("400 px");
-											var scale = new Scale (100, 800);
-											scale.set ("value", 400);
-											var box = new Box (true);
-											var hbox = new Box();
-											hbox.add (scale);
-											hbox.add (button);
-											box.add (hbox);
-											box.add (img);
-											img.loaded ((w,h) => {
-												if (w > 800) {
-													img.height = Math.floor (800 * h / w);
-													img.width = 800;
-												}
-												if (h > 400) {
-													img.width = Math.floor (800 * w / h);
-													img.height = 800;
-												}
-												button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
+										else
+											Utils.displayImage (upload).then (bbcode => {
+												Utils.insertText (event.target, bbcode);
+												loading.destroy();
+												event.target.disabled = false;
+												event.target.focus();
+											}).catch (e => {
+												console.log (e);
+												loading.destroy();
+												event.target.disabled = false;
+												event.target.focus();
 											});
-											dialog.content = box;
-											scale.changed (val => {
-												var w = img.width, h = img.height;
-												img.height = val;
-												img.width = Math.floor (val*w/h);
-												button.text = `${val} px`;
-												button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
-											});
-											button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-											dialog.display();
-										}
-										loading.destroy();
-										event.target.disabled = false;
-										event.target.focus();
 									}).catch (e => {
 										loading.destroy();
 										event.target.disabled = false;
@@ -2319,6 +2261,47 @@ class Utils {
 		}
 		catch {}
 		return false;
+	}
+
+	static displayImage (upload) {
+		return new Promise ((res, rej) => {
+			var dialog = new Dialog();
+			dialog.closed (d => { d.destroy(); rej ("annulé"); });
+			dialog.title = "prévisualisation de l'image";
+			var src = upload.url;
+			var button = new TextButton ("400 px");
+			var img = new Picture (src);
+			var scale = new Scale (100, 800);
+			var box = new Box (true);
+			var hbox = new Box();
+			hbox.add (scale);
+			hbox.add (button);
+			box.add (hbox);
+			box.add (img);
+			img.loaded ((w,h) => {
+				if (w > 800) {
+					img.height = Math.floor (800 * h / w);
+					img.width = 800;
+				}
+				if (h > 800) {
+					img.width = Math.floor (800 * w / h);
+					img.height = 800;
+				}
+				button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
+			});
+			dialog.content = box;
+			scale.changed (val => {
+				var w = img.width, h = img.height;
+				img.height = val;
+				img.width = Math.floor (val*w/h);
+				button.text = `${val} px`;
+				button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
+			});
+			scale.set ("value", 400);
+			
+			button.clicked (self => { dialog.destroy(); res (button.get ("bbcode")); });
+			dialog.display();
+		});
 	}
 	
 	static drop (event) {
@@ -2364,47 +2347,20 @@ class Utils {
 						if (event.altKey) {
 							var src = upload.url;
 							Utils.insertText (event.target, "[url=" + upload.url + "][img]" + src + "[/img][/url]");	
+							loading.destroy();
+							event.target.disabled = false;
 						}
 						else {
-							var dialog = new Dialog();
-							dialog.closed (d => { d.destroy(); });
-							dialog.title = "prévisualisation de l'image";
-							var src = upload.url;
-							var button = new TextButton ("400 px");
-							var img = new Picture (src);
-							var scale = new Scale (100, 800);
-							var box = new Box (true);
-							var hbox = new Box();
-							hbox.add (scale);
-							hbox.add (button);
-							box.add (hbox);
-							box.add (img);
-							img.loaded ((w,h) => {
-								if (w > 800) {
-									img.height = Math.floor (800 * h / w);
-									img.width = 800;
-								}
-								if (h > 400) {
-									img.width = Math.floor (800 * w / h);
-									img.height = 800;
-								}
-								button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
+							Utils.displayImage (upload).then (bbcode => {
+								Utils.insertText (event.target, bbcode);
+								loading.destroy();
+								event.target.disabled = false;
+							}).catch (e => {
+								loading.destroy();
+								event.target.disabled = false;
+								console.log (e);
 							});
-							dialog.content = box;
-							scale.changed (val => {
-								var w = img.width, h = img.height;
-								img.height = val;
-								img.width = Math.floor (val*w/h);
-								button.text = `${val} px`;
-								button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
-							});
-							scale.set ("value", 400);
-							
-							button.clicked (self => { Utils.insertText (event.target, self.get ("bbcode")); dialog.destroy(); });
-							dialog.display();
 						}
-						loading.destroy();
-						event.target.disabled = false;
 					}).catch (e => {
 						loading.destroy();
 						event.target.disabled = false;
