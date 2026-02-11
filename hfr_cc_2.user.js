@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.16
+// @version       1.5.17
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -384,7 +384,7 @@ class Social {
 	build() {
 		var arr = [];
 		if (this.quote)
-			arr.push (this.quote);
+			arr.push (this.quote.build());
 		arr.push (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n\n`);
 		arr.push (`${this.text}\n`);
 		this.images.forEach (i => arr.push (i.build()));
