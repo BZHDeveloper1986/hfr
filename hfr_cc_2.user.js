@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.15
+// @version       1.5.16
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -1125,6 +1125,8 @@ class Picture extends Widget {
 	
 	loaded (callback) {
 		this.element.addEventListener ("load", e => {
+			this.width = e.target.width;
+			this.height = e.target.height;
 			callback(e.target.width, e.target.height);
 		});
 	}
@@ -2264,6 +2266,7 @@ class Utils {
 	}
 
 	static displayImage (upload) {
+		console.log (upload);
 		return new Promise ((res, rej) => {
 			var dialog = new Dialog();
 			dialog.closed (d => { d.destroy(); rej ("annulé"); });
