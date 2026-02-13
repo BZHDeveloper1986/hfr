@@ -1,0 +1,917 @@
+[
+	{
+		"code" : "1faea",
+		"emoji" : "🫪",
+		"description" : "E17.0 distorted face"
+	},
+	{
+		"code" : "1faef",
+		"emoji" : "🫯",
+		"description" : "E17.0 fight cloud"
+	},
+	{
+		"code" : "1fac8",
+		"emoji" : "🫈",
+		"description" : "E17.0 hairy creature"
+	},
+	{
+		"code" : "1f9d1-200d-1fa70",
+		"emoji" : "🧑‍🩰",
+		"description" : "E17.0 ballet dancer"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1fa70",
+		"emoji" : "🧑🏻‍🩰",
+		"description" : "E17.0 ballet dancer: light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1fa70",
+		"emoji" : "🧑🏼‍🩰",
+		"description" : "E17.0 ballet dancer: medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1fa70",
+		"emoji" : "🧑🏽‍🩰",
+		"description" : "E17.0 ballet dancer: medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1fa70",
+		"emoji" : "🧑🏾‍🩰",
+		"description" : "E17.0 ballet dancer: medium-dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1fa70",
+		"emoji" : "🧑🏿‍🩰",
+		"description" : "E17.0 ballet dancer: dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fb",
+		"emoji" : "👯🏻",
+		"description" : "E17.0 people with bunny ears: light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fc",
+		"emoji" : "👯🏼",
+		"description" : "E17.0 people with bunny ears: medium-light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fd",
+		"emoji" : "👯🏽",
+		"description" : "E17.0 people with bunny ears: medium skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fe",
+		"emoji" : "👯🏾",
+		"description" : "E17.0 people with bunny ears: medium-dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3ff",
+		"emoji" : "👯🏿",
+		"description" : "E17.0 people with bunny ears: dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fb-200d-2642-fe0f",
+		"emoji" : "👯🏻‍♂️",
+		"description" : "E17.0 men with bunny ears: light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fb-200d-2642",
+		"emoji" : "👯🏻‍♂",
+		"description" : "E17.0 men with bunny ears: light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fc-200d-2642-fe0f",
+		"emoji" : "👯🏼‍♂️",
+		"description" : "E17.0 men with bunny ears: medium-light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fc-200d-2642",
+		"emoji" : "👯🏼‍♂",
+		"description" : "E17.0 men with bunny ears: medium-light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fd-200d-2642-fe0f",
+		"emoji" : "👯🏽‍♂️",
+		"description" : "E17.0 men with bunny ears: medium skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fd-200d-2642",
+		"emoji" : "👯🏽‍♂",
+		"description" : "E17.0 men with bunny ears: medium skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fe-200d-2642-fe0f",
+		"emoji" : "👯🏾‍♂️",
+		"description" : "E17.0 men with bunny ears: medium-dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fe-200d-2642",
+		"emoji" : "👯🏾‍♂",
+		"description" : "E17.0 men with bunny ears: medium-dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3ff-200d-2642-fe0f",
+		"emoji" : "👯🏿‍♂️",
+		"description" : "E17.0 men with bunny ears: dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3ff-200d-2642",
+		"emoji" : "👯🏿‍♂",
+		"description" : "E17.0 men with bunny ears: dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fb-200d-2640-fe0f",
+		"emoji" : "👯🏻‍♀️",
+		"description" : "E17.0 women with bunny ears: light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fb-200d-2640",
+		"emoji" : "👯🏻‍♀",
+		"description" : "E17.0 women with bunny ears: light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fc-200d-2640-fe0f",
+		"emoji" : "👯🏼‍♀️",
+		"description" : "E17.0 women with bunny ears: medium-light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fc-200d-2640",
+		"emoji" : "👯🏼‍♀",
+		"description" : "E17.0 women with bunny ears: medium-light skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fd-200d-2640-fe0f",
+		"emoji" : "👯🏽‍♀️",
+		"description" : "E17.0 women with bunny ears: medium skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fd-200d-2640",
+		"emoji" : "👯🏽‍♀",
+		"description" : "E17.0 women with bunny ears: medium skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fe-200d-2640-fe0f",
+		"emoji" : "👯🏾‍♀️",
+		"description" : "E17.0 women with bunny ears: medium-dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3fe-200d-2640",
+		"emoji" : "👯🏾‍♀",
+		"description" : "E17.0 women with bunny ears: medium-dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3ff-200d-2640-fe0f",
+		"emoji" : "👯🏿‍♀️",
+		"description" : "E17.0 women with bunny ears: dark skin tone"
+	},
+	{
+		"code" : "1f46f-1f3ff-200d-2640",
+		"emoji" : "👯🏿‍♀",
+		"description" : "E17.0 women with bunny ears: dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1f430-200d-1f9d1-1f3fc",
+		"emoji" : "🧑🏻‍🐰‍🧑🏼",
+		"description" : "E17.0 people with bunny ears: light skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1f430-200d-1f9d1-1f3fd",
+		"emoji" : "🧑🏻‍🐰‍🧑🏽",
+		"description" : "E17.0 people with bunny ears: light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1f430-200d-1f9d1-1f3fe",
+		"emoji" : "🧑🏻‍🐰‍🧑🏾",
+		"description" : "E17.0 people with bunny ears: light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1f430-200d-1f9d1-1f3ff",
+		"emoji" : "🧑🏻‍🐰‍🧑🏿",
+		"description" : "E17.0 people with bunny ears: light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1f430-200d-1f9d1-1f3fb",
+		"emoji" : "🧑🏼‍🐰‍🧑🏻",
+		"description" : "E17.0 people with bunny ears: medium-light skin tone, light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1f430-200d-1f9d1-1f3fd",
+		"emoji" : "🧑🏼‍🐰‍🧑🏽",
+		"description" : "E17.0 people with bunny ears: medium-light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1f430-200d-1f9d1-1f3fe",
+		"emoji" : "🧑🏼‍🐰‍🧑🏾",
+		"description" : "E17.0 people with bunny ears: medium-light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1f430-200d-1f9d1-1f3ff",
+		"emoji" : "🧑🏼‍🐰‍🧑🏿",
+		"description" : "E17.0 people with bunny ears: medium-light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1f430-200d-1f9d1-1f3fb",
+		"emoji" : "🧑🏽‍🐰‍🧑🏻",
+		"description" : "E17.0 people with bunny ears: medium skin tone, light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1f430-200d-1f9d1-1f3fc",
+		"emoji" : "🧑🏽‍🐰‍🧑🏼",
+		"description" : "E17.0 people with bunny ears: medium skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1f430-200d-1f9d1-1f3fe",
+		"emoji" : "🧑🏽‍🐰‍🧑🏾",
+		"description" : "E17.0 people with bunny ears: medium skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1f430-200d-1f9d1-1f3ff",
+		"emoji" : "🧑🏽‍🐰‍🧑🏿",
+		"description" : "E17.0 people with bunny ears: medium skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1f430-200d-1f9d1-1f3fb",
+		"emoji" : "🧑🏾‍🐰‍🧑🏻",
+		"description" : "E17.0 people with bunny ears: medium-dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1f430-200d-1f9d1-1f3fc",
+		"emoji" : "🧑🏾‍🐰‍🧑🏼",
+		"description" : "E17.0 people with bunny ears: medium-dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1f430-200d-1f9d1-1f3fd",
+		"emoji" : "🧑🏾‍🐰‍🧑🏽",
+		"description" : "E17.0 people with bunny ears: medium-dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1f430-200d-1f9d1-1f3ff",
+		"emoji" : "🧑🏾‍🐰‍🧑🏿",
+		"description" : "E17.0 people with bunny ears: medium-dark skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1f430-200d-1f9d1-1f3fb",
+		"emoji" : "🧑🏿‍🐰‍🧑🏻",
+		"description" : "E17.0 people with bunny ears: dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1f430-200d-1f9d1-1f3fc",
+		"emoji" : "🧑🏿‍🐰‍🧑🏼",
+		"description" : "E17.0 people with bunny ears: dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1f430-200d-1f9d1-1f3fd",
+		"emoji" : "🧑🏿‍🐰‍🧑🏽",
+		"description" : "E17.0 people with bunny ears: dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1f430-200d-1f9d1-1f3fe",
+		"emoji" : "🧑🏿‍🐰‍🧑🏾",
+		"description" : "E17.0 people with bunny ears: dark skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fb-200d-1f430-200d-1f468-1f3fc",
+		"emoji" : "👨🏻‍🐰‍👨🏼",
+		"description" : "E17.0 men with bunny ears: light skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fb-200d-1f430-200d-1f468-1f3fd",
+		"emoji" : "👨🏻‍🐰‍👨🏽",
+		"description" : "E17.0 men with bunny ears: light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f468-1f3fb-200d-1f430-200d-1f468-1f3fe",
+		"emoji" : "👨🏻‍🐰‍👨🏾",
+		"description" : "E17.0 men with bunny ears: light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fb-200d-1f430-200d-1f468-1f3ff",
+		"emoji" : "👨🏻‍🐰‍👨🏿",
+		"description" : "E17.0 men with bunny ears: light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fc-200d-1f430-200d-1f468-1f3fb",
+		"emoji" : "👨🏼‍🐰‍👨🏻",
+		"description" : "E17.0 men with bunny ears: medium-light skin tone, light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fc-200d-1f430-200d-1f468-1f3fd",
+		"emoji" : "👨🏼‍🐰‍👨🏽",
+		"description" : "E17.0 men with bunny ears: medium-light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f468-1f3fc-200d-1f430-200d-1f468-1f3fe",
+		"emoji" : "👨🏼‍🐰‍👨🏾",
+		"description" : "E17.0 men with bunny ears: medium-light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fc-200d-1f430-200d-1f468-1f3ff",
+		"emoji" : "👨🏼‍🐰‍👨🏿",
+		"description" : "E17.0 men with bunny ears: medium-light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fd-200d-1f430-200d-1f468-1f3fb",
+		"emoji" : "👨🏽‍🐰‍👨🏻",
+		"description" : "E17.0 men with bunny ears: medium skin tone, light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fd-200d-1f430-200d-1f468-1f3fc",
+		"emoji" : "👨🏽‍🐰‍👨🏼",
+		"description" : "E17.0 men with bunny ears: medium skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fd-200d-1f430-200d-1f468-1f3fe",
+		"emoji" : "👨🏽‍🐰‍👨🏾",
+		"description" : "E17.0 men with bunny ears: medium skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fd-200d-1f430-200d-1f468-1f3ff",
+		"emoji" : "👨🏽‍🐰‍👨🏿",
+		"description" : "E17.0 men with bunny ears: medium skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fe-200d-1f430-200d-1f468-1f3fb",
+		"emoji" : "👨🏾‍🐰‍👨🏻",
+		"description" : "E17.0 men with bunny ears: medium-dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fe-200d-1f430-200d-1f468-1f3fc",
+		"emoji" : "👨🏾‍🐰‍👨🏼",
+		"description" : "E17.0 men with bunny ears: medium-dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fe-200d-1f430-200d-1f468-1f3fd",
+		"emoji" : "👨🏾‍🐰‍👨🏽",
+		"description" : "E17.0 men with bunny ears: medium-dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f468-1f3fe-200d-1f430-200d-1f468-1f3ff",
+		"emoji" : "👨🏾‍🐰‍👨🏿",
+		"description" : "E17.0 men with bunny ears: medium-dark skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3ff-200d-1f430-200d-1f468-1f3fb",
+		"emoji" : "👨🏿‍🐰‍👨🏻",
+		"description" : "E17.0 men with bunny ears: dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f468-1f3ff-200d-1f430-200d-1f468-1f3fc",
+		"emoji" : "👨🏿‍🐰‍👨🏼",
+		"description" : "E17.0 men with bunny ears: dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f468-1f3ff-200d-1f430-200d-1f468-1f3fd",
+		"emoji" : "👨🏿‍🐰‍👨🏽",
+		"description" : "E17.0 men with bunny ears: dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f468-1f3ff-200d-1f430-200d-1f468-1f3fe",
+		"emoji" : "👨🏿‍🐰‍👨🏾",
+		"description" : "E17.0 men with bunny ears: dark skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fb-200d-1f430-200d-1f469-1f3fc",
+		"emoji" : "👩🏻‍🐰‍👩🏼",
+		"description" : "E17.0 women with bunny ears: light skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fb-200d-1f430-200d-1f469-1f3fd",
+		"emoji" : "👩🏻‍🐰‍👩🏽",
+		"description" : "E17.0 women with bunny ears: light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f469-1f3fb-200d-1f430-200d-1f469-1f3fe",
+		"emoji" : "👩🏻‍🐰‍👩🏾",
+		"description" : "E17.0 women with bunny ears: light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fb-200d-1f430-200d-1f469-1f3ff",
+		"emoji" : "👩🏻‍🐰‍👩🏿",
+		"description" : "E17.0 women with bunny ears: light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fc-200d-1f430-200d-1f469-1f3fb",
+		"emoji" : "👩🏼‍🐰‍👩🏻",
+		"description" : "E17.0 women with bunny ears: medium-light skin tone, light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fc-200d-1f430-200d-1f469-1f3fd",
+		"emoji" : "👩🏼‍🐰‍👩🏽",
+		"description" : "E17.0 women with bunny ears: medium-light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f469-1f3fc-200d-1f430-200d-1f469-1f3fe",
+		"emoji" : "👩🏼‍🐰‍👩🏾",
+		"description" : "E17.0 women with bunny ears: medium-light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fc-200d-1f430-200d-1f469-1f3ff",
+		"emoji" : "👩🏼‍🐰‍👩🏿",
+		"description" : "E17.0 women with bunny ears: medium-light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fd-200d-1f430-200d-1f469-1f3fb",
+		"emoji" : "👩🏽‍🐰‍👩🏻",
+		"description" : "E17.0 women with bunny ears: medium skin tone, light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fd-200d-1f430-200d-1f469-1f3fc",
+		"emoji" : "👩🏽‍🐰‍👩🏼",
+		"description" : "E17.0 women with bunny ears: medium skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fd-200d-1f430-200d-1f469-1f3fe",
+		"emoji" : "👩🏽‍🐰‍👩🏾",
+		"description" : "E17.0 women with bunny ears: medium skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fd-200d-1f430-200d-1f469-1f3ff",
+		"emoji" : "👩🏽‍🐰‍👩🏿",
+		"description" : "E17.0 women with bunny ears: medium skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fe-200d-1f430-200d-1f469-1f3fb",
+		"emoji" : "👩🏾‍🐰‍👩🏻",
+		"description" : "E17.0 women with bunny ears: medium-dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fe-200d-1f430-200d-1f469-1f3fc",
+		"emoji" : "👩🏾‍🐰‍👩🏼",
+		"description" : "E17.0 women with bunny ears: medium-dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fe-200d-1f430-200d-1f469-1f3fd",
+		"emoji" : "👩🏾‍🐰‍👩🏽",
+		"description" : "E17.0 women with bunny ears: medium-dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f469-1f3fe-200d-1f430-200d-1f469-1f3ff",
+		"emoji" : "👩🏾‍🐰‍👩🏿",
+		"description" : "E17.0 women with bunny ears: medium-dark skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3ff-200d-1f430-200d-1f469-1f3fb",
+		"emoji" : "👩🏿‍🐰‍👩🏻",
+		"description" : "E17.0 women with bunny ears: dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f469-1f3ff-200d-1f430-200d-1f469-1f3fc",
+		"emoji" : "👩🏿‍🐰‍👩🏼",
+		"description" : "E17.0 women with bunny ears: dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f469-1f3ff-200d-1f430-200d-1f469-1f3fd",
+		"emoji" : "👩🏿‍🐰‍👩🏽",
+		"description" : "E17.0 women with bunny ears: dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f469-1f3ff-200d-1f430-200d-1f469-1f3fe",
+		"emoji" : "👩🏿‍🐰‍👩🏾",
+		"description" : "E17.0 women with bunny ears: dark skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fb",
+		"emoji" : "🤼🏻",
+		"description" : "E17.0 people wrestling: light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fc",
+		"emoji" : "🤼🏼",
+		"description" : "E17.0 people wrestling: medium-light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fd",
+		"emoji" : "🤼🏽",
+		"description" : "E17.0 people wrestling: medium skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fe",
+		"emoji" : "🤼🏾",
+		"description" : "E17.0 people wrestling: medium-dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3ff",
+		"emoji" : "🤼🏿",
+		"description" : "E17.0 people wrestling: dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fb-200d-2642-fe0f",
+		"emoji" : "🤼🏻‍♂️",
+		"description" : "E17.0 men wrestling: light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fb-200d-2642",
+		"emoji" : "🤼🏻‍♂",
+		"description" : "E17.0 men wrestling: light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fc-200d-2642-fe0f",
+		"emoji" : "🤼🏼‍♂️",
+		"description" : "E17.0 men wrestling: medium-light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fc-200d-2642",
+		"emoji" : "🤼🏼‍♂",
+		"description" : "E17.0 men wrestling: medium-light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fd-200d-2642-fe0f",
+		"emoji" : "🤼🏽‍♂️",
+		"description" : "E17.0 men wrestling: medium skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fd-200d-2642",
+		"emoji" : "🤼🏽‍♂",
+		"description" : "E17.0 men wrestling: medium skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fe-200d-2642-fe0f",
+		"emoji" : "🤼🏾‍♂️",
+		"description" : "E17.0 men wrestling: medium-dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fe-200d-2642",
+		"emoji" : "🤼🏾‍♂",
+		"description" : "E17.0 men wrestling: medium-dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3ff-200d-2642-fe0f",
+		"emoji" : "🤼🏿‍♂️",
+		"description" : "E17.0 men wrestling: dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3ff-200d-2642",
+		"emoji" : "🤼🏿‍♂",
+		"description" : "E17.0 men wrestling: dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fb-200d-2640-fe0f",
+		"emoji" : "🤼🏻‍♀️",
+		"description" : "E17.0 women wrestling: light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fb-200d-2640",
+		"emoji" : "🤼🏻‍♀",
+		"description" : "E17.0 women wrestling: light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fc-200d-2640-fe0f",
+		"emoji" : "🤼🏼‍♀️",
+		"description" : "E17.0 women wrestling: medium-light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fc-200d-2640",
+		"emoji" : "🤼🏼‍♀",
+		"description" : "E17.0 women wrestling: medium-light skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fd-200d-2640-fe0f",
+		"emoji" : "🤼🏽‍♀️",
+		"description" : "E17.0 women wrestling: medium skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fd-200d-2640",
+		"emoji" : "🤼🏽‍♀",
+		"description" : "E17.0 women wrestling: medium skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fe-200d-2640-fe0f",
+		"emoji" : "🤼🏾‍♀️",
+		"description" : "E17.0 women wrestling: medium-dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3fe-200d-2640",
+		"emoji" : "🤼🏾‍♀",
+		"description" : "E17.0 women wrestling: medium-dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3ff-200d-2640-fe0f",
+		"emoji" : "🤼🏿‍♀️",
+		"description" : "E17.0 women wrestling: dark skin tone"
+	},
+	{
+		"code" : "1f93c-1f3ff-200d-2640",
+		"emoji" : "🤼🏿‍♀",
+		"description" : "E17.0 women wrestling: dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1faef-200d-1f9d1-1f3fc",
+		"emoji" : "🧑🏻‍🫯‍🧑🏼",
+		"description" : "E17.0 people wrestling: light skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1faef-200d-1f9d1-1f3fd",
+		"emoji" : "🧑🏻‍🫯‍🧑🏽",
+		"description" : "E17.0 people wrestling: light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1faef-200d-1f9d1-1f3fe",
+		"emoji" : "🧑🏻‍🫯‍🧑🏾",
+		"description" : "E17.0 people wrestling: light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fb-200d-1faef-200d-1f9d1-1f3ff",
+		"emoji" : "🧑🏻‍🫯‍🧑🏿",
+		"description" : "E17.0 people wrestling: light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1faef-200d-1f9d1-1f3fb",
+		"emoji" : "🧑🏼‍🫯‍🧑🏻",
+		"description" : "E17.0 people wrestling: medium-light skin tone, light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1faef-200d-1f9d1-1f3fd",
+		"emoji" : "🧑🏼‍🫯‍🧑🏽",
+		"description" : "E17.0 people wrestling: medium-light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1faef-200d-1f9d1-1f3fe",
+		"emoji" : "🧑🏼‍🫯‍🧑🏾",
+		"description" : "E17.0 people wrestling: medium-light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fc-200d-1faef-200d-1f9d1-1f3ff",
+		"emoji" : "🧑🏼‍🫯‍🧑🏿",
+		"description" : "E17.0 people wrestling: medium-light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1faef-200d-1f9d1-1f3fb",
+		"emoji" : "🧑🏽‍🫯‍🧑🏻",
+		"description" : "E17.0 people wrestling: medium skin tone, light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1faef-200d-1f9d1-1f3fc",
+		"emoji" : "🧑🏽‍🫯‍🧑🏼",
+		"description" : "E17.0 people wrestling: medium skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1faef-200d-1f9d1-1f3fe",
+		"emoji" : "🧑🏽‍🫯‍🧑🏾",
+		"description" : "E17.0 people wrestling: medium skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fd-200d-1faef-200d-1f9d1-1f3ff",
+		"emoji" : "🧑🏽‍🫯‍🧑🏿",
+		"description" : "E17.0 people wrestling: medium skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1faef-200d-1f9d1-1f3fb",
+		"emoji" : "🧑🏾‍🫯‍🧑🏻",
+		"description" : "E17.0 people wrestling: medium-dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1faef-200d-1f9d1-1f3fc",
+		"emoji" : "🧑🏾‍🫯‍🧑🏼",
+		"description" : "E17.0 people wrestling: medium-dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1faef-200d-1f9d1-1f3fd",
+		"emoji" : "🧑🏾‍🫯‍🧑🏽",
+		"description" : "E17.0 people wrestling: medium-dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3fe-200d-1faef-200d-1f9d1-1f3ff",
+		"emoji" : "🧑🏾‍🫯‍🧑🏿",
+		"description" : "E17.0 people wrestling: medium-dark skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1faef-200d-1f9d1-1f3fb",
+		"emoji" : "🧑🏿‍🫯‍🧑🏻",
+		"description" : "E17.0 people wrestling: dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1faef-200d-1f9d1-1f3fc",
+		"emoji" : "🧑🏿‍🫯‍🧑🏼",
+		"description" : "E17.0 people wrestling: dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1faef-200d-1f9d1-1f3fd",
+		"emoji" : "🧑🏿‍🫯‍🧑🏽",
+		"description" : "E17.0 people wrestling: dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f9d1-1f3ff-200d-1faef-200d-1f9d1-1f3fe",
+		"emoji" : "🧑🏿‍🫯‍🧑🏾",
+		"description" : "E17.0 people wrestling: dark skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fb-200d-1faef-200d-1f468-1f3fc",
+		"emoji" : "👨🏻‍🫯‍👨🏼",
+		"description" : "E17.0 men wrestling: light skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fb-200d-1faef-200d-1f468-1f3fd",
+		"emoji" : "👨🏻‍🫯‍👨🏽",
+		"description" : "E17.0 men wrestling: light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f468-1f3fb-200d-1faef-200d-1f468-1f3fe",
+		"emoji" : "👨🏻‍🫯‍👨🏾",
+		"description" : "E17.0 men wrestling: light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fb-200d-1faef-200d-1f468-1f3ff",
+		"emoji" : "👨🏻‍🫯‍👨🏿",
+		"description" : "E17.0 men wrestling: light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fc-200d-1faef-200d-1f468-1f3fb",
+		"emoji" : "👨🏼‍🫯‍👨🏻",
+		"description" : "E17.0 men wrestling: medium-light skin tone, light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fc-200d-1faef-200d-1f468-1f3fd",
+		"emoji" : "👨🏼‍🫯‍👨🏽",
+		"description" : "E17.0 men wrestling: medium-light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f468-1f3fc-200d-1faef-200d-1f468-1f3fe",
+		"emoji" : "👨🏼‍🫯‍👨🏾",
+		"description" : "E17.0 men wrestling: medium-light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fc-200d-1faef-200d-1f468-1f3ff",
+		"emoji" : "👨🏼‍🫯‍👨🏿",
+		"description" : "E17.0 men wrestling: medium-light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fd-200d-1faef-200d-1f468-1f3fb",
+		"emoji" : "👨🏽‍🫯‍👨🏻",
+		"description" : "E17.0 men wrestling: medium skin tone, light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fd-200d-1faef-200d-1f468-1f3fc",
+		"emoji" : "👨🏽‍🫯‍👨🏼",
+		"description" : "E17.0 men wrestling: medium skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fd-200d-1faef-200d-1f468-1f3fe",
+		"emoji" : "👨🏽‍🫯‍👨🏾",
+		"description" : "E17.0 men wrestling: medium skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fd-200d-1faef-200d-1f468-1f3ff",
+		"emoji" : "👨🏽‍🫯‍👨🏿",
+		"description" : "E17.0 men wrestling: medium skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3fe-200d-1faef-200d-1f468-1f3fb",
+		"emoji" : "👨🏾‍🫯‍👨🏻",
+		"description" : "E17.0 men wrestling: medium-dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fe-200d-1faef-200d-1f468-1f3fc",
+		"emoji" : "👨🏾‍🫯‍👨🏼",
+		"description" : "E17.0 men wrestling: medium-dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f468-1f3fe-200d-1faef-200d-1f468-1f3fd",
+		"emoji" : "👨🏾‍🫯‍👨🏽",
+		"description" : "E17.0 men wrestling: medium-dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f468-1f3fe-200d-1faef-200d-1f468-1f3ff",
+		"emoji" : "👨🏾‍🫯‍👨🏿",
+		"description" : "E17.0 men wrestling: medium-dark skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f468-1f3ff-200d-1faef-200d-1f468-1f3fb",
+		"emoji" : "👨🏿‍🫯‍👨🏻",
+		"description" : "E17.0 men wrestling: dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f468-1f3ff-200d-1faef-200d-1f468-1f3fc",
+		"emoji" : "👨🏿‍🫯‍👨🏼",
+		"description" : "E17.0 men wrestling: dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f468-1f3ff-200d-1faef-200d-1f468-1f3fd",
+		"emoji" : "👨🏿‍🫯‍👨🏽",
+		"description" : "E17.0 men wrestling: dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f468-1f3ff-200d-1faef-200d-1f468-1f3fe",
+		"emoji" : "👨🏿‍🫯‍👨🏾",
+		"description" : "E17.0 men wrestling: dark skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fb-200d-1faef-200d-1f469-1f3fc",
+		"emoji" : "👩🏻‍🫯‍👩🏼",
+		"description" : "E17.0 women wrestling: light skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fb-200d-1faef-200d-1f469-1f3fd",
+		"emoji" : "👩🏻‍🫯‍👩🏽",
+		"description" : "E17.0 women wrestling: light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f469-1f3fb-200d-1faef-200d-1f469-1f3fe",
+		"emoji" : "👩🏻‍🫯‍👩🏾",
+		"description" : "E17.0 women wrestling: light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fb-200d-1faef-200d-1f469-1f3ff",
+		"emoji" : "👩🏻‍🫯‍👩🏿",
+		"description" : "E17.0 women wrestling: light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fc-200d-1faef-200d-1f469-1f3fb",
+		"emoji" : "👩🏼‍🫯‍👩🏻",
+		"description" : "E17.0 women wrestling: medium-light skin tone, light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fc-200d-1faef-200d-1f469-1f3fd",
+		"emoji" : "👩🏼‍🫯‍👩🏽",
+		"description" : "E17.0 women wrestling: medium-light skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f469-1f3fc-200d-1faef-200d-1f469-1f3fe",
+		"emoji" : "👩🏼‍🫯‍👩🏾",
+		"description" : "E17.0 women wrestling: medium-light skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fc-200d-1faef-200d-1f469-1f3ff",
+		"emoji" : "👩🏼‍🫯‍👩🏿",
+		"description" : "E17.0 women wrestling: medium-light skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fd-200d-1faef-200d-1f469-1f3fb",
+		"emoji" : "👩🏽‍🫯‍👩🏻",
+		"description" : "E17.0 women wrestling: medium skin tone, light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fd-200d-1faef-200d-1f469-1f3fc",
+		"emoji" : "👩🏽‍🫯‍👩🏼",
+		"description" : "E17.0 women wrestling: medium skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fd-200d-1faef-200d-1f469-1f3fe",
+		"emoji" : "👩🏽‍🫯‍👩🏾",
+		"description" : "E17.0 women wrestling: medium skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fd-200d-1faef-200d-1f469-1f3ff",
+		"emoji" : "👩🏽‍🫯‍👩🏿",
+		"description" : "E17.0 women wrestling: medium skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3fe-200d-1faef-200d-1f469-1f3fb",
+		"emoji" : "👩🏾‍🫯‍👩🏻",
+		"description" : "E17.0 women wrestling: medium-dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fe-200d-1faef-200d-1f469-1f3fc",
+		"emoji" : "👩🏾‍🫯‍👩🏼",
+		"description" : "E17.0 women wrestling: medium-dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f469-1f3fe-200d-1faef-200d-1f469-1f3fd",
+		"emoji" : "👩🏾‍🫯‍👩🏽",
+		"description" : "E17.0 women wrestling: medium-dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f469-1f3fe-200d-1faef-200d-1f469-1f3ff",
+		"emoji" : "👩🏾‍🫯‍👩🏿",
+		"description" : "E17.0 women wrestling: medium-dark skin tone, dark skin tone"
+	},
+	{
+		"code" : "1f469-1f3ff-200d-1faef-200d-1f469-1f3fb",
+		"emoji" : "👩🏿‍🫯‍👩🏻",
+		"description" : "E17.0 women wrestling: dark skin tone, light skin tone"
+	},
+	{
+		"code" : "1f469-1f3ff-200d-1faef-200d-1f469-1f3fc",
+		"emoji" : "👩🏿‍🫯‍👩🏼",
+		"description" : "E17.0 women wrestling: dark skin tone, medium-light skin tone"
+	},
+	{
+		"code" : "1f469-1f3ff-200d-1faef-200d-1f469-1f3fd",
+		"emoji" : "👩🏿‍🫯‍👩🏽",
+		"description" : "E17.0 women wrestling: dark skin tone, medium skin tone"
+	},
+	{
+		"code" : "1f469-1f3ff-200d-1faef-200d-1f469-1f3fe",
+		"emoji" : "👩🏿‍🫯‍👩🏾",
+		"description" : "E17.0 women wrestling: dark skin tone, medium-dark skin tone"
+	},
+	{
+		"code" : "1facd",
+		"emoji" : "🫍",
+		"description" : "E17.0 orca"
+	},
+	{
+		"code" : "1f6d8",
+		"emoji" : "🛘",
+		"description" : "E17.0 landslide"
+	},
+	{
+		"code" : "1fa8a",
+		"emoji" : "🪊",
+		"description" : "E17.0 trombone"
+	},
+	{
+		"code" : "1fa8e",
+		"emoji" : "🪎",
+		"description" : "E17.0 treasure chest"
+	}
+]
