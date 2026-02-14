@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.19
+// @version       1.5.20
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.20         Retrait support gofile. correction vidéo pour firefox
 // 1.5.19         Emoji 17.0, regex simplifiée
 // 1.5.15         Simplification du code
 // 1.5.13         Merci pour tout Marc
@@ -288,6 +289,7 @@ class Video {
 		var u = new URL (this.url);
 		if (this.isGif)
 			u.searchParams.append ("gif", "true");
+		u.searchParams.append ("hfr-cc-mime-type", this.#ctn);
 		return `[url=${u}][img]${this.poster}[/img][/url]\n`;
 	}
 
@@ -2173,6 +2175,7 @@ class Utils {
 			else
 				navigator.clipboard.read().then(array => {
 					for (var item of array) {
+						console.log (item.types);
 						if (Utils.isGDoc (item)) {
 							event.target.disabled = true;
 							loading.attach (event.target);
@@ -2467,7 +2470,8 @@ Utils.init (table => {
 					href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 					href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0 || u.searchParams.get("hfr-cc-insta") == "true") {
 				var video = link.createPlayer (u.searchParams.get("gif") == "true");
-				video.player.src ({ src : href });
+				var t = u.searchParams.has ("hfr-cc-mime-type") ? u.searchParams.get ("hfr-cc-mime-type") : "video/mp4";
+				video.player.src ({ src : href, type : t });
 			}
 			else if (href.indexOf ("https://video.twimg.com/") == 0) {
 				var video = link.createPlayer (u.searchParams.get("gif") == "true");
@@ -2506,7 +2510,8 @@ Utils.init (table => {
 				u.searchParams.get("hfr-cc-insta") == "true") {
 
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
-			video.player.src ({ src : href, type : "video/mp4"  });
+			var t = u.searchParams.has ("hfr-cc-mime-type") ? u.searchParams.get ("hfr-cc-mime-type") : "video/mp4";
+			video.player.src ({ src : href, type : t  });
 		}
 		else if (href.indexOf ("https://video.twimg.com/") == 0) {
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
