@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.21
+// @version       1.5.22
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -2163,6 +2163,7 @@ class Utils {
 	static stroke (event) {
 		console.log (event);
 		var loading = new Loading();
+		Utils.insertText (event.target, event.code);
 		if (event.code == "KeyD" && event.ctrlKey && event.altKey) {
 			// a refaire
 		}
