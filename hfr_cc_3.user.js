@@ -2404,6 +2404,32 @@ class Utils {
 				}
 			}
 	}
+
+	static paste (event) {
+		var loading = new Loading();
+		navigator.clipboard.read().then(array => {
+			for (var item of array) {
+				for (var type of item.types) {
+					if (type.indexOf ("image/") == 0) {
+						event.target.disabled = true;
+						loading.attach (event.target);
+						Utils.pasteImage (item, type).then (upload => {
+							Utils.insertText (event.target, "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");	
+							loading.destroy();
+							event.target.disabled = false;
+							event.target.focus();
+						}).catch (e => {
+							loading.destroy();
+							event.target.disabled = false;
+							event.target.focus();
+							console.log (e);
+						});
+						break;
+					}
+				}
+			}
+		});
+	}
 }
 
 Utils.registerCommand ("Copie/Colle -> choix du service", () => {
@@ -2437,7 +2463,9 @@ Utils.init (table => {
 		textarea.addEventListener('drop', Utils.drop);
 		textarea.addEventListener('dragover', Utils.allowDrop);
 		textarea.addEventListener('focus', Utils.addButtonToTextarea);
-		Utils.insertText (textarea, navigator.platform);
+		if (navigator.platform.indexOf ("Linux armv") >= 0) {
+			textarea.addEventListener ('paste', Utils.paste);
+		}
 	}
 	
 	var observer = new MutationObserver ((mutations, observer) => {
