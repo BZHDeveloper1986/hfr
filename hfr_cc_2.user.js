@@ -2437,7 +2437,6 @@ Utils.init (table => {
 		textarea.addEventListener('drop', Utils.drop);
 		textarea.addEventListener('dragover', Utils.allowDrop);
 		textarea.addEventListener('focus', Utils.addButtonToTextarea);
-		Utils.insertText (textarea, navigator.platform);
 	}
 	
 	var observer = new MutationObserver ((mutations, observer) => {
