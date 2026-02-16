@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.25
+// @version       1.5.26
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.26         Gestion des medias embarqués/imbriqués
 // 1.5.20         Retrait support gofile. correction vidéo pour firefox
 // 1.5.19         Emoji 17.0, regex simplifiée
 // 1.5.15         Simplification du code
@@ -313,6 +314,85 @@ Element.prototype.createPlayer = function (is_gif) {
 	return video;
 };
 
+class Embed {
+	#data;
+
+	constructor (data) {
+		this.#data = data;
+	}
+
+	get embedData() {
+		return this.#data;
+	}
+
+	toString() {
+		var builder = new Builder();
+		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
+		if (this.#data.description && detail == "oui")
+			builder.append (`[url=${this.#data.uri}]${this.#data.site}[/url]`);
+		builder.append (`[url=${this.#data.uri}][b]${this.#data.title}[/b][/url]`);
+		if (this.#data.thumb)
+			builder.append (`\n[url=${this.#data.uri}][img=${this.#data.thumb_width},${this.#data.thumb_height}]${this.#data.thumb}[/img][/url]`);
+		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
+		if (this.#data.description && detail == "oui")
+			builder.append (`\n${Social.normalize (this.#data.description)}`);
+		return builder.toString();
+	}
+
+	build() {
+		return Promise.resolve (this.toString());
+	}
+
+	static load (link) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				Utils.request({
+					method : "GET",
+					url : link,
+					onabort : function() { reject (link); },
+					ontimeout : function() { reject (link); },
+					onerror : function() { reject (link); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
+					onload : function (response) {
+						try {
+							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
+							var m = doc.querySelector ("head > meta[property='og:image']");
+							if (m == null)
+								reject (link);
+							else {
+								Utils.getImageInfo (m.getAttribute ("content")).then (info => {
+									var title = doc.querySelector ("head > title").textContent;
+									var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
+									var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
+									var w = Math.floor (info.width * 180 / info.height);
+									var h = 180;
+									resolve (new Embed ({
+										uri : link,
+										site : site,
+										title : title,
+										description : desc,
+										thumb : m.getAttribute ("content"),
+										thumb_width : w,
+										thumb_height : h
+									}));
+								}).catch (e => {
+									console.log (e);
+									reject (link);
+								});
+							}
+						}
+						catch (e) {
+							console.log (e);
+							reject (link);
+						}
+					}
+				});
+			})();
+		});
+	}
+}
+
 class Social {
 	static match (url) {
 		console.log (Expr.threads.match (url));
@@ -348,6 +428,7 @@ class Social {
 	#qut;
 	#imgs;
 	#vids;
+	#emb;
 
 	constructor () {
 		this.#imgs = [];
@@ -376,6 +457,9 @@ class Social {
 
 	get videos() { return this.#vids; }
 
+	set embed (e) { this.#emb = e; }
+	get embed() { return this.#emb; }
+
 	toString() {
 		var builder = new Builder();
 		if (this.quote)
@@ -384,6 +468,8 @@ class Social {
 		builder.append (`${this.text}\n`);
 		this.videos.forEach (v => builder.append (v.toString()));
 		this.images.forEach (i => builder.append (i.toString()));
+		if (this.embed)
+			builder.append (`[quote]${this.embed.toString()}[/quote]`);
 		builder.append ("[/quote]\n");
 		return builder.toString();
 	}
@@ -396,6 +482,11 @@ class Social {
 		arr.push (`${this.text}\n`);
 		this.images.forEach (i => arr.push (i.build()));
 		this.videos.forEach (v => arr.push (v.build()));
+		if (this.embed) {
+			arr.push ("[quote]");
+			arr.push (this.embed);
+			arr.push ("[/quote]");
+		}
 		arr.push ("[/quote]\n");
 		return new Promise ((resolve, reject) => {
 			Promise.all (arr).then (values => {
@@ -583,6 +674,8 @@ class Reddit extends Social {
 				var t = post.querySelector ("[slot='text-body'] div[id]");
 				var ctn = post.querySelector ("[slot='post-media-container']");
 				var red = new Reddit();
+				if (post.getAttribute ("content-href") != url)
+					red.embed = Embed.load (post.getAttribute ("content-href"));
 				red.link = url;
 				red.user = post.querySelector (".author-name").textContent;
 				red.info = "a publié sur " + post.querySelector ("a.subreddit-name").textContent.trim();
@@ -619,20 +712,12 @@ class Reddit extends Social {
 							var src = image.getAttribute ("src");
 							if (src == null)
 								src = image.getAttribute ("data-lazy-src");
-							var preview = src;
-							red.images.push ({
-								url : src,
-								toString : () => { return `[url=${src}][img]${preview}[/img][/url]`; }
-							});
+							red.images.push (new Hfr.Image (src));
 						});
 					}
 					else if (img != null) {
 						var src = img.getAttribute ("src");
-						var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (img.getAttribute ("src"));
-						red.images.push ({
-							url : src,
-							toString : () => { return `[url=${src}][img]${preview}[/img][/url]`; }
-						});
+						red.images.push (new Hfr.Image (src));
 					}
 				}
 				resolve (red);
@@ -693,7 +778,7 @@ class Twitter extends Social {
 
 	constructor (data) {
 		super();
-		
+		console.log (data);
 		this.icon = "[img]https://i.imgur.com/pd0aoXr.png[/img]";
 		this.link = "https://twitter.com/i/status/" + data.id_str;
 		this.user = Social.normalize (data.user.name);
@@ -728,6 +813,10 @@ class Twitter extends Social {
 		}
 		if (data.quoted_tweet)
 			this.quote = new Twitter (data.quoted_tweet);
+
+		if (data.card) {
+			this.embed = Embed.load (data.card.binding_values.card_url.string_value);
+		}
 	}
 
 	static load (link) {
@@ -802,6 +891,7 @@ class BlueSky extends Social {
 	}
 
 	constructor (data) {
+		console.log (data);
 		super();
 		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/327943[/img]";
 		var did = data.uri.split ("at://")[1].split ("/")[0];
@@ -847,10 +937,16 @@ class BlueSky extends Social {
 			imgs.forEach (img => {
 				this.images.push (new Hfr.Image (img.fullsize));
 			});
-			if (data.embed.external != null && imgs.length == 0) {
-				var u = new URL (data.embed.external.uri);
-				if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
-					this.images.push (new Hfr.Image (data.embed.external.uri));
+			if (data.embed.external != null) {
+				if (imgs.length == 0) {
+					var u = new URL (data.embed.external.uri);
+					if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
+						this.images.push (new Hfr.Image (data.embed.external.uri));
+					else {
+						var thumb = typeof (data.embed.external.thumb) == "string" ? data.embed.external.thumb : `https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${data.embed.external.thumb.ref["$link"]}`;
+						this.embed = Embed.load (data.embed.external.uri);
+					}
+				}
 			}
 			if (data.embed.record?.record != null)
 				this.quote = new BlueSky (data.embed.record.record);
@@ -908,7 +1004,7 @@ class Mastodon extends Social {
 
 	constructor (data) {
 		super();
-
+		
 		var doc = new DOMParser().parseFromString (data.content, "text/html");
 		var builder = new Builder();
 		doc.querySelectorAll ("p").forEach (p => {
@@ -962,6 +1058,9 @@ class Mastodon extends Social {
 					this.videos.push (video);
 				}
 			});
+
+		if (data.card)
+			this.embed = Embed.load (data.card.url);
 
 		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/110911[/img]";
 		this.link = data.url;
@@ -1815,47 +1914,13 @@ class Utils {
 			return "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (arr.join ("-")) + ".png?raw=true[/img]"
 		});
 	}
-	
-	static pasteYoutube (link, id) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Utils.request({
-					method : "GET",
-					url : link,
-					onabort : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onerror : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						var json = response.responseText.split ("var ytInitialPlayerResponse = ")[1].split ("};")[0] + "}";
-						try {
-							var obj = JSON.parse (json);
-							var lnk = "https://youtu.be/" + id;
-							var img = "https://i.ytimg.com/vi/" + id + "/mqdefault.jpg";
-							var desc = Utils.formatText (obj.videoDetails.shortDescription);
-							var title = Utils.formatText (obj.videoDetails.title);
-							var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
-							if (detail == "non")
-								resolve (`[url=${link}][b]${title}[/b][/url]\n\n[url=${link}][img]${img}[/img][/url]`);
-							else
-								resolve (`[url=${link}][b]${title}[/b][/url]\n\n${desc}\n\n[url=${link}][img]${img}[/img][/url]`);
-						} catch (e) {
-							console.log (e);
-							reject (link);
-						}
-					}
-				});
-			})();
-		});
-	}
-	
+
 	static dropText (text) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				if (Social.match (text)) {
-					Social.load (text).then (msg => {
-						resolve (msg.toString());
+					Social.load (text).then (msg => msg.build()).then (txt => {
+						resolve (txt);
 					}).catch (e => {
 						console.log (e);
 						reject (text);
@@ -1864,23 +1929,28 @@ class Utils {
 				else {
 					try {
 						var url = new URL (text);
-						var id = null;
-						if (url.host == "youtube.com" || url.host == "www.youtube.com")
-							id = url.searchParams.get ("v");
-						else if (url.host == "youtu.be") {
-							id = url.pathname;
-							if (id != null)
-								id = id.substring (1);
-						}
-						if (id != null)
-							Utils.pasteYoutube (text, id).then (txt => {
-								resolve (txt);
-							}).catch (e => {
-								console.log (e);
-								reject (text);
-							});
-						else
-							reject (text);
+						Utils.request({
+							method : "HEAD",
+							url : text,
+							onabort : function() { reject (text); },
+							ontimeout : function() { reject (text); },
+							onerror : function() { reject (text); },
+							headers : { "Cookie" : "" },
+							anonymous : true,
+							onload : function (response) {
+								var headers = Headers.parse (response.responseHeaders);
+								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
+									Embed.load (text).then (embed => {
+										resolve (embed.toString());
+									}).catch (e => {
+										console.log (e);
+										reject (text);
+									});
+								}
+								else
+									reject (text);
+							}
+						});
 					}
 					catch (e) { console.log (e); reject (text); }
 				}
@@ -1920,52 +1990,6 @@ class Utils {
 			})();
 		});
 	}
-
-	static pasteDefault (link) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Utils.request({
-					method : "GET",
-					url : link,
-					onabort : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onerror : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							var m = doc.querySelector ("head > meta[property='og:image']");
-							if (m == null)
-								reject (link);
-							else {
-								var img = "https://rehost.diberie.com/Rehost?url=" + encodeURIComponent (m.getAttribute ("content"));
-								Utils.getImageInfo (m.getAttribute ("content")).then (info => {
-									var title = doc.querySelector ("head > title").textContent;
-									var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
-									var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
-									var w = Math.floor (info.width * 200 / info.height);
-									var h = 200;
-									var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
-									if (detail == "non")
-										resolve (`[url=${link}][b]${title}[/b][/url]\n[url=${link}][img=${w},${h}]${img}[/img][/url]`);
-									else
-										resolve (`[url=${link}]${site}[/url]\n\n[url=${link}][b]${title}[/b][/url]\n\n[url=${link}]${desc}[/url]\n[url=${link}][img=${w},${h}]${img}[/img][/url]`);
-								}).catch (e => {
-									console.log (e);
-									reject (link);
-								});
-							}
-						}
-						catch (e) {
-							console.log (e);
-							reject (link);
-						}
-					}
-				});
-			})();
-		});
-	}
 	
 	static pasteText (item) {
 		return new Promise ((resolve, reject) => {
@@ -1981,45 +2005,29 @@ class Utils {
 				else {
 					try {
 						var url = new URL (text);
-						var id = null;
-						if (url.host == "youtube.com" || url.host == "www.youtube.com")
-							id = url.searchParams.get ("v");
-						else if (url.host == "youtu.be") {
-							id = url.pathname;
-							if (id != null)
-								id = id.substring (1);
-						}
-						console.log ("id : " + id);
-						if (id != null)
-							Utils.pasteYoutube (text, id).then (txt => {
-								resolve (txt);
-							}).catch (e => {
-								console.log (e);
-								reject (text);
-							});
-						else
-							Utils.request({
-								method : "HEAD",
-								url : text,
-								onabort : function() { reject (text); },
-								ontimeout : function() { reject (text); },
-								onerror : function() { reject (text); },
-								headers : { "Cookie" : "" },
-								anonymous : true,
-								onload : function (response) {
-									var headers = Headers.parse (response.responseHeaders);
-									if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
-										Utils.pasteDefault (text).then (txt => {
-											resolve (txt);
-										}).catch (e => {
-											console.log (e);
-											reject (text);
-										});
-									}
-									else
+						Utils.request({
+							method : "HEAD",
+							url : text,
+							onabort : function() { reject (text); },
+							ontimeout : function() { reject (text); },
+							onerror : function() { reject (text); },
+							headers : { "Cookie" : "" },
+							anonymous : true,
+							onload : function (response) {
+								var headers = Headers.parse (response.responseHeaders);
+								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
+									Embed.load (text).then (embed => {
+										resolve (embed.toString());
+									}).catch (e => {
+										console.log (e);
 										reject (text);
+									});
 								}
-							});
+								else
+									reject (text);
+							}
+						});
+							
 					}
 					catch (e) {
 						console.log (e);
