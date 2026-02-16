@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.26
+// @version       1.5.27
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -357,14 +357,18 @@ class Embed {
 					onload : function (response) {
 						try {
 							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
+							var title = doc.querySelector ("head > title").textContent;
+							var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
+							var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
 							var m = doc.querySelector ("head > meta[property='og:image']");
 							if (m == null)
-								reject (link);
+								resolve (new Embed ({
+									uri : link,
+									site : site,
+									description : desc
+								}));
 							else {
 								Utils.getImageInfo (m.getAttribute ("content")).then (info => {
-									var title = doc.querySelector ("head > title").textContent;
-									var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
-									var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
 									var w = Math.floor (info.width * 180 / info.height);
 									var h = 180;
 									resolve (new Embed ({
