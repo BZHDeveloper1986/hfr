@@ -359,7 +359,7 @@ class Embed {
 							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
 							var title = doc.querySelector ("head > title").textContent;
 							var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
-							var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
+							var desc = doc.querySelector ("head > meta[property='og:description']").getAttribute ("content");
 							var m = doc.querySelector ("head > meta[property='og:image']");
 							if (m == null)
 								resolve (new Embed ({
