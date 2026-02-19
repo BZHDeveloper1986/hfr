@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.30
+// @version       1.5.31
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -329,13 +329,13 @@ class Embed {
 		var builder = new Builder();
 		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
 		if (this.#data.description && detail == "oui")
-			builder.append (`[url=${this.#data.uri}]${this.#data.site}[/url]`);
-		builder.append (`[url=${this.#data.uri}][b]${this.#data.title}[/b][/url]`);
+			builder.append (`[url=${this.#data.uri}]${this.#data.site}[/url]\n`);
+		builder.append (`[url=${this.#data.uri}][b]${this.#data.title}[/b][/url]\n`);
 		if (this.#data.thumb)
-			builder.append (`\n[url=${this.#data.uri}][img=${this.#data.thumb_width},${this.#data.thumb_height}]${this.#data.thumb}[/img][/url]`);
+			builder.append (`\n[url=${this.#data.uri}][img=${this.#data.thumb_width},${this.#data.thumb_height}]${this.#data.thumb}[/img][/url]\n`);
 		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
 		if (this.#data.description && detail == "oui")
-			builder.append (`\n${Social.normalize (this.#data.description)}`);
+			builder.append (`${Social.normalize (this.#data.description)}`);
 		return builder.toString();
 	}
 
