@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
-// @name          [HFR] Copié/Collé v2
-// @version       1.5.22
+// @name          [HFR] Copié/Collé v3
+// @version       1.6.0
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,180 +20,7 @@
 // ==/UserScript==
 
 // Historique
-// 1.5.20         Retrait support gofile. correction vidéo pour firefox
-// 1.5.19         Emoji 17.0, regex simplifiée
-// 1.5.15         Simplification du code
-// 1.5.13         Merci pour tout Marc
-// 1.5.10         Modification de la taille de l'image avant collage
-// 1.5.8          Threads + correction instagram
-// 1.5.7          Correction emoji
-// 1.5.6          Taille de l'image de prévisualisation.
-// 1.5.4          Correction Instagram
-// 1.5.3          Affichage des liens si HTML avec description.
-// 1.5.1          Correctif vidéo reddit pour firefox
-// 1.5            Refonte complète du code : utilisation de classes, promesses, etc.
-// 1.4.75         Correction d'un bug avec les vidéos Reddit.
-// 1.4.73         Twitter : nique-toi Elon
-// 1.4.70         ajoute d'une boîte text 
-// 1.4.68         édition casse-bonbons
-// 1.4.67         vidéos Mastodon
-// 1.4.66         ajout de Truth Social (instance mastodon)
-// 1.4.65         Unicode 16.0
-// 1.4.63         modification des # chez Bluesky.
-// 1.4.62         Correction du contrôle image GDoc
-// 1.4.61         Collage des images Google Docs.
-// 1.4.60         Gitlab s'emmerdifie, on va tenter Github.
-// 1.4.58         Choix du service d'envoi d'images.
-// 1.4.56         BlueSky : normalisation du texte enrichi
-// 1.4.55         tant pis pour les GIF sous Fofox.
-// 1.4.54         Nouvelle URL pour les emojis.
-// 1.4.53         le dev est un idiot.
-// 1.4.52         correction d'URL.
-// 1.4.50         Normalisation des chaînes de caractères.
-// 1.4.49         BlueSky : souci avec les images.
-// 1.4.48         BlueSky : les GIF sont là.
-// 1.4.46         BlueSky : compte le texte en octets, pas en caractères...
-// 1.4.45         BlueSky : c'est un *** leur gestion des données.
-// 1.4.44         BlueSky : Correction du profil.
-// 1.4.43         BlueSky : description du lien externe.
-// 1.4.42         BlueSky : ajout du profil (en travaux :o)
-// 1.4.41         BlueSky : ajout du logo.
-// 1.4.40         BlueSky : miniature des liens, si existe.
-// 1.4.39         BlueSky : ajout des images & video.
-// 1.4.38         alerte firefox sur une fonctionnalité désactivée.
-// 1.4.37         Taille limite pour imgur (*** alors eux).
-// 1.4.35         Twitter : correction affichage emojis dans le texte.
-// 1.4.34         Mastodon : emojis dans le nom de l'utilisateur.
-// 1.4.33         Instagram ne fonctionne plus
-// 1.4.28         Firefox : affichage de l'activation dans une alerte.
-// 1.4.27         ajout d'un contrôle de compatibilité :o
-// 1.4.26         BS : citations
-// 1.4.25         BS : affichage de miniature si possible
-// 1.4.24         BS : possibilité de voir le message pour les non connectés/inscrits.
-// 1.4.23         BlueSky
-// 1.4.19         Twitter/X : ajout du nouveau logo.
-// 1.4.18         Ajout d'un caractère par défaut si la zone de texte ne contient pas de texte.
-// 1.4.17         Twitter : mise à jour des URL.
-// 1.4.16         Twitter : mélange des medias (photo/gif/video).
-// 1.4.15         Tentative de correction de la partie Twitter.
-// 1.4.14         Correction YouTube.
-// 1.4.13         Correction de l'analyse des URL.
-// 1.4.12         Gestion des différentes certifications.
-// 1.4.11         Correction dans les caractères spéciaux des textes Twitter.
-// 1.4.10         Gestion du glisser/déposer de plusieurs fichiers.
-// 1.4.9          Effacement des images, amélioration de la fenêtre
-// 1.4.8          Compatibilité MacOS
-// 1.4.7          test effacement des images
-// 1.4.6          Erreur dans le collage des "card" twitter
-// 1.4.4          Correction de l'affichage des emojis
-// 1.4.3          la zone texte perdait le focus
-// 1.4.2          fix possible pour firefox ?
-// 1.4.1          reddit : passage au lecteur video.js
-// 1.4            ajout de reddit.
-// 1.3            fenêtre de visualisation de l'image avant collage.
-// 1.2            on repart de la v1.
-
-var banner = document.querySelector ("tbody > tr > td > span > a > a > img");
-if (banner != null) {
-	banner.src = "https://i.imgur.com/AYX3Pde.png";
-	console.log ("RIP Marc");
-}
-
-class Headers {
-	#obj;
-
-	constructor() {
-		this.#obj = {};
-	}
-
-	setHeader (name, value) {
-		if (!(name in this.#obj))
-			this.#obj[name] = [];
-		this.#obj[name].push (value);
-	}
-
-	getHeader (name) {
-		if (name in this.#obj)
-			return this.#obj[name];
-		return [];
-	}
-
-	get contentType() {
-		var a = this.getHeader ("content-type");
-		if (a.length == 0)
-			return "application/octet-stream";
-		return a[0];
-	}
-
-	static parse (str) {
-		var headers = new Headers();
-		var p = str.split ("\n");
-		p.forEach (line => {
-			var l = line;
-			var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
-			l.substring (l.indexOf (":") + 1).split (";").forEach (v => {
-				headers.setHeader (k, v.trim());
-			});
-		});
-		return headers;
-	}
-}
-
-class Expr {
-	#patt;
-	
-	constructor (str) {
-		this.#patt = str;
-	}
-	
-	exec (str) {
-		return new RegExp (this.#patt).exec (str);
-	}
-	
-	match (str) {
-		return this.exec (str) != null;
-	}
-	
-	get pattern() {
-		return this.#patt;
-	}
-	
-	static get twitter() {
-		return new Expr ("^((https|http)://(mobile\\.)?(twitter|x)\\.com/\\w+/status/(?<id>\\d+)(\\?s=\\d+)?\\??.*)$");
-	}
-	
-	static get mastodon() {
-		return new Expr ("^(https://(?<instance>[a-z\\.]+)/@\\w+(@[a-z\\.]+)?/(?<tid>\\d+))$");
-	}
-	
-	static get truthsocial() {
-		return new Expr ("^(https://(?<instance>[a-z\\.]+)/@\\w+(@[a-z\\.]+)?/posts/(?<tid>\\d+))$");
-	}
-	
-	static get zippy() {
-		return new Expr ("^(https://www41\\.zippyshare\\.com/downloadAudioHQ\\?key=\\w+)$");
-	}
-	
-	static get reddit() {
-		return new Expr ("^(https://www\\.reddit\\.com/r/\\w+/comments/\\w+/[àáâãäåçèéêëìíîïðòóôõöùúûüýÿ\\w%]+/)$");
-	}
-
-	static get shreddit() {
-		return new Expr ("^(https://www\\.reddit\\.com/r/\\w+/s/\\w+)$");
-	}
-	
-	static get bluesky() {
-		return new Expr ("^(https://(?<instance>[\\w\\.\\-]+)/profile/(?<handle>[\\w\\.\\-]+)/post/(?<hash>\\w+))$");
-	}
-
-	static get instagram() {
-		return new Expr ("^(https://(www\\.)?instagram\\.com/(\\w+/)?(p|reel)/(?<shortcode>[-_a-zA-Z0-9]+)/?)");
-	}
-
-	static get threads() {
-		return new Expr ("^(https://www\\.threads\\.com/@[\\w\\.]+/post/[\\w\\-]+(\\?[\\w\\+\\-\\=\\&]+)?)$");
-	}
-}
+// 1.2            on repart de la v2.
 
 let Hfr = {
 	fetch : function (url) {
@@ -313,437 +140,77 @@ Element.prototype.createPlayer = function (is_gif) {
 	return video;
 };
 
-class Social {
-	static match (url) {
-		console.log (Expr.threads.match (url));
-		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
-			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.instagram.match (url) || Expr.threads.match (url);
+class Embed {
+	#data;
+
+	constructor (data) {
+		this.#data = data;
 	}
 
-	static normalize (txt) {
-		return Utils.formatText (Utils.normalizeText (txt));
+	get embedData() {
+		return this.#data;
 	}
-
-	static load (url) {
-		if (Expr.twitter.match (url))
-			return Twitter.load (url);
-		if (Expr.bluesky.match (url))
-			return BlueSky.load (url);
-		if (Expr.reddit.match (url) || Expr.shreddit.match (url))
-			return Reddit.load (url);
-		if (Expr.mastodon.match (url) || Expr.truthsocial.match (url))
-			return Mastodon.load (url);
-		if (Expr.instagram.match (url))
-			return Instagram.load (url);
-		if (Expr.threads.match (url))
-			return Threads.load (url);
-		return Promise.reject (url);
-	}
-
-	#lnk;
-	#usr;
-	#inf;
-	#icn;
-	#txt;
-	#qut;
-	#imgs;
-	#vids;
-
-	constructor () {
-		this.#imgs = [];
-		this.#vids = [];
-	}
-
-	set link (l) { this.#lnk = l; }
-	get link() { return this.#lnk; }
-
-	set user (u) { this.#usr = u; }
-	get user() { return this.#usr; }
-
-	set info (i) { this.#inf = i; }
-	get info() { return this.#inf; }
-
-	set icon (i) { this.#icn = i; }
-	get icon() { return this.#icn; }
-
-	set text (t) { this.#txt = t; }
-	get text() { return this.#txt; }
-
-	set quote (q) { this.#qut = q; }
-	get quote() { return this.#qut; }
-
-	get images() { return this.#imgs; }
-
-	get videos() { return this.#vids; }
 
 	toString() {
 		var builder = new Builder();
-		if (this.quote)
-			builder.append (`${this.quote}\n`);
-		builder.append (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n\n`);
-		builder.append (`${this.text}\n`);
-		this.videos.forEach (v => builder.append (v.toString()));
-		this.images.forEach (i => builder.append (i.toString()));
-		builder.append ("[/quote]\n");
+		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
+		if (this.#data.description && detail == "oui")
+			builder.append (`[url=${this.#data.uri}]${this.#data.site}[/url]`);
+		builder.append (`[url=${this.#data.uri}][b]${this.#data.title}[/b][/url]`);
+		if (this.#data.thumb)
+			builder.append (`\n[url=${this.#data.uri}][img=${this.#data.thumb_width},${this.#data.thumb_height}]${this.#data.thumb}[/img][/url]`);
+		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
+		if (this.#data.description && detail == "oui")
+			builder.append (`\n${Social.normalize (this.#data.description)}`);
 		return builder.toString();
 	}
 
 	build() {
-		var arr = [];
-		if (this.quote)
-			arr.push (this.quote.build());
-		arr.push (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n\n`);
-		arr.push (`${this.text}\n`);
-		this.images.forEach (i => arr.push (i.build()));
-		this.videos.forEach (v => arr.push (v.build()));
-		arr.push ("[/quote]\n");
-		return new Promise ((resolve, reject) => {
-			Promise.all (arr).then (values => {
-				resolve (values.join(""));
-			}).catch (e => {
-				console.log (e);
-				reject();
-			});
-		});
-	}
-}
-
-class Threads extends Social {
-	static elementToBBCode (element) {
-		var builder = new Builder();
-		element.childNodes.forEach (node => {
-			if (node.nodeType == Node.TEXT_NODE)
-				builder.append (Social.normalize (node.textContent)
-					.replaceAll (/#\w+/g, match => { return "[url=https://www.threads.com/search?q=%23" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
-					.replaceAll (/@\w+/g, match => { return "[url=https://www.threads.com/" + match + "][b]" + match + "[/b][/url]"; }));
-			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "br")
-				builder.append ("\n");
-			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "a")
-				builder.append (`[b][url=${node.getAttribute ("href")}]${node.textContent}[/url][/b]`);
-			else if (node.nodeType == Node.ELEMENT_NODE)
-				builder.append (Instagram.elementToBBCode (node));
-		});
-		return builder.toString();
-	}
-
-	constructor (doc, url) {
-		super();
-
-		this.icon = "[img]https://i.imgur.com/wk7vohW.png[/img]";
-		this.link = url;
-		this.user = doc.querySelector (".NameContainer .HeaderLink").textContent;
-		var tw = doc.querySelector (".TopicTagWrapper");
-		this.info = "";
-		if (tw != null) {
-			this.info = " > " + doc.querySelector (".HeaderLink span").textContent;
-		}
-		this.text = Threads.elementToBBCode (doc.querySelector (".BodyTextContainer"));
-		doc.querySelectorAll (".MediaScrollImageContainer, .SingleInnerMediaContainer").forEach (media => {
-			var img = media.querySelector ("img");
-			if (img == null)
-				return;
-			var url = img.getAttribute ("src");
-			this.images.push (new Hfr.Image (url));
-		});
-		var cnt = doc.querySelector (".SingleInnerMediaContainerVideo");
-		if (cnt != null) {
-			var vid = cnt.querySelector ("video");
-			var v = new Video();
-			var u = new URL(vid.querySelector ("source").getAttribute ("src"));
-			u.searchParams.append ("hfr-cc-insta", "true");
-			v.url = u.toString();
-			v.contentType = "video/mp4";
-			v.poster = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent ("https://i.imgur.com/juJpPUD.png");
-			this.videos.push (v);
-		}
-	}
-
-	static load (url) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Utils.request({
-					method : "GET",
-					url : `${url}/embed`,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							resolve (new Threads (doc, url));
-						}
-						catch (e) {
-							console.log (e);
-							reject (url);
-						}
-					}
-				});
-			})();
-		});
-	}
-}
-
-class Instagram extends Social {
-	constructor (doc, code) {
-		super();
-
-		this.icon = "[img]https://i.imgur.com/bhHTaFv.png[/img]";
-		this.link = `https://www.instagram.com/p/${code}/`;
-		this.user = Social.normalize (doc.querySelector (".usermeta > .fullname h1").textContent.trim());
-		this.info = ((doc.querySelector (".usermeta svg.Zi--BadgeCert") != null) ? "[:yoann riou:9]" : "") + doc.querySelector (".usermeta > .username h2").textContent.trim();
-		this.text = Instagram.elementToBBCode (doc.querySelector ("div.desc"));
-
-		doc.querySelectorAll ("div.show .media-wrap").forEach (media => {
-			var img = media.querySelector ("img");
-			if (img != null) {
-			console.log ("image width : " +  img.width);
-				var src = img.getAttribute ("data-src");
-				if (src == null)
-					src = img.getAttribute ("src");
-				var url = encodeURIComponent (src);
-				console.log ("instagram : " + url);
-				this.images.push (new Hfr.Image (url));
-			}
-			if (media.classList.contains ("proxy-video")) {
-				var video = media.querySelector ("video");
-				var vid = new Video();
-				vid.poster = "https://rehost.diberie.com/Rehost?url=" + encodeURIComponent (video.getAttribute ("poster"));
-				var u = new URL (video.getAttribute ("src"));
-				u.searchParams.append ("hfr-cc-insta", "true");
-				vid.url = u.toString();
-				vid.contentType = "video/mp4";
-				this.videos.push (vid);
-			}
-		});
-	}
-
-	static elementToBBCode (element) {
-		var builder = new Builder();
-		element.childNodes.forEach (node => {
-			if (node.nodeType == Node.TEXT_NODE)
-				builder.append (Social.normalize (node.textContent)
-					.replaceAll (/#\w+/g, match => { return "[url=https://www.instagram.com/explore/tags/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
-					.replaceAll (/@\w+/g, match => { return "[url=https://www.instagram.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
-			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "br")
-				builder.append ("\n");
-			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "a") {
-				var href = "https://www.instagram.com" + node.getAttribute ("href");
-				builder.append (`[b][url=${href}]${node.textContent}[/url][/b]`);
-			}
-			else if (node.nodeType == Node.ELEMENT_NODE)
-				builder.append (Instagram.elementToBBCode (node));
-		});
-		return builder.toString();
-	}
-
-	static load (url) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.instagram.exec (url);
-				var code = res.groups.shortcode;
-				Utils.request({
-					method : "GET",
-					url : `https://imginn.com/p/${code}/`,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							resolve (new Instagram (doc, code));
-						}
-						catch (e) {
-							console.log (e);
-							reject (url);
-						}
-					}
-				});
-			})();
-		});
-	}
-}
-
-class Reddit extends Social {
-	constructor() {
-		super();
-
-		this.icon = "[:jean robin:10]";
-	}
-
-	static format (url, text) {
-		return new Promise ((resolve, reject) => {
-			try {
-				var doc = new DOMParser().parseFromString (text, "text/html");
-				var post = doc.querySelector ("shreddit-post");
-				var title = post.querySelector ("[slot='title']").textContent.trim();
-				var t = post.querySelector ("[slot='text-body'] div[id]");
-				var ctn = post.querySelector ("[slot='post-media-container']");
-				var red = new Reddit();
-				red.link = url;
-				red.user = post.querySelector (".author-name").textContent;
-				red.info = "a publié sur " + post.querySelector ("a.subreddit-name").textContent.trim();
-				var txt = `[b]${title}[/b]\n`;
-				if (ctn != null) {
-					var sub = ctn.querySelector ("[property='schema:articleBody']");
-					if (sub != null)
-						t = sub;
-				}
-				if (t != null)
-					txt += Social.normalize (t.textContent.trim());
-				red.text = txt;
-				if (ctn != null) {
-					var img = ctn.querySelector ("img");
-					var carousel = ctn.querySelector ("gallery-carousel");
-					var player = ctn.querySelector ("shreddit-player");
-					if (player != null) {
-						if (player.getAttribute ("post-type") == "gif") {
-							red.images.push (new Hfr.Image (post.getAttribute ("content-href")));
-						} else {
-							var data = JSON.parse (player.getAttribute ("packaged-media-json"));
-							var perms = data.playbackMp4s.permutations;
-							perms.sort ((a, b) => b.source.dimensions.width - a.source.dimensions.width);
-							var src = perms[0].source.url;
-
-							var vid = new Video();
-							vid.url = src;
-							vid.poster = player.querySelector (".preview-image").getAttribute ("src");
-							red.videos.push (vid);
-						}
-					}
-					else if (carousel != null) {
-						carousel.querySelectorAll ("li > img").forEach (image => {
-							var src = image.getAttribute ("src");
-							if (src == null)
-								src = image.getAttribute ("data-lazy-src");
-							var preview = src;
-							red.images.push ({
-								url : src,
-								toString : () => { return `[url=${src}][img]${preview}[/img][/url]`; }
-							});
-						});
-					}
-					else if (img != null) {
-						var src = img.getAttribute ("src");
-						var preview = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent (img.getAttribute ("src"));
-						red.images.push ({
-							url : src,
-							toString : () => { return `[url=${src}][img]${preview}[/img][/url]`; }
-						});
-					}
-				}
-				resolve (red);
-			}
-			catch (e) {
-				console.log (e);
-				reject (url);
-			}
-		});
-	}
-
-	static load (url) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Utils.request({
-					method : "GET",
-					url : url,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						Reddit.format (url, response.responseText).then (red => resolve (red)).catch (err => {
-							console.log (err);
-							reject (url);
-						});
-					}
-				});
-			})();
-		});
-	}
-}
-
-class Twitter extends Social {
-	static normalize (str) {
-		return Social.normalize (str
-			.replaceAll (/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g, "[url=$&][b]$&[/b][/url]")
-			.replaceAll (/#\w+/g, match => { return "[url=https://x.com/hashtag/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
-			.replaceAll (/@\w+/g, match => { return "[url=https://x.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
-	}
-
-	static tweetVideoUrl (media) {
-		for (var i = 0; i < media.video_info.variants.length; i++) {
-			var vid = new Video();
-			var v = media.video_info.variants[i];
-			if (v.content_type == "application/x-mpegURL")
-				continue;
-			var url = new URL (v.url);
-			url.searchParams.delete ("tag");
-			vid.url = url.toString();
-			vid.contentType = v.content_type;
-			vid.poster = media.media_url_https;
-			return vid;
-		}
-		return { url : "" };
-	}
-
-	constructor (data) {
-		super();
-		
-		this.icon = "[img]https://i.imgur.com/pd0aoXr.png[/img]";
-		this.link = "https://twitter.com/i/status/" + data.id_str;
-		this.user = Social.normalize (data.user.name);
-		var obj = {
-			"Basic" : "[:yoann riou:9]",
-			"Government" : "[img]https://i.imgur.com/AYsrHeC.png[/img]",
-			"Business" : "[img]https://i.imgur.com/6C4thzC.png[/img]"
-		};
-		if (data.user.is_blue_verified || data.user.verified) {
-			data.user.verified = true;
-			data.user.verified_type = "Basic";
-		}
-		this.info = `@${data.user.screen_name} ${data.user.verified ? obj[data.user.verified_type] + " " : ""}`;
-		this.text = Twitter.normalize (data.text);
-		if (data.mediaDetails && data.mediaDetails.length > 0) {
-			data.mediaDetails.forEach (media => {
-				if (media.type == "video") {
-					this.videos.push (Twitter.tweetVideoUrl (media));
-				}
-				if (media.type == "animated_gif") {
-					var gif = new Video();
-					gif.url = media.video_info.variants[0].url;
-					gif.contentType = media.video_info.variants[0].content_type;
-					gif.poster = media.media_url_https;
-					gif.isGif = true;
-					this.videos.push (gif);
-				}
-				if (media.type == "photo") {
-					this.images.push (new Hfr.Image (media.media_url_https));
-				}
-			});
-		}
-		if (data.quoted_tweet)
-			this.quote = new Twitter (data.quoted_tweet);
+		return Promise.resolve (this.toString());
 	}
 
 	static load (link) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				var res = Expr.twitter.exec (link);
 				Utils.request({
 					method : "GET",
-					url : "https://cdn.syndication.twimg.com/tweet-result?token=43l77nyjhwo&id=" + res.groups.id,
+					url : link,
 					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
 					ontimeout : function() { reject (link); },
+					onerror : function() { reject (link); },
+					headers : { "Cookie" : "" },
+					anonymous : true,
 					onload : function (response) {
 						try {
-							var json = JSON.parse (response.responseText);
-							resolve (new Twitter (json));
+							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
+							var title = doc.querySelector ("head > title").textContent;
+							var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
+							var desc = doc.querySelector ("head > meta[property='og:description']").getAttribute ("content");
+							var m = doc.querySelector ("head > meta[property='og:image']");
+							if (m == null)
+								resolve (new Embed ({
+									uri : link,
+									site : site,
+									description : desc,
+								}));
+							else {
+								Utils.getImageInfo (m.getAttribute ("content")).then (info => {
+									var w = Math.floor (info.width * 180 / info.height);
+									var h = 180;
+									resolve (new Embed ({
+										uri : link,
+										site : site,
+										title : title,
+										description : desc,
+										thumb : m.getAttribute ("content"),
+										thumb_width : w,
+										thumb_height : h
+									}));
+								}).catch (e => {
+									console.log (e);
+									reject (link);
+								});
+							}
 						}
 						catch (e) {
 							console.log (e);
@@ -756,219 +223,42 @@ class Twitter extends Social {
 	}
 }
 
-class BlueSky extends Social {
-	static load (url) {
-		var toto = 0;
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.bluesky.exec (url);
-				Utils.request({
-					method : "GET",
-					url : "https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + res.groups.handle,
-					onabort : function() { reject (url); },
-					onerror : function() { reject (url); },
-					ontimeout : function() { reject (url); },
-					onload : function (response) {
-						try {
-							var json = JSON.parse (response.responseText);
-							var u = `at://${json.did}/app.bsky.feed.post/${res.groups.hash}`;
-							var uri = `https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`;
-							Utils.request({
-								method : "GET",
-								url : uri,
-								onabort : function() { reject (url); },
-								onerror : function() { reject (url); },
-								ontimeout : function() { reject (url); },
-								onload : function (response) {
-									try {
-										var data = JSON.parse (response.responseText);
-										resolve (new BlueSky (data.thread.post, json.did, res.groups.hash));
-									}
-									catch (e) {
-										console.log (e);
-										reject (url);
-									}
-								}
-							});
-						}
-						catch (e) {
-							console.log (e);
-							reject (url);
-						}
-					}
-				});
-			})();
-		});
-	}
-
-	constructor (data) {
-		super();
-		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/327943[/img]";
-		var did = data.uri.split ("at://")[1].split ("/")[0];
-		var hash = data.uri.split ("app.bsky.feed.post/")[1];
-		this.link = `https://bsky.app/profile/${did}/post/${hash}`;
-		this.user = Social.normalize (data.author.displayName);
-		this.info = `@${data.author.handle}${data.author.verification != null ? " [:yoann riou:9]" : ""}`;
-		var record = (data.record != null) ? data.record : data.value;
-		var txt = record.text;
-		var arr = new TextEncoder().encode (txt);
-		if (record.facets != null)
-			for (var i = record.facets.length - 1; i >= 0; i--) {
-				var facet = record.facets[i];
-				if (facet.features[0]["$type"] == "app.bsky.richtext.facet#tag") {
-					var htag = facet.features[0].tag;
-					var tag = `[url=https://bsky.app/hashtag/${htag}][b]#${htag}[/b][/url]`;
-					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + tag + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
-				}
-				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
-					var mid = facet.features[0].did;
-					var mh = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
-					var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
-					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + mention + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
-				}
-				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
-					var txt = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
-					var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
-					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + url + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
-				}
-			}
-		txt = new TextDecoder().decode (arr);
-		this.text = Social.normalize (txt);
-		if (data.embed != null) {
-			var med = (data.embed.media != null) ? data.embed.media : data.embed;
-			if (med["$type"] == "app.bsky.embed.video#view") {
-				var vid = new Video();
-				vid.contentType = "application/x-mpegURL";
-				vid.url = med.playlist;
-				vid.poster = med.thumbnail;
-				this.videos.push (vid);
-			}
-			var imgs = Array.isArray (data.embed.images) ? data.embed.images : (Array.isArray (data.embed.media?.images) ? data.embed.media.images : []);
-			imgs.forEach (img => {
-				this.images.push (new Hfr.Image (img.fullsize));
-			});
-			if (data.embed.external != null && imgs.length == 0) {
-				var u = new URL (data.embed.external.uri);
-				if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
-					this.images.push (new Hfr.Image (data.embed.external.uri));
-			}
-			if (data.embed.record?.record != null)
-				this.quote = new BlueSky (data.embed.record.record);
-		}
-		if (Array.isArray (data.embeds))
-			data.embeds.forEach (embed => {
-				if (embed["$type"] == "app.bsky.embed.video#view") {
-					var vid = new Video();
-					vid.contentType = "application/x-mpegURL";
-					vid.url = embed.playlist;
-					vid.poster = embed.thumbnail;
-					this.videos.push (vid);
-				}
-				if (embed.images)
-					embed.images.forEach (img => {
-						this.images.push ({
-							url : img.fullsize,
-							toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + img.fullsize + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + img.fullsize + "[/img][/url]" }
-						});
-					});
-			});
-	}
-}
-
-class Mastodon extends Social {
-	static load (url) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var match = Expr.mastodon.exec (url);
-				if (match == null)
-					match = Expr.truthsocial.exec (url);
-				var uri = `https://${match.groups.instance}/api/v1/statuses/${match.groups.tid}`;
-				Utils.request({
-					method : "GET",
-					url : uri,
-					onabort : function() { reject (url); },
-					onerror : function() { reject (url); },
-					ontimeout : function() { reject (url); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var data = JSON.parse (response.responseText);
-							resolve (new Mastodon (data));
-						}
-						catch (e) {
-							console.log (e);
-							reject (url);
-						}
-					}
-				});
-			})();
-		});
-	}
-
-	constructor (data) {
-		super();
-
-		var doc = new DOMParser().parseFromString (data.content, "text/html");
+class Social {
+	static objectToString (obj) {
 		var builder = new Builder();
-		doc.querySelectorAll ("p").forEach (p => {
-			p.childNodes.forEach (node => {
-				if (node.nodeType == Node.TEXT_NODE)
-					builder.append (Utils.normalizeText (node.textContent));
-				else if (node.nodeType == Node.ELEMENT_NODE) {
-					if (node.tagName.toLowerCase() == "br")
-						builder.append ("\n");
-					else if (node.classList.contains ("hashtag")) {
-						var tag = node.textContent;
-						var lnk = node.getAttribute ("href");
-						builder.append (`[b][url=${lnk}]${tag}[/url][/b]`);
-					}
-					else if (node.classList.contains ("h-card") && node.querySelector ("a.u-url") != null) {
-						var id = node.textContent;
-						var lnk = node.querySelector ("a.u-url").getAttribute ("href");
-						builder.append (`[b][url=${lnk}]${id}[/url][/b]`);
-					}
-					else if (node.tagName.toLowerCase() == "a")
-						builder.append (`[b][url]${node.getAttribute ("href")}[/url][/b]`);
-				}
-			});
-			builder.append ("\n");
+		if (obj.quote)
+			builder.append (`${Social.objectToString (obj.quote)}\n`);
+		builder.append (`[quote][b][url=${obj.link}]${obj.icon} ${obj.user} ${obj.info}[/url][/b]\n\n`);
+		builder.append (`${Utils.formatText (Utils.normalizeText (obj.text))}\n`);
+		obj.videos.forEach (v => {
+			var u = new URL (v.url);
+			if (v.isGif)
+				u.searchParams.append ("gif", "true");
+			u.searchParams.append ("hfr-cc-mime-type", v.type);
+			builder.append (`[url=${u}][img]${v.poster}[/img][/url]`);
 		});
+		obj.images.forEach (i => {
+			builder.append (`[url=${i.url}][img=${i.thumbWidth},${i.thumbHeight}]${i.url}[/img][/url]`);
+		});
+		if (this.embed)
+			builder.append (`[quote][/quote]`);
+		builder.append ("[/quote]\n");
+		return builder.toString();
+	}
 
-		if (data.poll != null)
-			data.poll.options.forEach (opt => {
-				var tit = opt.title;
-				var pct = opt.votes_count * 100 / data.poll.votes_count;
-				builder.append (`[*] ${tit} : ${pct} %\n`);
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			Hfr.fetch ("https://bzhdev18.alwaysdata.net/social/?url=" + encodeURIComponent (url)).then (text => {
+				var data = JSON.parse (text);
+				if (data.error)
+					reject (url);
+				else
+					resolve (Social.objectToString (data));
+			}).catch (e => {
+				console.log (e);
+				reject (url);
 			});
-		
-		if (data.media_attachments != null)
-			data.media_attachments.forEach (media => {
-				if (media.type == "image")
-					this.images.push (new Hfr.Image (media.preview_url));
-				else if (media.type == "gifv") {
-					var gif = new Video();
-					gif.url = media.url;
-					gif.contentType = "video/mp4";
-					gif.poster = media.preview_url;
-					gif.isGif = true;
-					this.videos.push (gif);
-				}
-				else if (media.type == "video") {
-					var video = new Video();
-					video.url = media.url
-					video.contentType = "video/mp4";
-					video.poster = media.preview_url;
-					this.videos.push (video);
-				}
-			});
-
-		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/110911[/img]";
-		this.link = data.url;
-		this.user = Social.normalize (data.account.display_name).replace (":verified:", "[:yoann riou:9]");
-		var p = data.account.url.split("/");
-		this.info = `${p[3]}@${p[2]}`;
-		this.text = Social.normalize (builder.toString());
+		});
 	}
 }
 
@@ -1815,47 +1105,13 @@ class Utils {
 			return "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (arr.join ("-")) + ".png?raw=true[/img]"
 		});
 	}
-	
-	static pasteYoutube (link, id) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Utils.request({
-					method : "GET",
-					url : link,
-					onabort : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onerror : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						var json = response.responseText.split ("var ytInitialPlayerResponse = ")[1].split ("};")[0] + "}";
-						try {
-							var obj = JSON.parse (json);
-							var lnk = "https://youtu.be/" + id;
-							var img = "https://i.ytimg.com/vi/" + id + "/mqdefault.jpg";
-							var desc = Utils.formatText (obj.videoDetails.shortDescription);
-							var title = Utils.formatText (obj.videoDetails.title);
-							var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
-							if (detail == "non")
-								resolve (`[url=${link}][b]${title}[/b][/url]\n\n[url=${link}][img]${img}[/img][/url]`);
-							else
-								resolve (`[url=${link}][b]${title}[/b][/url]\n\n${desc}\n\n[url=${link}][img]${img}[/img][/url]`);
-						} catch (e) {
-							console.log (e);
-							reject (link);
-						}
-					}
-				});
-			})();
-		});
-	}
-	
+
 	static dropText (text) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				if (Social.match (text)) {
-					Social.load (text).then (msg => {
-						resolve (msg.toString());
+					Social.load (text).then (msg => msg.build()).then (txt => {
+						resolve (txt);
 					}).catch (e => {
 						console.log (e);
 						reject (text);
@@ -1864,23 +1120,28 @@ class Utils {
 				else {
 					try {
 						var url = new URL (text);
-						var id = null;
-						if (url.host == "youtube.com" || url.host == "www.youtube.com")
-							id = url.searchParams.get ("v");
-						else if (url.host == "youtu.be") {
-							id = url.pathname;
-							if (id != null)
-								id = id.substring (1);
-						}
-						if (id != null)
-							Utils.pasteYoutube (text, id).then (txt => {
-								resolve (txt);
-							}).catch (e => {
-								console.log (e);
-								reject (text);
-							});
-						else
-							reject (text);
+						Utils.request({
+							method : "HEAD",
+							url : text,
+							onabort : function() { reject (text); },
+							ontimeout : function() { reject (text); },
+							onerror : function() { reject (text); },
+							headers : { "Cookie" : "" },
+							anonymous : true,
+							onload : function (response) {
+								var headers = Headers.parse (response.responseHeaders);
+								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
+									Embed.load (text).then (embed => {
+										resolve (embed.toString());
+									}).catch (e => {
+										console.log (e);
+										reject (text);
+									});
+								}
+								else
+									reject (text);
+							}
+						});
 					}
 					catch (e) { console.log (e); reject (text); }
 				}
@@ -1920,52 +1181,6 @@ class Utils {
 			})();
 		});
 	}
-
-	static pasteDefault (link) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Utils.request({
-					method : "GET",
-					url : link,
-					onabort : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onerror : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							var m = doc.querySelector ("head > meta[property='og:image']");
-							if (m == null)
-								reject (link);
-							else {
-								var img = "https://rehost.diberie.com/Rehost?url=" + encodeURIComponent (m.getAttribute ("content"));
-								Utils.getImageInfo (m.getAttribute ("content")).then (info => {
-									var title = doc.querySelector ("head > title").textContent;
-									var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
-									var desc = doc.querySelector ("head > meta[name='description']").getAttribute ("content");
-									var w = Math.floor (info.width * 200 / info.height);
-									var h = 200;
-									var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
-									if (detail == "non")
-										resolve (`[url=${link}][b]${title}[/b][/url]\n[url=${link}][img=${w},${h}]${img}[/img][/url]`);
-									else
-										resolve (`[url=${link}]${site}[/url]\n\n[url=${link}][b]${title}[/b][/url]\n\n[url=${link}]${desc}[/url]\n[url=${link}][img=${w},${h}]${img}[/img][/url]`);
-								}).catch (e => {
-									console.log (e);
-									reject (link);
-								});
-							}
-						}
-						catch (e) {
-							console.log (e);
-							reject (link);
-						}
-					}
-				});
-			})();
-		});
-	}
 	
 	static pasteText (item) {
 		return new Promise ((resolve, reject) => {
@@ -1981,45 +1196,29 @@ class Utils {
 				else {
 					try {
 						var url = new URL (text);
-						var id = null;
-						if (url.host == "youtube.com" || url.host == "www.youtube.com")
-							id = url.searchParams.get ("v");
-						else if (url.host == "youtu.be") {
-							id = url.pathname;
-							if (id != null)
-								id = id.substring (1);
-						}
-						console.log ("id : " + id);
-						if (id != null)
-							Utils.pasteYoutube (text, id).then (txt => {
-								resolve (txt);
-							}).catch (e => {
-								console.log (e);
-								reject (text);
-							});
-						else
-							Utils.request({
-								method : "HEAD",
-								url : text,
-								onabort : function() { reject (text); },
-								ontimeout : function() { reject (text); },
-								onerror : function() { reject (text); },
-								headers : { "Cookie" : "" },
-								anonymous : true,
-								onload : function (response) {
-									var headers = Headers.parse (response.responseHeaders);
-									if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
-										Utils.pasteDefault (text).then (txt => {
-											resolve (txt);
-										}).catch (e => {
-											console.log (e);
-											reject (text);
-										});
-									}
-									else
+						Utils.request({
+							method : "HEAD",
+							url : text,
+							onabort : function() { reject (text); },
+							ontimeout : function() { reject (text); },
+							onerror : function() { reject (text); },
+							headers : { "Cookie" : "" },
+							anonymous : true,
+							onload : function (response) {
+								var headers = Headers.parse (response.responseHeaders);
+								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
+									Embed.load (text).then (embed => {
+										resolve (embed.toString());
+									}).catch (e => {
+										console.log (e);
 										reject (text);
+									});
 								}
-							});
+								else
+									reject (text);
+							}
+						});
+							
 					}
 					catch (e) {
 						console.log (e);
@@ -2163,7 +1362,6 @@ class Utils {
 	static stroke (event) {
 		console.log (event);
 		var loading = new Loading();
-		Utils.insertText (event.target, event.code);
 		if (event.code == "KeyD" && event.ctrlKey && event.altKey) {
 			// a refaire
 		}
@@ -2405,32 +1603,6 @@ class Utils {
 				}
 			}
 	}
-
-	static paste (event) {
-		var loading = new Loading();
-		navigator.clipboard.read().then(array => {
-			for (var item of array) {
-				for (var type of item.types) {
-					if (type.indexOf ("image/") == 0) {
-						event.target.disabled = true;
-						loading.attach (event.target);
-						Utils.pasteImage (item, type).then (upload => {
-							Utils.insertText (event.target, "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");	
-							loading.destroy();
-							event.target.disabled = false;
-							event.target.focus();
-						}).catch (e => {
-							loading.destroy();
-							event.target.disabled = false;
-							event.target.focus();
-							console.log (e);
-						});
-						break;
-					}
-				}
-			}
-		});
-	}
 }
 
 Utils.registerCommand ("Copie/Colle -> choix du service", () => {
@@ -2464,9 +1636,6 @@ Utils.init (table => {
 		textarea.addEventListener('drop', Utils.drop);
 		textarea.addEventListener('dragover', Utils.allowDrop);
 		textarea.addEventListener('focus', Utils.addButtonToTextarea);
-		if (navigator.platform.indexOf ("Linux armv") >= 0) {
-			textarea.addEventListener ('paste', Utils.paste);
-		}
 	}
 	
 	var observer = new MutationObserver ((mutations, observer) => {
