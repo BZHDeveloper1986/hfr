@@ -94,11 +94,7 @@
 // 1.3            fenêtre de visualisation de l'image avant collage.
 // 1.2            on repart de la v1.
 
-var banner = document.querySelector ("tbody > tr > td > span > a > a > img");
-if (banner != null) {
-	banner.src = "https://i.imgur.com/AYX3Pde.png";
-	console.log ("RIP Marc");
-}
+console.log ("Merci pour tout Marc 🕊️");
 
 class Headers {
 	#obj;
@@ -2508,6 +2504,11 @@ Utils.init (table => {
 		}
 		catch {
 			return;
+		}
+		if (u.searchParams.get("hfr-emoji") == "true") {
+			var image = document.createElement ("img");
+			image.setAttribute ("src", href);
+			link.parentNode.replaceChild (image, link);
 		}
 		if (u.hostname == "store10.gofile.io" && u.pathname.indexOf ("/download") == 0 && u.searchParams.get("isAudio") == "true") {
 			var audio = document.createElement ("audio");
