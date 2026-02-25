@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.33
+// @version       1.5.34
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -1279,6 +1279,10 @@ class Input extends Widget {
 		super ("input");
 		this.set ("type", type);
 	}
+
+	value_changed (callback) {
+		this.element.addEventListener ("change", e => { callback (e.target.value); });
+	}
 }
 
 class TextButton extends Widget {
@@ -2308,35 +2312,38 @@ class Utils {
 			dialog.closed (d => { d.destroy(); rej ("annulé"); });
 			dialog.title = "prévisualisation de l'image";
 			var src = upload.url;
-			var button = new TextButton ("400 px");
+			var button = new TextButton ("ajouter");
+			var spin = new Input ("number");
 			var img = new Picture (src);
-			var scale = new Scale (100, 800);
 			var box = new Box (true);
 			var hbox = new Box();
-			hbox.add (scale);
+			hbox.add  (new Label ("hauteur de l'image : "));
+			hbox.add (spin);
+			hbox.add (new Label (" pixels "));
 			hbox.add (button);
 			box.add (hbox);
 			box.add (img);
 			img.loaded ((w,h) => {
-				if (w > 800) {
-					img.height = Math.floor (800 * h / w);
-					img.width = 800;
+				if (w > 400) {
+					img.height = Math.floor (400 * h / w);
+					img.width = 400;
 				}
 				if (h > 800) {
-					img.width = Math.floor (800 * w / h);
-					img.height = 800;
+					img.width = Math.floor (400 * w / h);
+					img.height = 400;
 				}
 				button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 			});
 			dialog.content = box;
-			scale.changed (val => {
+			spin.value_changed (val => {
 				var w = img.width, h = img.height;
 				img.height = val;
 				img.width = Math.floor (val*w/h);
-				button.text = `${val} px`;
 				button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 			});
-			scale.set ("value", 400);
+			spin.set ("value", 400);
+			spin.set ("min", 100);
+			spin.set ("max", 800);
 			
 			button.clicked (self => { dialog.destroy(); res (button.get ("bbcode")); });
 			dialog.display();
