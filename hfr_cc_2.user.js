@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.32
+// @version       1.5.33
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -352,10 +352,16 @@ class Embed {
 					anonymous : true,
 					onload : function (response) {
 						try {
+							var func = (a) => {
+								var n = doc.querySelector (a);
+								if (n == null)
+									return "";
+								return n.getAttribute ("content");
+							};
 							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							var title = doc.querySelector ("head > meta[property='og:title']").getAttribute ("content");
-							var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
-							var desc = doc.querySelector ("head > meta[property='og:description']").getAttribute ("content");
+							var title = func ("head > meta[property='og:title']");
+							var site = func ("head > meta[property='og:site_name']");
+							var desc = func ("head > meta[property='og:description']");
 							var m = doc.querySelector ("head > meta[property='og:image']");
 							if (m == null)
 								resolve (new Embed ({
@@ -1007,6 +1013,8 @@ class Mastodon extends Social {
 		super();
 		
 		var doc = new DOMParser().parseFromString (data.content, "text/html");
+		console.log (data);
+		console.log (doc);
 		var builder = new Builder();
 		doc.querySelectorAll ("p").forEach (p => {
 			p.childNodes.forEach (node => {
@@ -1061,7 +1069,15 @@ class Mastodon extends Social {
 			});
 
 		if (data.card)
-			this.embed = Embed.load (data.card.url);
+			this.embed = Promise.resolve (new Embed ({
+				uri : data.card.url,
+				site : data.card.provider_name,
+				title : data.card.title,
+				description : data.card.description,
+				thumb : data.card.image,
+				thumb_width : data.card.width,
+				thumb_height : data.card.height
+			}));
 
 		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/110911[/img]";
 		this.link = data.url;
