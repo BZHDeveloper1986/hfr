@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.34
+// @version       1.5.35
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.35         wzsqhw odshs yhyh.
 // 1.5.26         Gestion des medias embarqués/imbriqués
 // 1.5.20         Retrait support gofile. correction vidéo pour firefox
 // 1.5.19         Emoji 17.0, regex simplifiée
@@ -352,14 +353,17 @@ class Embed {
 					anonymous : true,
 					onload : function (response) {
 						try {
+							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
 							var func = (a) => {
 								var n = doc.querySelector (a);
-								if (n == null)
+								if (n == null) {
 									return "";
+								}
 								return n.getAttribute ("content");
 							};
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							var title = func ("head > meta[property='og:title']");
+							var t = doc.querySelector ("head > meta[property='og:title']");
+							if (t == null) { reject (link); return; }
+							var title = t.getAttribute ("content");
 							var site = func ("head > meta[property='og:site_name']");
 							var desc = func ("head > meta[property='og:description']");
 							var m = doc.querySelector ("head > meta[property='og:image']");
@@ -404,7 +408,7 @@ class Social {
 	static match (url) {
 		console.log (Expr.threads.match (url));
 		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
-			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.instagram.match (url) || Expr.threads.match (url);
+			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.threads.match (url);
 	}
 
 	static normalize (txt) {

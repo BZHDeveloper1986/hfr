@@ -22,7 +22,86 @@
 // Historique
 // 1.2            on repart de la v2.
 
+console.log ("Merci pour tout Marc 🕊️");
+
+class Headers {
+	#obj;
+
+	constructor() {
+		this.#obj = {};
+	}
+
+	setHeader (name, value) {
+		if (!(name in this.#obj))
+			this.#obj[name] = [];
+		this.#obj[name].push (value);
+	}
+
+	getHeader (name) {
+		if (name in this.#obj)
+			return this.#obj[name];
+		return [];
+	}
+
+	get contentType() {
+		var a = this.getHeader ("content-type");
+		if (a.length == 0)
+			return "application/octet-stream";
+		return a[0];
+	}
+
+	static parse (str) {
+		var headers = new Headers();
+		var p = str.split ("\n");
+		p.forEach (line => {
+			var l = line;
+			var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
+			l.substring (l.indexOf (":") + 1).split (";").forEach (v => {
+				headers.setHeader (k, v.trim());
+			});
+		});
+		return headers;
+	}
+}
+
 let Hfr = {
+	Response : class {
+		#rep;
+		#hdr;
+		#data;
+
+		constructor (r) {
+			this.#rep = r;
+			this.#hdr = Headers.parse (r.responseHeaders);
+			this.#data = r.response.slice (0, r.response.size, this.#hdr.contentType);
+		}
+
+		get headers() {
+			return this.#hdr;
+		}
+
+		blob() {
+			return Promise.resolve (this.#data);
+		}
+
+		text() {
+			return this.#data.text();
+		}
+
+		json() {
+			return new Promise ((resolve, reject) => {
+				this.text().then (txt => {
+					try {
+						var obj = JSON.parse (txt);
+						resolve (obj);
+					}
+					catch {
+						reject (txt);
+					}
+				}).catch (reject);
+			});
+		}
+	},
 	fetch : function (url) {
 		return new Promise ((resolve, reject) => {
 			Utils.request({
@@ -35,8 +114,7 @@ let Hfr = {
 				anonymous : true,
 				responseType : "blob",
 				onload : function (response) {
-					var headers = Headers.parse (response.responseHeaders);
-					resolve (response.response.slice (0, response.response.size, headers.contentType));
+					resolve (new Hfr.Response (response));
 				}
 			});
 		});
@@ -75,7 +153,7 @@ let Hfr = {
 			return new Promise ((resolve, reject) => {
 				if (this.#filled == true)
 					return Promise.resolve (this.toString());
-				Hfr.fetch (this.url).then (file => {
+				Hfr.fetch (this.url).then (rep => rep.blob()).then (file => {
 					UploadService.getDefault().uploadAsync (file).then (o => {
 						console.log (o);
 						this.#h = o.height;
@@ -231,14 +309,14 @@ class Social {
 		builder.append (`[quote][b][url=${obj.link}]${obj.icon} ${obj.user} ${obj.info}[/url][/b]\n\n`);
 		builder.append (`${Utils.formatText (Utils.normalizeText (obj.text))}\n`);
 		obj.videos.forEach (v => {
-			var u = new URL (v.url);
+			var u = new URL (v.source);
 			if (v.isGif)
 				u.searchParams.append ("gif", "true");
-			u.searchParams.append ("hfr-cc-mime-type", v.type);
+			u.searchParams.append ("hfr-cc-mime-type", v.content_type);
 			builder.append (`[url=${u}][img]${v.poster}[/img][/url]`);
 		});
 		obj.images.forEach (i => {
-			builder.append (`[url=${i.url}][img=${i.thumbWidth},${i.thumbHeight}]${i.url}[/img][/url]`);
+			builder.append (`[url=${i.source}][img=${i.thumb_width},${i.thumb_height}]${i.source}[/img][/url]`);
 		});
 		if (this.embed)
 			builder.append (`[quote][/quote]`);
@@ -248,8 +326,7 @@ class Social {
 
 	static load (url) {
 		return new Promise ((resolve, reject) => {
-			Hfr.fetch ("https://bzhdev18.alwaysdata.net/social/?url=" + encodeURIComponent (url)).then (text => {
-				var data = JSON.parse (text);
+			Hfr.fetch ("https://bzhdev18.alwaysdata.net/social/?url=" + encodeURIComponent (url)).then (rep => rep.json()).then (data => {
 				if (data.error)
 					reject (url);
 				else
@@ -1082,15 +1159,7 @@ class Utils {
 	static dropText (text) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				if (Social.match (text)) {
-					Social.load (text).then (msg => msg.build()).then (txt => {
-						resolve (txt);
-					}).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else {
+				Social.load (text).then (str => resolve (str)).catch (e => {
 					try {
 						var url = new URL (text);
 						Utils.request({
@@ -1115,9 +1184,13 @@ class Utils {
 									reject (text);
 							}
 						});
+							
 					}
-					catch (e) { console.log (e); reject (text); }
-				}
+					catch (e) {
+						console.log (e);
+						reject (text);					
+					}
+				});
 			})();
 		});
 	}
@@ -1160,13 +1233,8 @@ class Utils {
 			(async () => {
 				var blob = await item.getType ("text/plain");
 				var text = await blob.text();
-				if (Social.match (text)) {
-					Social.load (text).then (msg => msg.build()).then (txt => resolve (txt)).catch (e => {
-						console.log (e);
-						reject (text);
-					});
-				}
-				else {
+
+				Social.load (text).then (str => resolve (str)).catch (e => {
 					try {
 						var url = new URL (text);
 						Utils.request({
@@ -1197,7 +1265,7 @@ class Utils {
 						console.log (e);
 						reject (text);					
 					}
-				}
+				});
 			})();
 		});
 	}
