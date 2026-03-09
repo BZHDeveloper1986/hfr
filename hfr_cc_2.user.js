@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.36
+// @version       1.5.37
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.37         Ajout d'un paramètre dans l'url des images/emojis pour garder l'affichage
 // 1.5.35         wzsqhw odshs yhyh.
 // 1.5.26         Gestion des medias embarqués/imbriqués
 // 1.5.20         Retrait support gofile. correction vidéo pour firefox
@@ -531,7 +532,7 @@ class Threads extends Social {
 	constructor (doc, url) {
 		super();
 
-		this.icon = "[img]https://i.imgur.com/wk7vohW.png[/img]";
+		this.icon = "[img]https://i.imgur.com/wk7vohW.png?hfr-cc-image=true[/img]";
 		this.link = url;
 		this.user = doc.querySelector (".NameContainer .HeaderLink").textContent;
 		var tw = doc.querySelector (".TopicTagWrapper");
@@ -591,7 +592,7 @@ class Instagram extends Social {
 	constructor (doc, code) {
 		super();
 
-		this.icon = "[img]https://i.imgur.com/bhHTaFv.png[/img]";
+		this.icon = "[img]https://i.imgur.com/bhHTaFv.png?hfr-cc-image=true[/img]";
 		this.link = `https://www.instagram.com/p/${code}/`;
 		this.user = Social.normalize (doc.querySelector (".usermeta > .fullname h1").textContent.trim());
 		this.info = ((doc.querySelector (".usermeta svg.Zi--BadgeCert") != null) ? "[:yoann riou:9]" : "") + doc.querySelector (".usermeta > .username h2").textContent.trim();
@@ -790,7 +791,7 @@ class Twitter extends Social {
 	constructor (data) {
 		super();
 		console.log (data);
-		this.icon = "[img]https://i.imgur.com/pd0aoXr.png[/img]";
+		this.icon = "[img]https://i.imgur.com/pd0aoXr.png?hfr-cc-image=true[/img]";
 		this.link = "https://twitter.com/i/status/" + data.id_str;
 		this.user = Social.normalize (data.user.name);
 		var obj = {
@@ -904,7 +905,7 @@ class BlueSky extends Social {
 	constructor (data) {
 		console.log (data);
 		super();
-		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/327943[/img]";
+		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/327943?hfr-cc-image=true[/img]";
 		var did = data.uri.split ("at://")[1].split ("/")[0];
 		var hash = data.uri.split ("app.bsky.feed.post/")[1];
 		this.link = `https://bsky.app/profile/${did}/post/${hash}`;
@@ -1083,7 +1084,7 @@ class Mastodon extends Social {
 				thumb_height : data.card.height
 			}));
 
-		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/110911[/img]";
+		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/110911?hfr-cc-image=true[/img]";
 		this.link = data.url;
 		this.user = Social.normalize (data.account.display_name).replace (":verified:", "[:yoann riou:9]");
 		var p = data.account.url.split("/");
@@ -1936,7 +1937,7 @@ class Utils {
 		return text.replaceAll (reg, m => {
 			var arr = [];
 			[...m].forEach (c => { arr.push (c.codePointAt(0).toString(16)); });
-			return "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (arr.join ("-")) + ".png?raw=true[/img]"
+			return "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (arr.join ("-")) + ".png?hfr-cc-image=true&raw=true[/img]"
 		});
 	}
 
@@ -2532,7 +2533,7 @@ Utils.init (table => {
 		catch {
 			return;
 		}
-		if (u.searchParams.get("hfr-emoji") == "true") {
+		if (u.searchParams.get("hfr-cc-image") == "true") {
 			var image = document.createElement ("img");
 			image.setAttribute ("src", href);
 			link.parentNode.replaceChild (image, link);
