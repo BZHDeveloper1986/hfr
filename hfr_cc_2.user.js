@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.35
+// @version       1.5.36
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -325,7 +325,7 @@ class Embed {
 	toString() {
 		var builder = new Builder();
 		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
-		if (this.#data.description && detail == "oui")
+		if (this.#data.description && detail == "oui" && this.#data.site.trim().length > 0)
 			builder.append (`[url=${this.#data.uri}]${this.#data.site}[/url]\n`);
 		builder.append (`[url=${this.#data.uri}][b]${this.#data.title}[/b][/url]\n`);
 		if (this.#data.thumb)
