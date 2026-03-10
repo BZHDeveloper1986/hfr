@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.38
+// @version       1.5.39
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.39         Si "mise en page" est installé, ne pas modifier les URL
 // 1.5.38         Social : affichage des icônes hors des liens (bug URL imbriquées)
 // 1.5.37         Ajout d'un paramètre dans l'url des images/emojis pour garder l'affichage
 // 1.5.35         wzsqhw odshs yhyh.
@@ -406,11 +407,15 @@ class Embed {
 	}
 }
 
+setInterval (function(){
+	console.log ("test interscript: " + typeof (a2img));
+}, 1000);
+
 class Social {
 	static match (url) {
 		console.log (Expr.threads.match (url));
 		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
-			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.threads.match (url);
+			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.threads.match (url) || Expr.instagram.match (url);
 	}
 
 	static normalize (txt) {
@@ -430,7 +435,13 @@ class Social {
 			return Instagram.load (url);
 		if (Expr.threads.match (url))
 			return Threads.load (url);
+		if (Expr.instagram.match (url))
+			return Instagram.load (url);
 		return Promise.reject (url);
+	}
+
+	static hasMEP() {
+		return (document.querySelector("#gm_hfr_semep_config_window") != null) ? "" : "?hfr-cc-image=true";
 	}
 
 	#lnk;
@@ -472,6 +483,8 @@ class Social {
 
 	set embed (e) { this.#emb = e; }
 	get embed() { return this.#emb; }
+
+
 
 	toString() {
 		var builder = new Builder();
@@ -533,7 +546,7 @@ class Threads extends Social {
 	constructor (doc, url) {
 		super();
 
-		this.icon = "[img]https://i.imgur.com/wk7vohW.png?hfr-cc-image=true[/img]";
+		this.icon = `[img]https://i.imgur.com/wk7vohW.png${Social.hasMEP()}[/img]`;
 		this.link = url;
 		this.user = doc.querySelector (".NameContainer .HeaderLink").textContent;
 		var tw = doc.querySelector (".TopicTagWrapper");
@@ -792,7 +805,7 @@ class Twitter extends Social {
 	constructor (data) {
 		super();
 		console.log (data);
-		this.icon = "[img]https://i.imgur.com/pd0aoXr.png?hfr-cc-image=true[/img]";
+		this.icon = `[img]https://i.imgur.com/pd0aoXr.png${Social.hasMEP()}[/img]`;
 		this.link = "https://twitter.com/i/status/" + data.id_str;
 		this.user = Social.normalize (data.user.name);
 		var obj = {
@@ -906,7 +919,7 @@ class BlueSky extends Social {
 	constructor (data) {
 		console.log (data);
 		super();
-		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/327943?hfr-cc-image=true[/img]";
+		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/327943${Social.hasMEP()}[/img]`;
 		var did = data.uri.split ("at://")[1].split ("/")[0];
 		var hash = data.uri.split ("app.bsky.feed.post/")[1];
 		this.link = `https://bsky.app/profile/${did}/post/${hash}`;
@@ -1085,7 +1098,7 @@ class Mastodon extends Social {
 				thumb_height : data.card.height
 			}));
 
-		this.icon = "[img]https://rehost.diberie.com/Picture/Get/f/110911?hfr-cc-image=true[/img]";
+		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/110911${Social.hasMEP()}[/img]`;
 		this.link = data.url;
 		this.user = Social.normalize (data.account.display_name).replace (":verified:", "[:yoann riou:9]");
 		var p = data.account.url.split("/");
