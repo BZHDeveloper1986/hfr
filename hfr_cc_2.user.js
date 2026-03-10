@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.37
+// @version       1.5.38
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.38         Social : affichage des icônes hors des liens (bug URL imbriquées)
 // 1.5.37         Ajout d'un paramètre dans l'url des images/emojis pour garder l'affichage
 // 1.5.35         wzsqhw odshs yhyh.
 // 1.5.26         Gestion des medias embarqués/imbriqués
@@ -476,7 +477,7 @@ class Social {
 		var builder = new Builder();
 		if (this.quote)
 			builder.append (`${this.quote}\n`);
-		builder.append (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n\n`);
+		builder.append (`[quote]${this.icon} [b][url=${this.link}]${this.user} ${this.info}[/url][/b]\n\n`);
 		builder.append (`${this.text}\n`);
 		this.videos.forEach (v => builder.append (v.toString()));
 		this.images.forEach (i => builder.append (i.toString()));
@@ -490,7 +491,7 @@ class Social {
 		var arr = [];
 		if (this.quote)
 			arr.push (this.quote.build());
-		arr.push (`[quote][b][url=${this.link}]${this.icon} ${this.user} ${this.info}[/url][/b]\n\n`);
+		arr.push (`[quote]${this.icon} [b][url=${this.link}]${this.user} ${this.info}[/url][/b]\n\n`);
 		arr.push (`${this.text}\n`);
 		this.images.forEach (i => arr.push (i.build()));
 		this.videos.forEach (v => arr.push (v.build()));
