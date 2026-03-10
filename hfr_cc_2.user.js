@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.40
+// @version       1.5.41
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -587,7 +587,9 @@ class Tiktok extends Social {
 		this.link = `https://www.tiktok.com/@${data.authorInfos.uniqueId}/video/${data.itemInfos.id}`;
 		this.user = data.authorInfos.nickName;
 		this.info = `(@${data.authorInfos.uniqueId})`;
-		this.text = data.itemInfos.text;
+		this.text = data.itemInfos.text
+			.replaceAll (/#\w+/g, match => { return "[url=https://www.tiktok.com/tag/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+			.replaceAll (/@\w+/g, match => { return "[url=https://www.tiktok.com/" + match + "][b]" + match + "[/b][/url]"; });
 
 		var video = new Video();
 		video.poster = data.itemInfos.covers[0];
