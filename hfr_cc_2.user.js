@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.39
+// @version       1.5.40
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.40         Ajout de TikTok.
 // 1.5.39         Si "mise en page" est installé, ne pas modifier les URL
 // 1.5.38         Social : affichage des icônes hors des liens (bug URL imbriquées)
 // 1.5.37         Ajout d'un paramètre dans l'url des images/emojis pour garder l'affichage
@@ -100,46 +101,6 @@
 
 console.log ("Merci pour tout Marc 🕊️");
 
-class Headers {
-	#obj;
-
-	constructor() {
-		this.#obj = {};
-	}
-
-	setHeader (name, value) {
-		if (!(name in this.#obj))
-			this.#obj[name] = [];
-		this.#obj[name].push (value);
-	}
-
-	getHeader (name) {
-		if (name in this.#obj)
-			return this.#obj[name];
-		return [];
-	}
-
-	get contentType() {
-		var a = this.getHeader ("content-type");
-		if (a.length == 0)
-			return "application/octet-stream";
-		return a[0];
-	}
-
-	static parse (str) {
-		var headers = new Headers();
-		var p = str.split ("\n");
-		p.forEach (line => {
-			var l = line;
-			var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
-			l.substring (l.indexOf (":") + 1).split (";").forEach (v => {
-				headers.setHeader (k, v.trim());
-			});
-		});
-		return headers;
-	}
-}
-
 class Expr {
 	#patt;
 	
@@ -194,9 +155,104 @@ class Expr {
 	static get threads() {
 		return new Expr ("^(https://www\\.threads\\.com/@[\\w\\.]+/post/[\\w\\-]+(\\?[\\w\\+\\-\\=\\&]+)?)$");
 	}
+
+	static get tiktok() {
+		return new Expr ("https://www\\.tiktok\\.com/@\\w+/video/(?<id>\\d+)");
+	}
 }
 
 let Hfr = {
+	Headers : class {
+		#obj;
+
+		constructor() {
+			this.#obj = {};
+		}
+
+		setHeader (name, value) {
+			if (!(name in this.#obj))
+				this.#obj[name] = [];
+			this.#obj[name].push (value);
+		}
+
+		getHeader (name) {
+			if (name in this.#obj)
+				return this.#obj[name];
+			return [];
+		}
+
+		get contentType() {
+			var a = this.getHeader ("content-type");
+			if (a.length == 0)
+				return "application/octet-stream";
+			return a[0];
+		}
+
+		static parse (str) {
+			var headers = new Hfr.Headers();
+			var p = str.split ("\n");
+			p.forEach (line => {
+				var l = line;
+				var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
+				l.substring (l.indexOf (":") + 1).split (";").forEach (v => {
+					headers.setHeader (k, v.trim());
+				});
+			});
+			return headers;
+		}
+	},
+	Response : class {
+		#rep;
+		#hdr;
+		#data;
+
+		constructor (r) {
+			this.#rep = r;
+			this.#hdr = Hfr.Headers.parse (r.responseHeaders);
+			this.#data = r.response.slice (0, r.response.size, this.#hdr.contentType);
+		}
+
+		get headers() {
+			return this.#hdr;
+		}
+
+		blob() {
+			return Promise.resolve (this.#data);
+		}
+
+		text() {
+			return this.#data.text();
+		}
+
+		html() {
+			return new Promise ((resolve, reject) => {
+				this.text().then (txt => {
+					try {
+						var parser = new DOMParser();
+						var doc = parser.parseFromString (txt, "text/html");
+						resolve (doc);
+					}
+					catch {
+						reject (txt);
+					}
+				}).catch (reject);
+			});
+		}
+
+		json() {
+			return new Promise ((resolve, reject) => {
+				this.text().then (txt => {
+					try {
+						var obj = JSON.parse (txt);
+						resolve (obj);
+					}
+					catch {
+						reject (txt);
+					}
+				}).catch (reject);
+			});
+		}
+	},
 	fetch : function (url) {
 		return new Promise ((resolve, reject) => {
 			Utils.request({
@@ -209,8 +265,7 @@ let Hfr = {
 				anonymous : true,
 				responseType : "blob",
 				onload : function (response) {
-					var headers = Headers.parse (response.responseHeaders);
-					resolve (response.response.slice (0, response.response.size, headers.contentType));
+					resolve (new Hfr.Response (response));
 				}
 			});
 		});
@@ -249,7 +304,7 @@ let Hfr = {
 			return new Promise ((resolve, reject) => {
 				if (this.#filled == true)
 					return Promise.resolve (this.toString());
-				Hfr.fetch (this.url).then (file => {
+				Hfr.fetch (this.url).then (response => response.blob()).then (file => {
 					UploadService.getDefault().uploadAsync (file).then (o => {
 						console.log (o);
 						this.#h = o.height;
@@ -407,15 +462,12 @@ class Embed {
 	}
 }
 
-setInterval (function(){
-	console.log ("test interscript: " + typeof (a2img));
-}, 1000);
-
 class Social {
 	static match (url) {
 		console.log (Expr.threads.match (url));
 		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
-			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.threads.match (url) || Expr.instagram.match (url);
+			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.threads.match (url) || Expr.instagram.match (url) ||
+			Expr.tiktok.match (url);
 	}
 
 	static normalize (txt) {
@@ -437,6 +489,8 @@ class Social {
 			return Threads.load (url);
 		if (Expr.instagram.match (url))
 			return Instagram.load (url);
+		if (Expr.tiktok.match (url))
+			return Tiktok.load (url);
 		return Promise.reject (url);
 	}
 
@@ -520,6 +574,52 @@ class Social {
 			}).catch (e => {
 				console.log (e);
 				reject();
+			});
+		});
+	}
+}
+
+class Tiktok extends Social {
+	constructor (data) {
+		super();
+
+		this.icon = `[img]https://i.imgur.com/TFaQCKE.png${Social.hasMEP()}[/img]`;
+		this.link = `https://www.tiktok.com/@${data.authorInfos.uniqueId}/video/${data.itemInfos.id}`;
+		this.user = data.authorInfos.nickName;
+		this.info = `(@${data.authorInfos.uniqueId})`;
+		this.text = data.itemInfos.text;
+
+		var video = new Video();
+		video.poster = data.itemInfos.covers[0];
+		var u = new URL (data.itemInfos.video.urls[0]);
+		u.searchParams.append ("hfr-cc-tiktok", "true");
+		video.url = u.toString();
+		video.contentType = "video/mp4";
+		this.videos.push (video);
+	}
+
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			var m = Expr.tiktok.exec (url);
+			Hfr.fetch ("https://www.tiktok.com/embed/v2/" + m.groups.id).then (rep => rep.html()).then (doc => {
+				var elem = doc.querySelector ("[data-e2e='video-v2-Card-CardInfo']");
+				if (elem) {
+					var json = doc.querySelector ("#__FRONTITY_CONNECT_STATE__").textContent;
+					try {
+						var data = JSON.parse (json);
+						var o = data.source.data;
+						var obj = o[Object.keys (o)[0]].videoData;
+						resolve (new Tiktok (obj));
+					}
+					catch {
+						reject (url);
+					}
+				}
+				else
+					reject (url);
+			}).catch (e => {
+				console.log (e);
+				reject (url);
 			});
 		});
 	}
@@ -1978,7 +2078,7 @@ class Utils {
 							headers : { "Cookie" : "" },
 							anonymous : true,
 							onload : function (response) {
-								var headers = Headers.parse (response.responseHeaders);
+								var headers = Hfr.Headers.parse (response.responseHeaders);
 								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
 									Embed.load (text).then (embed => {
 										resolve (embed.toString());
@@ -2054,7 +2154,7 @@ class Utils {
 							headers : { "Cookie" : "" },
 							anonymous : true,
 							onload : function (response) {
-								var headers = Headers.parse (response.responseHeaders);
+								var headers = Hfr.Headers.parse (response.responseHeaders);
 								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
 									Embed.load (text).then (embed => {
 										resolve (embed.toString());
@@ -2563,7 +2663,7 @@ Utils.init (table => {
 		if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 				href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 				href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://packaged-media.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0 ||
-				u.searchParams.get("hfr-cc-insta") == "true") {
+				u.searchParams.get("hfr-cc-insta") == "true" || u.searchParams.get ("hfr-cc-tiktok") == "true") {
 
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
 			var t = u.searchParams.has ("hfr-cc-mime-type") ? u.searchParams.get ("hfr-cc-mime-type") : "video/mp4";
