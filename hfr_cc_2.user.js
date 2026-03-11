@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.41
+// @version       1.5.42
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.42         BlueSky : pas de pré chargement de l'image (à cause du format webp)
 // 1.5.40         Ajout de TikTok.
 // 1.5.39         Si "mise en page" est installé, ne pas modifier les URL
 // 1.5.38         Social : affichage des icônes hors des liens (bug URL imbriquées)
@@ -279,11 +280,14 @@ let Hfr = {
 
 		constructor (u) {
 			this.#uri = u;
+			this.#src = u;
 		}
 
 		get height() { return this.#h; }
+		set height (h) { this.#h = h; this.#filled = true; }
 
 		get width() { return this.#w; }
+		set width (w) { this.#w = w; this.#filled = true; }
 
 		get thumbHeight() {
 			return 200;
@@ -301,9 +305,9 @@ let Hfr = {
 		}
 
 		build() {
+			if (this.#filled == true)
+				return Promise.resolve (this.toString());
 			return new Promise ((resolve, reject) => {
-				if (this.#filled == true)
-					return Promise.resolve (this.toString());
 				Hfr.fetch (this.url).then (response => response.blob()).then (file => {
 					UploadService.getDefault().uploadAsync (file).then (o => {
 						console.log (o);
@@ -923,6 +927,7 @@ class Twitter extends Social {
 		this.text = Twitter.normalize (data.text);
 		if (data.mediaDetails && data.mediaDetails.length > 0) {
 			data.mediaDetails.forEach (media => {
+				console.log (media);
 				if (media.type == "video") {
 					this.videos.push (Twitter.tweetVideoUrl (media));
 				}
@@ -1063,7 +1068,10 @@ class BlueSky extends Social {
 			}
 			var imgs = Array.isArray (data.embed.images) ? data.embed.images : (Array.isArray (data.embed.media?.images) ? data.embed.media.images : []);
 			imgs.forEach (img => {
-				this.images.push (new Hfr.Image (img.fullsize));
+				var i = new Hfr.Image (img.fullsize);
+				i.width = img.aspectRatio.width;
+				i.height = img.aspectRatio.height;
+				this.images.push (i);
 			});
 			if (data.embed.external != null) {
 				if (imgs.length == 0) {
@@ -1072,6 +1080,7 @@ class BlueSky extends Social {
 						this.images.push (new Hfr.Image (data.embed.external.uri));
 					else {
 						var thumb = typeof (data.embed.external.thumb) == "string" ? data.embed.external.thumb : `https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${data.embed.external.thumb.ref["$link"]}`;
+						
 						this.embed = Embed.load (data.embed.external.uri);
 					}
 				}
