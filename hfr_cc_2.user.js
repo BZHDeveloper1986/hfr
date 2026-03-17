@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.43
+// @version       1.5.44
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.44         limitation de la taille de l'image à afficher
 // 1.5.43         Twitter : correction (encore)
 // 1.5.42         BlueSky : pas de pré chargement de l'image (à cause du format webp)
 // 1.5.40         Ajout de TikTok.
@@ -2467,7 +2468,7 @@ class Utils {
 					img.height = Math.floor (400 * h / w);
 					img.width = 400;
 				}
-				if (h > 800) {
+				if (h > 400) {
 					img.width = Math.floor (400 * w / h);
 					img.height = 400;
 				}
@@ -2476,6 +2477,10 @@ class Utils {
 			dialog.content = box;
 			spin.value_changed (val => {
 				var w = img.width, h = img.height;
+				var nw = val * w / h;
+				if (val >= 1000 || nw >= 1000)
+					return;
+				console.log (val + "::" + nw);
 				img.height = val;
 				img.width = Math.floor (val*w/h);
 				button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
