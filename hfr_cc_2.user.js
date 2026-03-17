@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.42
+// @version       1.5.43
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.43         Twitter : correction (encore)
 // 1.5.42         BlueSky : pas de pré chargement de l'image (à cause du format webp)
 // 1.5.40         Ajout de TikTok.
 // 1.5.39         Si "mise en page" est installé, ne pas modifier les URL
@@ -122,7 +123,7 @@ class Expr {
 	}
 	
 	static get twitter() {
-		return new Expr ("^((https|http)://(mobile\\.)?(twitter|x)\\.com/\\w+/status/(?<id>\\d+)(\\?s=\\d+)?\\??.*)$");
+		return new Expr ("^((https|http)://(mobile\\.)?(twitter|x)\\.com/(?<handle>\\w+)/status/(?<id>\\d+)(\\?s=\\d+)?\\??.*)$");
 	}
 	
 	static get mastodon() {
@@ -426,6 +427,7 @@ class Embed {
 							var t = doc.querySelector ("head > meta[property='og:title']");
 							if (t == null) { reject (link); return; }
 							var title = t.getAttribute ("content");
+							
 							var site = func ("head > meta[property='og:site_name']");
 							var desc = func ("head > meta[property='og:description']");
 							var m = doc.querySelector ("head > meta[property='og:image']");
@@ -468,14 +470,13 @@ class Embed {
 
 class Social {
 	static match (url) {
-		console.log (Expr.threads.match (url));
 		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
 			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.threads.match (url) || Expr.instagram.match (url) ||
 			Expr.tiktok.match (url);
 	}
 
 	static normalize (txt) {
-		return Utils.formatText (Utils.normalizeText (txt));
+		return  Utils.normalizeText (Utils.formatText (txt));
 	}
 
 	static load (url) {
@@ -721,12 +722,10 @@ class Instagram extends Social {
 		doc.querySelectorAll ("div.show .media-wrap").forEach (media => {
 			var img = media.querySelector ("img");
 			if (img != null) {
-			console.log ("image width : " +  img.width);
 				var src = img.getAttribute ("data-src");
 				if (src == null)
 					src = img.getAttribute ("src");
 				var url = encodeURIComponent (src);
-				console.log ("instagram : " + url);
 				this.images.push (new Hfr.Image (url));
 			}
 			if (media.classList.contains ("proxy-video")) {
@@ -889,6 +888,7 @@ class Twitter extends Social {
 		return Social.normalize (str
 			.replaceAll (/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g, "[url=$&][b]$&[/b][/url]")
 			.replaceAll (/#\w+/g, match => { return "[url=https://x.com/hashtag/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+			.replaceAll (/\$\b[^\d\W]+\b/g, match => { return "[url=https://x.com/search?q=" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
 			.replaceAll (/@\w+/g, match => { return "[url=https://x.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
 	}
 
@@ -910,7 +910,6 @@ class Twitter extends Social {
 
 	constructor (data) {
 		super();
-		console.log (data);
 		this.icon = `[img]https://i.imgur.com/pd0aoXr.png${Social.hasMEP()}[/img]`;
 		this.link = "https://twitter.com/i/status/" + data.id_str;
 		this.user = Social.normalize (data.user.name);
@@ -927,7 +926,6 @@ class Twitter extends Social {
 		this.text = Twitter.normalize (data.text);
 		if (data.mediaDetails && data.mediaDetails.length > 0) {
 			data.mediaDetails.forEach (media => {
-				console.log (media);
 				if (media.type == "video") {
 					this.videos.push (Twitter.tweetVideoUrl (media));
 				}
@@ -948,7 +946,21 @@ class Twitter extends Social {
 			this.quote = new Twitter (data.quoted_tweet);
 
 		if (data.card) {
-			this.embed = Embed.load (data.card.binding_values.card_url.string_value);
+			var card_title = (data.card.binding_values.title == null) ? "" : data.card.binding_values.title.string_value;
+			var card_description = (data.card.binding_values.description == null) ? "" : data.card.binding_values.description.string_value;
+			var card_domain = (data.card.binding_values.domain == null) ? "" : data.card.binding_values.domain.string_value;
+			var card = {
+				uri : data.card.binding_values.card_url.string_value,
+				site : card_domain,
+				title : card_title,
+				description : card_description
+			};
+			if (data.card.binding_values.thumbnail_image != null) {
+				card.thumb = data.card.binding_values.thumbnail_image.image_value.url;
+				card.thumb_width = data.card.binding_values.thumbnail_image.image_value.width;
+				card.thumb_height = data.card.binding_values.thumbnail_image.image_value.height;
+			}
+			this.embed = new Embed (card);
 		}
 	}
 
@@ -1024,7 +1036,6 @@ class BlueSky extends Social {
 	}
 
 	constructor (data) {
-		console.log (data);
 		super();
 		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/327943${Social.hasMEP()}[/img]`;
 		var did = data.uri.split ("at://")[1].split ("/")[0];
@@ -1143,8 +1154,6 @@ class Mastodon extends Social {
 		super();
 		
 		var doc = new DOMParser().parseFromString (data.content, "text/html");
-		console.log (data);
-		console.log (doc);
 		var builder = new Builder();
 		doc.querySelectorAll ("p").forEach (p => {
 			p.childNodes.forEach (node => {
