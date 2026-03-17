@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.44
+// @version       1.5.45
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -205,12 +205,10 @@ let Hfr = {
 		}
 	},
 	Response : class {
-		#rep;
 		#hdr;
 		#data;
 
 		constructor (r) {
-			this.#rep = r;
 			this.#hdr = Hfr.Headers.parse (r.responseHeaders);
 			this.#data = r.response.slice (0, r.response.size, this.#hdr.contentType);
 		}
@@ -270,6 +268,28 @@ let Hfr = {
 				onload : function (response) {
 					resolve (new Hfr.Response (response));
 				}
+			});
+		});
+	},
+	post : function (url, data, headers) {
+		var fdata = new FormData();
+		for (const [k,v] of Object.entries (data))
+			fdata.append (k, v);
+		var rh = {};
+		if (headers != null)
+			for (const [k,v] of Object.entries (headers))
+				rh[k] = v;
+		return new Promise ((resolve, reject) => {
+			Utils.request ({
+				method : "POST",
+				data : fdata,
+				headers : rh,
+				url : url,
+				responseType : "blob",
+				onabort : function() { reject ("envoi annulé"); }, 
+				ontimeout : function() { reject ("délai dépassé"); },
+				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
+				onload : function (response) { resolve (new Hfr.Response (response)); }
 			});
 		});
 	},
@@ -407,62 +427,49 @@ class Embed {
 	static load (link) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				Utils.request({
-					method : "GET",
-					url : link,
-					onabort : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onerror : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							var func = (a) => {
-								var n = doc.querySelector (a);
-								if (n == null) {
-									return "";
-								}
-								return n.getAttribute ("content");
-							};
-							var t = doc.querySelector ("head > meta[property='og:title']");
-							if (t == null) { reject (link); return; }
-							var title = t.getAttribute ("content");
-							
-							var site = func ("head > meta[property='og:site_name']");
-							var desc = func ("head > meta[property='og:description']");
-							var m = doc.querySelector ("head > meta[property='og:image']");
-							if (m == null)
-								resolve (new Embed ({
-									uri : link,
-									site : site,
-									title : title,
-									description : desc,
-								}));
-							else {
-								Utils.getImageInfo (m.getAttribute ("content")).then (info => {
-									var w = Math.floor (info.width * 180 / info.height);
-									var h = 180;
-									resolve (new Embed ({
-										uri : link,
-										site : site,
-										title : title,
-										description : desc,
-										thumb : m.getAttribute ("content"),
-										thumb_width : w,
-										thumb_height : h
-									}));
-								}).catch (e => {
-									console.log (e);
-									reject (link);
-								});
-							}
+				Hfr.fetch (link).then (rep => rep.html()).then (doc => {
+					var func = (a) => {
+						var n = doc.querySelector (a);
+						if (n == null) {
+							return "";
 						}
-						catch (e) {
+						return n.getAttribute ("content");
+					};
+					var t = doc.querySelector ("head > meta[property='og:title']");
+					if (t == null) { reject (link); return; }
+					var title = t.getAttribute ("content");
+					
+					var site = func ("head > meta[property='og:site_name']");
+					var desc = func ("head > meta[property='og:description']");
+					var m = doc.querySelector ("head > meta[property='og:image']");
+					if (m == null)
+						resolve (new Embed ({
+							uri : link,
+							site : site,
+							title : title,
+							description : desc,
+						}));
+					else {
+						Utils.getImageInfo (m.getAttribute ("content")).then (info => {
+							var w = Math.floor (info.width * 180 / info.height);
+							var h = 180;
+							resolve (new Embed ({
+								uri : link,
+								site : site,
+								title : title,
+								description : desc,
+								thumb : m.getAttribute ("content"),
+								thumb_width : w,
+								thumb_height : h
+							}));
+						}).catch (e => {
 							console.log (e);
 							reject (link);
-						}
+						});
 					}
+				}).catch (e => {
+					console.log  (e);
+					reject (link);
 				});
 			})();
 		});
@@ -686,24 +693,9 @@ class Threads extends Social {
 	static load (url) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				Utils.request({
-					method : "GET",
-					url : `${url}/embed`,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							resolve (new Threads (doc, url));
-						}
-						catch (e) {
-							console.log (e);
-							reject (url);
-						}
-					}
+				Hfr.fetch (`${url}/embed`).then (rep => rep.html()).then (doc => resolve (new Threads (doc, url))).catch (e => {
+					console.log (e);
+					reject (url);
 				});
 			})();
 		});
@@ -791,93 +783,70 @@ class Instagram extends Social {
 }
 
 class Reddit extends Social {
-	constructor() {
+	constructor (url, doc) {
 		super();
-
 		this.icon = "[:jean robin:10]";
-	}
+		var doc = new DOMParser().parseFromString (text, "text/html");
+		var post = doc.querySelector ("shreddit-post");
+		var title = post.querySelector ("[slot='title']").textContent.trim();
+		var t = post.querySelector ("[slot='text-body'] div[id]");
+		var ctn = post.querySelector ("[slot='post-media-container']");
+		if (post.getAttribute ("content-href") != url)
+			this.embed = Embed.load (post.getAttribute ("content-href"));
+		this.link = url;
+		this.user = post.querySelector (".author-name").textContent;
+		this.info = "a publié sur " + post.querySelector ("a.subreddit-name").textContent.trim();
+		var txt = `[b]${title}[/b]\n`;
+		if (ctn != null) {
+			var sub = ctn.querySelector ("[property='schema:articleBody']");
+			if (sub != null)
+				t = sub;
+		}
+		if (t != null)
+			txt += Social.normalize (t.textContent.trim());
+		this.text = txt;
+		if (ctn != null) {
+			var img = ctn.querySelector ("img");
+			var carousel = ctn.querySelector ("gallery-carousel");
+			var player = ctn.querySelector ("shreddit-player");
+			if (player != null) {
+				if (player.getAttribute ("post-type") == "gif") {
+					this.images.push (new Hfr.Image (post.getAttribute ("content-href")));
+				} else {
+					var data = JSON.parse (player.getAttribute ("packaged-media-json"));
+					var perms = data.playbackMp4s.permutations;
+					perms.sort ((a, b) => b.source.dimensions.width - a.source.dimensions.width);
+					var src = perms[0].source.url;
 
-	static format (url, text) {
-		return new Promise ((resolve, reject) => {
-			try {
-				var doc = new DOMParser().parseFromString (text, "text/html");
-				var post = doc.querySelector ("shreddit-post");
-				var title = post.querySelector ("[slot='title']").textContent.trim();
-				var t = post.querySelector ("[slot='text-body'] div[id]");
-				var ctn = post.querySelector ("[slot='post-media-container']");
-				var red = new Reddit();
-				if (post.getAttribute ("content-href") != url)
-					red.embed = Embed.load (post.getAttribute ("content-href"));
-				red.link = url;
-				red.user = post.querySelector (".author-name").textContent;
-				red.info = "a publié sur " + post.querySelector ("a.subreddit-name").textContent.trim();
-				var txt = `[b]${title}[/b]\n`;
-				if (ctn != null) {
-					var sub = ctn.querySelector ("[property='schema:articleBody']");
-					if (sub != null)
-						t = sub;
+					var vid = new Video();
+					vid.url = src;
+					vid.poster = player.querySelector (".preview-image").getAttribute ("src");
+					this.videos.push (vid);
 				}
-				if (t != null)
-					txt += Social.normalize (t.textContent.trim());
-				red.text = txt;
-				if (ctn != null) {
-					var img = ctn.querySelector ("img");
-					var carousel = ctn.querySelector ("gallery-carousel");
-					var player = ctn.querySelector ("shreddit-player");
-					if (player != null) {
-						if (player.getAttribute ("post-type") == "gif") {
-							red.images.push (new Hfr.Image (post.getAttribute ("content-href")));
-						} else {
-							var data = JSON.parse (player.getAttribute ("packaged-media-json"));
-							var perms = data.playbackMp4s.permutations;
-							perms.sort ((a, b) => b.source.dimensions.width - a.source.dimensions.width);
-							var src = perms[0].source.url;
-
-							var vid = new Video();
-							vid.url = src;
-							vid.poster = player.querySelector (".preview-image").getAttribute ("src");
-							red.videos.push (vid);
-						}
-					}
-					else if (carousel != null) {
-						carousel.querySelectorAll ("li > img").forEach (image => {
-							var src = image.getAttribute ("src");
-							if (src == null)
-								src = image.getAttribute ("data-lazy-src");
-							red.images.push (new Hfr.Image (src));
-						});
-					}
-					else if (img != null) {
-						var src = img.getAttribute ("src");
-						red.images.push (new Hfr.Image (src));
-					}
-				}
-				resolve (red);
 			}
-			catch (e) {
-				console.log (e);
-				reject (url);
+			else if (carousel != null) {
+				carousel.querySelectorAll ("li > img").forEach (image => {
+					var src = image.getAttribute ("src");
+					if (src == null)
+						src = image.getAttribute ("data-lazy-src");
+					this.images.push (new Hfr.Image (src));
+				});
 			}
-		});
+			else if (img != null) {
+				var src = img.getAttribute ("src");
+				this.images.push (new Hfr.Image (src));
+			}
+		}
 	}
 
 	static load (url) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				Utils.request({
-					method : "GET",
-					url : url,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						Reddit.format (url, response.responseText).then (red => resolve (red)).catch (err => {
-							console.log (err);
-							reject (url);
-						});
-					}
+				Hfr.fetch (url).then (rep => rep.html()).then (doc => {
+					resolve (new Reddit (url, doc));
+				}).catch (e => {
+					console.log (e);
+					reject (url);
 				});
 			})();
 		});
@@ -969,23 +938,12 @@ class Twitter extends Social {
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				var res = Expr.twitter.exec (link);
-				Utils.request({
-					method : "GET",
-					url : "https://cdn.syndication.twimg.com/tweet-result?token=43l77nyjhwo&id=" + res.groups.id,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onload : function (response) {
-						try {
-							var json = JSON.parse (response.responseText);
-							resolve (new Twitter (json));
-						}
-						catch (e) {
-							console.log (e);
-							reject (link);
-						}
-					}
-				});
+				Hfr.fetch ("https://cdn.syndication.twimg.com/tweet-result?token=4xh271owofi&id=" + res.groups.id).then (rep => rep.json())
+					.then (json => resolve (new Twitter (json)))
+					.catch (e => {
+						console.log (e);
+						reject (link);
+					});
 			})();
 		});
 	}
@@ -993,45 +951,25 @@ class Twitter extends Social {
 
 class BlueSky extends Social {
 	static load (url) {
-		var toto = 0;
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				var res = Expr.bluesky.exec (url);
-				Utils.request({
-					method : "GET",
-					url : "https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + res.groups.handle,
-					onabort : function() { reject (url); },
-					onerror : function() { reject (url); },
-					ontimeout : function() { reject (url); },
-					onload : function (response) {
-						try {
-							var json = JSON.parse (response.responseText);
-							var u = `at://${json.did}/app.bsky.feed.post/${res.groups.hash}`;
-							var uri = `https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`;
-							Utils.request({
-								method : "GET",
-								url : uri,
-								onabort : function() { reject (url); },
-								onerror : function() { reject (url); },
-								ontimeout : function() { reject (url); },
-								onload : function (response) {
-									try {
-										var data = JSON.parse (response.responseText);
-										resolve (new BlueSky (data.thread.post, json.did, res.groups.hash));
-									}
-									catch (e) {
-										console.log (e);
-										reject (url);
-									}
-								}
+				Hfr.fetch ("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + res.groups.handle)
+					.then (rep => rep.json())
+					.then (json => {
+						var u = `at://${json.did}/app.bsky.feed.post/${res.groups.hash}`;
+						Hfr.fetch (`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`)
+							.then (rep => rep.json())
+							.then (json => resolve (new BlueSky (json.thread.post)))
+							.catch (e => {
+								console.log (e);
+								reject (url);
 							});
-						}
-						catch (e) {
-							console.log (e);
-							reject (url);
-						}
-					}
-				});
+					})
+					.catch (e => {
+						console.log (e);
+						reject (url);
+					});
 			})();
 		});
 	}
@@ -1127,26 +1065,13 @@ class Mastodon extends Social {
 				var match = Expr.mastodon.exec (url);
 				if (match == null)
 					match = Expr.truthsocial.exec (url);
-				var uri = `https://${match.groups.instance}/api/v1/statuses/${match.groups.tid}`;
-				Utils.request({
-					method : "GET",
-					url : uri,
-					onabort : function() { reject (url); },
-					onerror : function() { reject (url); },
-					ontimeout : function() { reject (url); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var data = JSON.parse (response.responseText);
-							resolve (new Mastodon (data));
-						}
-						catch (e) {
-							console.log (e);
-							reject (url);
-						}
-					}
-				});
+				Hfr.fetch (`https://${match.groups.instance}/api/v1/statuses/${match.groups.tid}`)
+					.then (rep => rep.json())
+					.then (json => resolve (new Mastodon (json)))
+					.catch (e => {
+						console.log (e);
+						reject (url);
+					});
 			})();
 		});
 	}
@@ -1699,32 +1624,19 @@ class Rehost extends UploadService {
 	get name() { return "rehost"; }
 
 	upload (file, resolve, reject) {
-		var form = new FormData();
-		form.append ("image", file);
-		Utils.request ({
-			method : "POST",
-			data : form,
-			url : "https://rehost.diberie.com/Host/UploadFiles?SelectedAlbumId=undefined&PrivateMode=false&SendMail=false&KeepTags=&Comment=&SelectedExpiryType=0",
-			onabort : function() { reject ("envoi annulé"); }, 
-			ontimeout : function() { reject ("délai dépassé"); },
-			onerror : function (response) {
-				reject ("erreur lors de l'envoi d'image");
-			},
-			onload : function (response) {
-				try {
-					var object = JSON.parse (response.responseText);
-					resolve ({
-						gif : object.isGIF == true ? true : false,
-						url : object.picURL,
-						width : object.previewWidht,
-						height : object.previewHeight
-					});
-				}
-				catch (e) {
-					reject (e);
-				}
-			}
-		});
+		Hfr.post ("https://rehost.diberie.com/Host/UploadFiles?SelectedAlbumId=undefined&PrivateMode=false&SendMail=false&KeepTags=&Comment=&SelectedExpiryType=0", { "image" : file })
+			.then (rep => rep.json())
+			.then (object => {
+				resolve ({
+					gif : object.isGIF == true ? true : false,
+					url : object.picURL,
+					width : object.previewWidht,
+					height : object.previewHeight
+				});
+			})
+			.catch (e => {
+				reject (e);
+			});
 	}
 }
 
@@ -1732,53 +1644,17 @@ class Imgur extends UploadService {
 	get name() { return "imgur"; }
 
 	upload (file, resolve, reject) {
-		var form = new FormData();
-		form.append ("image", file);
-		Utils.request ({
-			method : "POST",
-			data : form,
-			headers : {		
-				"Authorization" : "Client-ID d1619618d2ac442"
-			},
-			url : "https://api.imgur.com/3/image",
-			onabort : function() { reject ("envoi annulé"); }, 
-			ontimeout : function() { reject ("délai dépassé"); },
-			onerror : function (response) {
-				reject ("erreur lors de l'envoi d'image");
-			},
-			onload : function (response) {
-				var object = JSON.parse (response.responseText);
-				if (!object.success) {
-					reject (object);
-					return;
-				}
-				resolve ({
-					hash : object.data.deletehash,
-					delete : function (callback) {
-						Utils.request ({
-							method : "DELETE",
-							headers : {		
-								"Authorization" : "Client-ID d1619618d2ac442"
-							},
-							url : "https://api.imgur.com/3/image/" + this.hash,
-							onerror : function (response) {
-								console.log (response);
-							},
-							onload : function (response) {
-								var result = JSON.parse (response.responseText);
-								if (result.success) {
-									callback();
-								}
-							}
-						});
-					},
-					gif : object.data.type == "image/gif",
-					url : object.data.link,
-					width : object.data.width,
-					height : object.data.height
-				});
-			}
-		});
+		Hfr.post ("https://api.imgur.com/3/image", { "image" : file }, { "Authorization" : "Client-ID d1619618d2ac442" })
+		.then (rep => rep.json())
+		.then (object => {
+			resolve ({
+				gif : object.data.type == "image/gif",
+				url : object.data.link,
+				width : object.data.width,
+				height : object.data.height
+			});
+		})
+		.catch (e => reject (e));
 	}
 }
 
@@ -1905,24 +1781,11 @@ class Utils {
 	
 	static convertVideoURL (url) {
 		return new Promise ((resolve, reject) => {
-			Utils.request({
-				method : "GET",
-				url : url,
-				onabort : function() { reject (url); },
-				onerror : function() { reject (url); },
-				ontimeout : function() { reject (url); },
-				headers : { "Cookie" : "" },
-				anonymous : true,
-				responseType : "blob",
-				onload : function (response) {
-					try {
-						resolve (URL.createObjectURL (response.response));
-					}
-					catch (e) {
-						console.log (e);
-						reject (url);
-					}
-				}
+			Hfr.fetch (url).then (rep => rep.blob())
+			.then (file => resolve (URL.createObjectURL (file)))
+			.catch (e => {
+				console.log (e);
+				reject (url);
 			});
 		});
 	}
@@ -1971,15 +1834,12 @@ class Utils {
 			data = {};
 		// mise à jour si vieille version Unicode
 		if (!(data.emojis instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 17) {
-			Utils.request({
-				method : "GET",
-				responseType : "json",
-				url : "https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/emojis-data.json",
-				onload : function (response) {
-					localStorage.setItem ("hfr-cc-data", JSON.stringify (response.response));
-					callback (response.response.emojis);
-				}
-			});
+			Hfr.fetch ("https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/emojis-data.json")
+				.then (rep => rep.json())
+				.then (json => {
+					localStorage.setItem ("hfr-cc-data", JSON.stringify (json));
+					callback (json.emojis);
+				});
 		}
 		else
 			callback (data.emojis);
