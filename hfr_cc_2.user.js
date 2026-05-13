@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.46         Instagram : c'est revenu (pour le moment)
 // 1.5.44         limitation de la taille de l'image à afficher
 // 1.5.43         Twitter : correction (encore)
 // 1.5.42         BlueSky : pas de pré chargement de l'image (à cause du format webp)
@@ -289,7 +290,29 @@ let Hfr = {
 				onabort : function() { reject ("envoi annulé"); }, 
 				ontimeout : function() { reject ("délai dépassé"); },
 				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
-				onload : function (response) { resolve (new Hfr.Response (response)); }
+				onload : function (response) { console.log ("prout"); console.log (response);  resolve (new Hfr.Response (response)); }
+			});
+		});
+	},
+	postJSON : function (url, data, headers) {
+		var rh = {};
+		if (headers != null)
+			for (const [k,v] of Object.entries (headers))
+				rh[k] = v;
+		var json = JSON.stringify(data);
+		rh["Content-Type"] = "application/json";
+		rh["Content-Lenght"] = json.length;
+		return new Promise ((resolve, reject) => {
+			Utils.request ({
+				method : "POST",
+				data : json,
+				headers : rh,
+				url : url,
+				responseType : "blob",
+				onabort : function() { reject ("envoi annulé"); }, 
+				ontimeout : function() { reject ("délai dépassé"); },
+				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
+				onload : function (response) { console.log ("prout"); console.log (response);  resolve (new Hfr.Response (response)); }
 			});
 		});
 	},
@@ -703,54 +726,73 @@ class Threads extends Social {
 }
 
 class Instagram extends Social {
-	constructor (doc, code) {
+	static #chlg;
+	
+	static get challenge() { return this.#chlg; }
+	static set challenge (data) { this.#chlg = data; }
+	
+	constructor (data, url) {
 		super();
-
-		this.icon = "[img]https://i.imgur.com/bhHTaFv.png?hfr-cc-image=true[/img]";
-		this.link = `https://www.instagram.com/p/${code}/`;
-		this.user = Social.normalize (doc.querySelector (".usermeta > .fullname h1").textContent.trim());
-		this.info = ((doc.querySelector (".usermeta svg.Zi--BadgeCert") != null) ? "[:yoann riou:9]" : "") + doc.querySelector (".usermeta > .username h2").textContent.trim();
-		this.text = Instagram.elementToBBCode (doc.querySelector ("div.desc"));
-
-		doc.querySelectorAll ("div.show .media-wrap").forEach (media => {
-			var img = media.querySelector ("img");
-			if (img != null) {
-				var src = img.getAttribute ("data-src");
-				if (src == null)
-					src = img.getAttribute ("src");
-				var url = encodeURIComponent (src);
-				this.images.push (new Hfr.Image (url));
-			}
-			if (media.classList.contains ("proxy-video")) {
-				var video = media.querySelector ("video");
-				var vid = new Video();
-				vid.poster = "https://rehost.diberie.com/Rehost?url=" + encodeURIComponent (video.getAttribute ("poster"));
-				var u = new URL (video.getAttribute ("src"));
-				u.searchParams.append ("hfr-cc-insta", "true");
-				vid.url = u.toString();
-				vid.contentType = "video/mp4";
-				this.videos.push (vid);
-			}
+		
+		this.icon = "[:hfr_icons:7]";
+		this.user = data.username;
+		this.info = `(@${this.user})`;
+		this.link = url;
+		this.text = Social.normalize (data.caption);
+		for (var media of data.mediaUrls)
+				if (media.type == "image")
+					this.images.push (new Hfr.Image (media.url));
+				else if (media.type == "video") {
+					var video = new Video();
+					var u = new URL (media.url);
+					u.searchParams.append ("hfr-cc-insta", "true");
+					video.url = u.toString();
+					video.poster = media.thumbnail_url;
+					video.contentType = "video/mp4";
+					this.videos.push (video);
+				}
+	}
+	
+	static acquireChallenge() {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				Hfr.post ("https://api.boostfluence.com/api/instagram-viewer-v2-2", {
+						url : "https://www.instagram.com/dafnekeen/p/DWo7tjCD_YM/"
+					}, { "Referer" : "https://www.boostfluence.com/" }).then (rep => rep.json()).then (data => {
+						Instagram.challenge = data.challenge;
+						resolve (data.challenge);
+					}).catch (e => {
+						console.log (e);
+						reject ({});
+					});
+			})();
 		});
 	}
-
-	static elementToBBCode (element) {
-		var builder = new Builder();
-		element.childNodes.forEach (node => {
-			if (node.nodeType == Node.TEXT_NODE)
-				builder.append (Social.normalize (node.textContent)
-					.replaceAll (/#\w+/g, match => { return "[url=https://www.instagram.com/explore/tags/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
-					.replaceAll (/@\w+/g, match => { return "[url=https://www.instagram.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
-			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "br")
-				builder.append ("\n");
-			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "a") {
-				var href = "https://www.instagram.com" + node.getAttribute ("href");
-				builder.append (`[b][url=${href}]${node.textContent}[/url][/b]`);
-			}
-			else if (node.nodeType == Node.ELEMENT_NODE)
-				builder.append (Instagram.elementToBBCode (node));
+	
+	static loadURI (uri) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var res = Expr.instagram.exec (uri);
+				var code = res.groups.shortcode;
+				
+				console.log ("chall");
+				console.log (Instagram.challenge);
+				
+				Hfr.postJSON ("https://api.boostfluence.com/api/instagram-viewer-v2-2", {
+						url : uri
+					}, { 
+						"Referer" : "https://www.boostfluence.com/",
+						"X-Compute" : Instagram.challenge.expectedCompute,
+						"X-Timestamp" : Instagram.challenge.timestamp
+					}).then (rep => rep.json()).then (data => {
+						resolve (new Instagram (data, uri));
+					}).catch (e => {
+						console.log ("prout de cul");
+						console.log (e);
+						reject (url);
+					});
+			})();
 		});
-		return builder.toString();
 	}
 
 	static load (url) {
@@ -758,25 +800,22 @@ class Instagram extends Social {
 			(async () => {
 				var res = Expr.instagram.exec (url);
 				var code = res.groups.shortcode;
-				Utils.request({
-					method : "GET",
-					url : `https://imginn.com/p/${code}/`,
-					onabort : function() { reject (link); },
-					onerror : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							resolve (new Instagram (doc, code));
-						}
-						catch (e) {
+				
+				if (Instagram.challenge == null)
+					Instagram.acquireChallenge().then (c => {
+						Instagram.loadURI (url).then (insta => resolve (insta)).catch (e => {
 							console.log (e);
 							reject (url);
-						}
-					}
-				});
+						});
+					}).catch (e => {
+						console.log (e);
+						reject (url);
+					});
+				else
+					Instagram.loadURI (url).then (insta => resolve (insta)).catch (e => {
+						console.log (e);
+						reject (url);
+					});
 			})();
 		});
 	}
