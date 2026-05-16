@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.45
+// @version       1.5.47
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -355,7 +355,7 @@ let Hfr = {
 			return new Promise ((resolve, reject) => {
 				Hfr.fetch (this.url).then (response => response.blob()).then (file => {
 					UploadService.getDefault().uploadAsync (file).then (upload => {
-						console.log (o);
+						console.log (upload);
 						this.#h = upload.height;
 						this.#w = upload.width;
 						this.#src = upload.url;
@@ -789,7 +789,7 @@ class Instagram extends Social {
 					}).catch (e => {
 						console.log ("prout de cul");
 						console.log (e);
-						reject (url);
+						reject (uri);
 					});
 			})();
 		});
