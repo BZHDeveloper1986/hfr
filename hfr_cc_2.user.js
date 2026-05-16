@@ -354,11 +354,11 @@ let Hfr = {
 				return Promise.resolve (this.toString());
 			return new Promise ((resolve, reject) => {
 				Hfr.fetch (this.url).then (response => response.blob()).then (file => {
-					UploadService.getDefault().uploadAsync (file).then (o => {
+					UploadService.getDefault().uploadAsync (file).then (upload => {
 						console.log (o);
-						this.#h = o.height;
-						this.#w = o.width;
-						this.#src = o.url;
+						this.#h = upload.height;
+						this.#w = upload.width;
+						this.#src = upload.url;
 						this.#filled = true;
 						resolve (this.toString());
 					}).catch (reject);
@@ -1272,7 +1272,6 @@ class Box extends Widget {
 
 	constructor (vertical = false) {
 		super ("div");
-
 		this.#vrt = vertical;
 	}
 
@@ -1405,6 +1404,14 @@ class TextButton extends Widget {
 	
 	clicked (callback) {
 		this.element.addEventListener ("click", e => { callback (this); });
+	}
+	
+	out (callback) {
+		this.element.addEventListener ("mouseout", e => { callback (this); });
+	}
+	
+	over (callback) {
+		this.element.addEventListener ("mouseover", e => { callback (this); });
 	}
 }
 
@@ -1659,6 +1666,31 @@ class UploadService {
 	}
 }
 
+class Upload {
+	#uri;
+	#data;
+	#gif;
+	#w;
+	#h;
+	
+	constructor (uri, is_gif = false) {
+		this.#uri = uri;
+		this.#gif = is_gif;
+		this.#data = {};
+	}
+	
+	get isGIF() { return this.#gif; }
+	
+	get url() { return this.#uri; }
+	
+	get sizes() { return this.#data; }
+	
+	set width (l) { this.#w = l; }
+	get width() { return this.#w; }
+	set height (l) { this.#h = l; }
+	get height() { return this.#h; }
+}
+
 class Rehost extends UploadService {
 	get name() { return "rehost"; }
 
@@ -1666,12 +1698,12 @@ class Rehost extends UploadService {
 		Hfr.post ("https://rehost.diberie.com/Host/UploadFiles?SelectedAlbumId=undefined&PrivateMode=false&SendMail=false&KeepTags=&Comment=&SelectedExpiryType=0", { "image" : file })
 			.then (rep => rep.json())
 			.then (object => {
-				resolve ({
-					gif : object.isGIF == true ? true : false,
-					url : object.picURL,
-					width : object.previewWidht,
-					height : object.previewHeight
-				});
+				var up = new Upload (object.picURL, object.isGIF);
+				up.height = object.previewHeight;
+				up.width = object.previewWidht;
+				up.sizes["moyenne"] = object.resizedURL;
+				up.sizes["miniature"] = object.thumbURL;
+				resolve (up);
 			})
 			.catch (e => {
 				reject (e);
@@ -1686,12 +1718,16 @@ class Imgur extends UploadService {
 		Hfr.post ("https://api.imgur.com/3/image", { "image" : file }, { "Authorization" : "Client-ID d1619618d2ac442" })
 		.then (rep => rep.json())
 		.then (object => {
-			resolve ({
-				gif : object.data.type == "image/gif",
-				url : object.data.link,
-				width : object.data.width,
-				height : object.data.height
-			});
+			var up = new Upload (object.data.link, object.data.type == "image/gif");
+			up.width = object.data.width;
+			up.height = object.data.height;
+			up.sizes["petit carré"] = object.data.link.replace (object.data.id, object.data.id + "s");
+			up.sizes["grand carré"] = object.data.link.replace (object.data.id, object.data.id + "b");
+			up.sizes["petite miniature"] = object.data.link.replace (object.data.id, object.data.id + "t");
+			up.sizes["miniature"] = object.data.link.replace (object.data.id, object.data.id + "m");
+			up.sizes["large miniature"] = object.data.link.replace (object.data.id, object.data.id + "l");
+			up.sizes["énorme miniature"] = object.data.link.replace (object.data.id, object.data.id + "h");
+			resolve (up);
 		})
 		.catch (e => reject (e));
 	}
@@ -2354,14 +2390,33 @@ class Utils {
 			var button = new TextButton ("ajouter");
 			var spin = new Input ("number");
 			var img = new Picture (src);
+			var pbox = new Box();
 			var box = new Box (true);
 			var hbox = new Box();
 			hbox.add  (new Label ("hauteur de l'image : "));
 			hbox.add (spin);
 			hbox.add (new Label (" pixels "));
 			hbox.add (button);
+			var bbox = new Box();
+			bbox.add (new Label ("tailles prédéfinies : "));
+			Object.keys(upload.sizes).forEach (k => {
+				var sb = new TextButton (k);
+				sb.set ("bbcode", `[url=${upload.url}][img]${upload.sizes[k]}[/img][/url]`);
+				sb.clicked (self => { dialog.destroy(); res (sb.get ("bbcode")); });
+				sb.out (() => {
+					pbox.clear();
+					pbox.add (img);
+				});
+				sb.over (() => {
+					pbox.clear();
+					pbox.add (new Picture (upload.sizes[k]));
+				});
+				bbox.add (sb);
+			});
 			box.add (hbox);
-			box.add (img);
+			box.add (bbox);
+			pbox.add (img);
+			box.add (pbox);
 			img.loaded ((w,h) => {
 				if (w > 400) {
 					img.height = Math.floor (400 * h / w);
