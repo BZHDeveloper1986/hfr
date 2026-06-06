@@ -469,8 +469,8 @@ class Embed {
 						resolve (new Embed ({
 							uri : link,
 							site : site,
-							title : title,
-							description : desc,
+							title : Social.normalize (title),
+							description : Social.normalize(desc),
 						}));
 					else {
 						Utils.getImageInfo (m.getAttribute ("content")).then (info => {
@@ -479,8 +479,8 @@ class Embed {
 							resolve (new Embed ({
 								uri : link,
 								site : site,
-								title : title,
-								description : desc,
+								title : Social.normalize(title),
+								description : Social.normalize(desc),
 								thumb : m.getAttribute ("content"),
 								thumb_width : w,
 								thumb_height : h
