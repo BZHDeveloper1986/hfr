@@ -119,7 +119,9 @@ let Hfr = {
 	search : function (query) {
 		return new Promise ((resolve, reject) => {
 				Promise.allSettled([
-					Hfr.searchVidlox(query)
+					Hfr.searchVidlox(query),
+					Hfr.searchC411(query),
+					Hfr.searchTgx(query)
 				]).then (results => {
 					var items = [];
 					results.forEach (r => {
