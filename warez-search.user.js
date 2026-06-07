@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper
 // @name          [HFR] warez search
-// @version       0.0.1
+// @version       0.0.2
 // @namespace     forum.hardware.fr
 // @description   recherche de contenu
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -26,12 +26,14 @@ class SearchItem {
 	#str;
 	#ttype;
 	#sid;
+	#img;
 	
-	constructor (u, s, t, i) {
+	constructor (u, s, t, i, p) {
 		this.#str = s;
 		this.#uri = u;
 		this.#ttype = t;
 		this.#sid = i;
+		this.#img = p;
 	}
 	
 	get url() {
@@ -53,6 +55,10 @@ class SearchItem {
 	
 	get type() {
 		return this.#ttype;
+	}
+	
+	get image() {
+		return this.#img;
 	}
 }
 
@@ -78,7 +84,8 @@ let Hfr = {
 					var a = tr.querySelector("td.liste-accueil-nom > div > a");
 					var n = a.firstChild.textContent;
 					var l = "https://www.vidlox2.cc" + a.getAttribute("href");
-					items.push (new SearchItem (l, n, t, "vidlox"));
+					var i = tr.querySelector ("span.WinOption1 img").getAttribute("src");
+					items.push (new SearchItem (l, n, t, "vidlox", i));
 				});
 				resolve (items);
 			})
@@ -95,7 +102,8 @@ let Hfr = {
 					var type = item.category.id - 1;
 					if (item.category.id == 10)
 						type = 5;
-					items.push (new SearchItem ("https://c411.org/torrents/" + item.infoHash, item.name, type, "c411"));
+					var i = typeof (item.posterUrl == "string") ? item.posterUrl : "https://i.imgur.com/Z6I332D.png";
+					items.push (new SearchItem ("https://c411.org/torrents/" + item.infoHash, item.name, type, "c411", i));
 				});
 				resolve (items);
 			})
@@ -109,7 +117,7 @@ let Hfr = {
 			.then (json => {
 				var items = [];
 				json.results.forEach (item => {
-					items.push (new SearchItem ("https://torrentgalaxy.one/post-detail/" + item.pk + "/" + item.n.replace (" ", "%20") + "/", item.n, 0, "tgx"));
+					items.push (new SearchItem ("https://torrentgalaxy.one/post-detail/" + item.pk + "/" + item.n.replace (" ", "%20") + "/", item.n, 0, "tgx", item.t));
 				});
 				resolve (items);
 			})
@@ -334,7 +342,8 @@ var url = new URL (document.location);
 if (url.searchParams.get("cat") != "prive" || url.searchParams.get("post") != "2685910")
 	return;
 
-var select = document.createElement("select");
+var div_result = document.createElement("div");
+div_result.style = "margin: 5px 0px 0px; overflow-y: auto; max-height: 300px; height: auto;";
 var div = document.createElement("div");
 div.appendChild (document.createTextNode ("🏴‍☠️"));
 var input = document.createElement("input");
@@ -345,32 +354,29 @@ button.setAttribute ("type", "button");
 button.setAttribute ("value", "recherche");
 button.addEventListener ("click", e => {
 	Hfr.search (input.value).then (items => {
-		while (select.childNodes.length > 0)
-			select.removeChild (select.firstChild);
+		while (div_result.childNodes.length > 0)
+			div_result.removeChild (select.firstChild);
 		var count = parseInt (Hfr.getValue ("hfr-warez-search-nb","30"));
 		var i = 0;
 		items.forEach (item => {
 			if (i >= count)
 				return;
-			var option = document.createElement ("option");
-			option.value = item.url;
-			option.innerText = item.icon + " : " + item.name;
-			select.appendChild (option);
+			var img = document.createElement("img");
+			img.src = item.image;
+			img.height = 100;
+			img.title = item.name;
+			img.setAttribute ("data-url", item.url);
+			img.addEventListener ("click", () => {
+				Hfr.open (img.getAttribute ("data-url"), true);
+			});
+			div_result.appendChild (img);
 			i++;
 		});
 	}).catch (err => { console.log (err); });
 });
 div.appendChild(button);
-var btn_go = document.createElement("input");
-btn_go.setAttribute("type", "button");
-btn_go.setAttribute("value", "go");
-btn_go.addEventListener("click", e => {
-	console.log (select.options[select.selectedIndex].value);
-	Hfr.open (select.options[select.selectedIndex].value, true);
-});
-div.appendChild(btn_go);
 div.appendChild(document.createElement("br"));
-div.appendChild(select);
+div.appendChild(div_result);
 
 var ta = document.querySelector("#content_form");
 ta.parentElement.appendChild (div);
