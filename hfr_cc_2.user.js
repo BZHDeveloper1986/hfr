@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.47
+// @version       1.5.48
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -263,10 +263,9 @@ let Hfr = {
 				onabort : function() { reject (url); },
 				onerror : function() { reject (url); },
 				ontimeout : function() { reject (url); },
-				headers : { "Cookie" : "" },
-				anonymous : true,
 				responseType : "blob",
 				onload : function (response) {
+					console.log (response);
 					resolve (new Hfr.Response (response));
 				}
 			});

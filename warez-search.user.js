@@ -102,7 +102,7 @@ let Hfr = {
 					var type = item.category.id - 1;
 					if (item.category.id == 10)
 						type = 5;
-					var i = typeof (item.posterUrl == "string") ? item.posterUrl : "https://i.imgur.com/Z6I332D.png";
+					var i = (item.posterUrl != null) ? item.posterUrl : "https://i.imgur.com/Z6I332D.png";
 					items.push (new SearchItem ("https://c411.org/torrents/" + item.infoHash, item.name, type, "c411", i));
 				});
 				resolve (items);
@@ -117,7 +117,8 @@ let Hfr = {
 			.then (json => {
 				var items = [];
 				json.results.forEach (item => {
-					items.push (new SearchItem ("https://torrentgalaxy.one/post-detail/" + item.pk + "/" + item.n.replace (" ", "%20") + "/", item.n, 0, "tgx", item.t));
+					var i = (item.t != null) ? "https://i.rar.pics" + item.t : "https://i.imgur.com/Z6I332D.png";
+					items.push (new SearchItem ("https://torrentgalaxy.one/post-detail/" + item.pk + "/" + item.n.replace (" ", "%20") + "/", item.n, 0, "tgx", i));
 				});
 				resolve (items);
 			})
@@ -310,7 +311,7 @@ let Hfr = {
 				onabort : function() { reject ("envoi annulé"); }, 
 				ontimeout : function() { reject ("délai dépassé"); },
 				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
-				onload : function (response) { console.log ("prout"); console.log (response);  resolve (new Hfr.Response (response)); }
+				onload : function (response) { resolve (new Hfr.Response (response)); }
 			});
 		});
 	},
@@ -332,7 +333,7 @@ let Hfr = {
 				onabort : function() { reject ("envoi annulé"); }, 
 				ontimeout : function() { reject ("délai dépassé"); },
 				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
-				onload : function (response) { console.log ("prout"); console.log (response);  resolve (new Hfr.Response (response)); }
+				onload : function (response) { resolve (new Hfr.Response (response)); }
 			});
 		});
 	}
