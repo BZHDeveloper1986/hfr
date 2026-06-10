@@ -89,7 +89,7 @@ let Hfr = {
 				});
 				resolve (items);
 			})
-			.catch (e => reject (e));
+			.catch (e => reject ("vidlox pue"));
 		});
 	},
 	searchC411 : function (query) {
@@ -98,6 +98,7 @@ let Hfr = {
 			.then (rep => rep.json())
 			.then (json => {
 				var items = [];
+				console.log (json);
 				json.data.forEach (item => {
 					var type = item.category.id - 1;
 					if (item.category.id == 10)
@@ -107,7 +108,7 @@ let Hfr = {
 				});
 				resolve (items);
 			})
-			.catch (err => { reject (err); });
+			.catch (err => { reject ("c411 pue"); });
 		});
 	},
 	searchTgx : function (query) {
@@ -122,7 +123,7 @@ let Hfr = {
 				});
 				resolve (items);
 			})
-			.catch (err => { reject (err); });
+			.catch (err => { reject ("tgx pue"); });
 		});
 	},
 	search : function (query) {

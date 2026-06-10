@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.48
+// @version       1.5.49
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -163,6 +163,10 @@ class Expr {
 	static get tiktok() {
 		return new Expr ("https://www\\.tiktok\\.com/@\\w+/video/(?<id>\\d+)");
 	}
+	
+	static get twitch() {
+		return new Expr ("^(https://www\\.twitch\\.tv/(?<channel>\\w+)(/.+)?)");
+	}
 }
 
 let Hfr = {
@@ -265,7 +269,6 @@ let Hfr = {
 				ontimeout : function() { reject (url); },
 				responseType : "blob",
 				onload : function (response) {
-					console.log (response);
 					resolve (new Hfr.Response (response));
 				}
 			});
@@ -289,7 +292,7 @@ let Hfr = {
 				onabort : function() { reject ("envoi annulé"); }, 
 				ontimeout : function() { reject ("délai dépassé"); },
 				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
-				onload : function (response) { console.log ("prout"); console.log (response);  resolve (new Hfr.Response (response)); }
+				onload : function (response) { resolve (new Hfr.Response (response)); }
 			});
 		});
 	},
@@ -311,7 +314,7 @@ let Hfr = {
 				onabort : function() { reject ("envoi annulé"); }, 
 				ontimeout : function() { reject ("délai dépassé"); },
 				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
-				onload : function (response) { console.log ("prout"); console.log (response);  resolve (new Hfr.Response (response)); }
+				onload : function (response) { resolve (new Hfr.Response (response)); }
 			});
 		});
 	},
@@ -502,7 +505,7 @@ class Social {
 	static match (url) {
 		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
 			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.threads.match (url) || Expr.instagram.match (url) ||
-			Expr.tiktok.match (url);
+			Expr.tiktok.match (url) || Expr.twitch.match (url);
 	}
 
 	static normalize (txt) {
@@ -526,6 +529,8 @@ class Social {
 			return Instagram.load (url);
 		if (Expr.tiktok.match (url))
 			return Tiktok.load (url);
+		if (Expr.twitch.match (url))
+			return Twitch.load (url);
 		return Promise.reject (url);
 	}
 
@@ -609,6 +614,21 @@ class Social {
 			}).catch (e => {
 				console.log (e);
 				reject();
+			});
+		});
+	}
+}
+
+class Twitch extends Social {
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			Hfr.fetch ("https://clips.twitch.tv/embed?clip=KathishEnchantingCarabeefOhMyDog-iJDpCAsG8mCZuZHS&parent=forum.hardware.fr").then (rep => rep.html()).then (doc => {
+				console.log ("salope");
+				console.log (doc.querySelector("title").textContent);
+				reject (url);
+			}).catch (e => {
+				console.log (e);
+				reject (url);
 			});
 		});
 	}
@@ -1056,9 +1076,10 @@ class BlueSky extends Social {
 			}
 			var imgs = Array.isArray (data.embed.images) ? data.embed.images : (Array.isArray (data.embed.media?.images) ? data.embed.media.images : []);
 			imgs.forEach (img => {
+				console.log (img.fullsize);
 				var i = new Hfr.Image (img.fullsize);
-				i.width = img.aspectRatio.width;
-				i.height = img.aspectRatio.height;
+				i.width = img.thumbWidth;
+				i.height = img.thumbHeight;
 				this.images.push (i);
 			});
 			if (data.embed.external != null) {
@@ -2100,16 +2121,16 @@ class Utils {
 				else {
 					try {
 						var url = new URL (text);
+						console.log (url);
 						Utils.request({
 							method : "HEAD",
 							url : text,
 							onabort : function() { reject (text); },
 							ontimeout : function() { reject (text); },
 							onerror : function() { reject (text); },
-							headers : { "Cookie" : "" },
-							anonymous : true,
 							onload : function (response) {
 								var headers = Hfr.Headers.parse (response.responseHeaders);
+								console.log (headers);
 								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
 									Embed.load (text).then (embed => {
 										resolve (embed.toString());
