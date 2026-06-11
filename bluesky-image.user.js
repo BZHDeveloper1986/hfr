@@ -20,8 +20,18 @@
 // ==/UserScript==
 
 var observer = new MutationObserver ((mutations, observer) => {
+	var r = /https:\/\/streamable\.com\/\w+/;
 	document.querySelectorAll("div > div > div > div > div > div > div > div > a").forEach(a => {
-		if (a.href.indexOf ("https://i.imgur.com/") == 0) {
+		if (r.exec (a.href) != null) {
+			var l = a.href.replace ("https://streamable.com/", "https://streamable.com/e/");
+			var frame = document.createElement ("frame");
+			frame.src = l;
+			frame.height = "200px";
+			var parent = a.parentElement;
+			parent.removeChild (a);
+			parent.appendChild (frame);
+		}
+		if (a.href.indexOf ("https://i.imgur.com/") == 0 || a.href.indexOf("https://cdn.bsky.app/img/") == 0) {
 			var img = document.createElement ("img");
 			img.setAttribute ("src",a.href);
 			img.width = 200;
