@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.50
+// @version       1.5.51
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -358,25 +358,15 @@ let Hfr = {
 				return Promise.resolve (this.toString());
 			return new Promise ((resolve, reject) => {
 				console.log ("putain d'url : " + this.url);
-				Hfr.fetch (this.url).then (response => response.blob()).then (file => {
-					if (file.type == "image/webp") {
-						Utils.getImageInfo (this.url).then (info => {
-							this.#h = info.height;
-							this.#w = info.width;
-							this.#src = this.url;
-							this.#filled = true;
-							resolve (this.toString());
-						}).catch (reject);
-					}
-					else
-						new Rehost().uploadAsync (file).then (upload => {
-							console.log (upload);
-							this.#h = upload.height;
-							this.#w = upload.width;
-							this.#src = upload.url;
-							this.#filled = true;
-							resolve (this.toString());
-						}).catch (reject);
+				Utils.downloadImage (this.url).then (file => {
+					new Rehost().uploadAsync (file).then (upload => {
+						console.log (upload);
+						this.#h = upload.height;
+						this.#w = upload.width;
+						this.#src = upload.url;
+						this.#filled = true;
+						resolve (this.toString());
+					}).catch (reject);
 				}).catch (reject);
 			});
 		}
@@ -1787,6 +1777,27 @@ class Utils {
 	static isMac() {
 		const userAgent = window.navigator.userAgent;
 		const platform = window.navigator?.userAgentData?.platform || window.navigator.platform;
+	}
+	
+	static downloadImage (url) {
+		return new Promise ((resolve, reject) => {
+			Hfr.fetch (url).then (r => r.blob()).then (blob => {
+				var lnk = URL.createObjectURL (blob);
+				var img = new Image();
+				img.onload = () => {
+					var canvas = document.createElement ("canvas");
+					canvas.width = img.width;
+					canvas.height = img.height;
+					var ctx = canvas.getContext("2d");
+					ctx.drawImage (img, 0, 0);
+					canvas.toBlob (blob => {
+						resolve (blob);
+					});
+				};
+				img.onerror = () => { reject(url); };
+				img.src = lnk;
+			}).catch (reject);
+		});
 	}
 	
 	static addCss (url) {
