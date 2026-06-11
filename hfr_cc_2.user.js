@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.49
+// @version       1.5.50
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -214,6 +214,8 @@ let Hfr = {
 		#data;
 
 		constructor (r) {
+			console.log ("réponse");
+			console.log (r);
 			this.#hdr = Hfr.Headers.parse (r.responseHeaders);
 			this.#data = r.response.slice (0, r.response.size, this.#hdr.contentType);
 		}
@@ -355,15 +357,26 @@ let Hfr = {
 			if (this.#filled == true)
 				return Promise.resolve (this.toString());
 			return new Promise ((resolve, reject) => {
+				console.log ("putain d'url : " + this.url);
 				Hfr.fetch (this.url).then (response => response.blob()).then (file => {
-					UploadService.getDefault().uploadAsync (file).then (upload => {
-						console.log (upload);
-						this.#h = upload.height;
-						this.#w = upload.width;
-						this.#src = upload.url;
-						this.#filled = true;
-						resolve (this.toString());
-					}).catch (reject);
+					if (file.type == "image/webp") {
+						Utils.getImageInfo (this.url).then (info => {
+							this.#h = info.height;
+							this.#w = info.width;
+							this.#src = this.url;
+							this.#filled = true;
+							resolve (this.toString());
+						}).catch (reject);
+					}
+					else
+						new Rehost().uploadAsync (file).then (upload => {
+							console.log (upload);
+							this.#h = upload.height;
+							this.#w = upload.width;
+							this.#src = upload.url;
+							this.#filled = true;
+							resolve (this.toString());
+						}).catch (reject);
 				}).catch (reject);
 			});
 		}
@@ -1065,6 +1078,8 @@ class BlueSky extends Social {
 			}
 		txt = new TextDecoder().decode (arr);
 		this.text = Social.normalize (txt);
+		console.log ("data");
+		console.log (data);
 		if (data.embed != null) {
 			var med = (data.embed.media != null) ? data.embed.media : data.embed;
 			if (med["$type"] == "app.bsky.embed.video#view") {
@@ -1076,10 +1091,8 @@ class BlueSky extends Social {
 			}
 			var imgs = Array.isArray (data.embed.images) ? data.embed.images : (Array.isArray (data.embed.media?.images) ? data.embed.media.images : []);
 			imgs.forEach (img => {
-				console.log (img.fullsize);
-				var i = new Hfr.Image (img.fullsize);
-				i.width = img.thumbWidth;
-				i.height = img.thumbHeight;
+				console.log (img);
+				var i = new Hfr.Image (img.thumb);
 				this.images.push (i);
 			});
 			if (data.embed.external != null) {
@@ -1108,6 +1121,7 @@ class BlueSky extends Social {
 				}
 				if (embed.images)
 					embed.images.forEach (img => {
+						console.log (img);
 						this.images.push ({
 							url : img.fullsize,
 							toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + img.fullsize + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + img.fullsize + "[/img][/url]" }
@@ -2121,7 +2135,6 @@ class Utils {
 				else {
 					try {
 						var url = new URL (text);
-						console.log (url);
 						Utils.request({
 							method : "HEAD",
 							url : text,
@@ -2130,7 +2143,6 @@ class Utils {
 							onerror : function() { reject (text); },
 							onload : function (response) {
 								var headers = Hfr.Headers.parse (response.responseHeaders);
-								console.log (headers);
 								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
 									Embed.load (text).then (embed => {
 										resolve (embed.toString());
