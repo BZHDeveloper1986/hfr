@@ -7,6 +7,7 @@
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
 // @downloadURL   https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/warez-search.user.js
 // @updateURL     https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/warez-search.user.js
+// @require       https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/vtk.js
 // @include       https://forum.hardware.fr/*
 // @noframes
 // @grant         GM.info
@@ -507,7 +508,16 @@ if (url.searchParams.get("cat") != "prive" || url.searchParams.get("post") != "2
 
 var div_result = document.createElement("div");
 div_result.style = "margin: 5px 0px 0px; overflow-y: auto; max-height: 300px; height: auto;";
-var table = new Hfr.Table ([ "date", "titre" ]);
+var table = new Vtk.Table ([
+	{
+		name : "date",
+		type : "date"
+	},
+	{
+		name : "titre",
+		type : "string"
+	}
+]);
 div_result.appendChild (table.element);
 var div = document.createElement("div");
 div.appendChild (document.createTextNode ("🏴‍☠️"));
@@ -518,9 +528,14 @@ var button = document.createElement ("input");
 button.setAttribute ("type", "button");
 button.setAttribute ("value", "recherche");
 button.addEventListener ("click", e => {
-	var now = new Date();
+	table.clear();
 	Hfr.search (input.value).then (items => {
-		table.items = items;
+		items.forEach (item => {
+			table.addRow ([
+				item.date,
+				item.name
+			]);
+		});
 	}).catch (err => { console.log (err); });
 });
 div.appendChild(button);
