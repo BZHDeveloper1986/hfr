@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper
 // @name          [HFR] warez search
-// @version       0.0.2
+// @version       0.0.3
 // @namespace     forum.hardware.fr
 // @description   recherche de contenu
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -27,13 +27,19 @@ class SearchItem {
 	#ttype;
 	#sid;
 	#img;
+	#d;
 	
-	constructor (u, s, t, i, p) {
+	constructor (u, s, t, i, p, dstr) {
 		this.#str = s;
 		this.#uri = u;
 		this.#ttype = t;
 		this.#sid = i;
 		this.#img = p;
+		this.#d = new Date (dstr);
+	}
+
+	get date() {
+		return this.#d;
 	}
 	
 	get url() {
@@ -49,7 +55,7 @@ class SearchItem {
 	}
 	
 	get icon() {
-		var icons = ["🎞️", "📖", "🎵", "⚙️", "🎮", "📦", "📺" ];
+		var icons = ["🎞️", "📖", "🎵", "⚙️", "🎮", "📦", "📺", "❓" ];
 		return icons[this.#ttype];
 	}
 	
@@ -63,6 +69,27 @@ class SearchItem {
 }
 
 let Hfr = {
+	searchTr4ker : function (query) {
+		return new Promise ((resolve, reject) => {
+			var arr = [ "films", "livres", "audio", "applications", "jeux-video", "impression-3d", "series" ];
+			var items = [];
+			Hfr.fetch ("https://tr4ker.net/api/torrents?q=" + query + "&limit=20&search_in=title")
+			.then (rep => rep.json())
+			.then (json => {
+				json.torrents.forEach (torrent => {
+					var link = "https://tr4ker.net/torrent/" + torrent.slug;
+					var name = torrent.name;
+					var idx = arr.indexOf (torrent.parent_cat_slug);
+					var i =  idx < 0 ? 7 : idx;
+					console.log (torrent.classic_cover_url);
+					var img = torrent.classic_cover_url == null ? "https://i.imgur.com/Z6I332D.png" : torrent.classic_cover_url;
+					items.push (new SearchItem (link, name, i, "tr4ker", img, torrent.created_at));
+				});
+				resolve (items);
+			})
+			.catch (e => reject ("tr4ker déconne"));
+		});
+	},
 	searchVidlox : function (query) {
 		return new Promise ((resolve, reject) => {
 			Hfr.fetch ("https://www.vidlox2.cc/recherche/" + query)
@@ -85,7 +112,23 @@ let Hfr = {
 					var n = a.firstChild.textContent;
 					var l = "https://www.vidlox2.cc" + a.getAttribute("href");
 					var i = tr.querySelector ("span.WinOption1 img").getAttribute("src");
-					items.push (new SearchItem (l, n, t, "vidlox", i));
+					var now = new Date();
+					var d = new Date();
+					var dstr = tr.querySelector("td.date").textContent.trim();
+					var c = parseInt (dstr.split (" ")[0]);
+					var r = dstr.split (" ")[1].toLowerCase();
+					if (r == "minutes" || r == "minute")
+						c = c * 60 * 1000;
+					if (r == "heures" || r == "heure")
+						c = c * 60 * 60 * 1000;
+					if (r == "jours" || r == "jour")
+						c = c * 24 * 60 * 60 * 1000;
+					if (r == "mois")
+						c = c * 30 * 24 * 60 * 60 * 1000;
+					if (r == "ans" || r == "an")
+						c = c * 365 * 24 * 60 * 60 * 1000;
+					d.setTime (now.getTime() - c);
+					items.push (new SearchItem (l, n, t, "vidlox", i, d));
 				});
 				resolve (items);
 			})
@@ -104,7 +147,7 @@ let Hfr = {
 					if (item.category.id == 10)
 						type = 5;
 					var i = (item.posterUrl != null) ? item.posterUrl : "https://i.imgur.com/Z6I332D.png";
-					items.push (new SearchItem ("https://c411.org/torrents/" + item.infoHash, item.name, type, "c411", i));
+					items.push (new SearchItem ("https://c411.org/torrents/" + item.infoHash, item.name, type, "c411", i, item.createdAt));
 				});
 				resolve (items);
 			})
@@ -129,9 +172,9 @@ let Hfr = {
 	search : function (query) {
 		return new Promise ((resolve, reject) => {
 				Promise.allSettled([
-					Hfr.searchVidlox(query),
+					Hfr.searchTr4ker(query),
 					Hfr.searchC411(query),
-					Hfr.searchTgx(query)
+					Hfr.searchVidlox(query)
 				]).then (results => {
 					var items = [];
 					results.forEach (r => {
@@ -337,6 +380,124 @@ let Hfr = {
 				onload : function (response) { resolve (new Hfr.Response (response)); }
 			});
 		});
+	},
+	Table : class {
+		#table;
+		#body;
+		#list;
+		#now;
+
+		constructor (names) {
+			this.#now = new Date();
+			this.#table = document.createElement ("table");
+			var thead = document.createElement ("thead");
+			thead.style = "text-align: center";
+			var trh = document.createElement ("tr");
+			names.forEach (name => {
+				var th = document.createElement ("th");
+				th.addEventListener ("click", e => {
+					if (name == "date")
+						this.#list.sort ((a, b) => {
+							return th.getAttribute ("ordered") == "true" ? b.date - a.date : a.date - b.date;
+						});
+					else
+						this.#list.sort((a, b) => {
+							return th.getAttribute ("ordered") == "true" ? b.name.localeCompare(a.name) : a.name.localeCompare (b.name);
+						});
+					this.update();
+					th.setAttribute ("ordered", th.getAttribute ("ordered") == "true" ? "false" : "true");
+					th.removeChild (th.firstChild);
+					th.appendChild (document.createTextNode ((th.getAttribute ("ordered") == "true" ? "⬇️ " : "⬆️ ") + name));
+				});
+				th.appendChild (document.createTextNode ("⬇️ " + name));
+				trh.appendChild (th);
+			});
+			thead.appendChild (trh);
+			this.#table.appendChild (thead);
+			this.#body = document.createElement ("tbody");
+			this.#table.appendChild (this.#body);
+		}
+
+		get element() {
+			return this.#table;
+		}
+
+		get items() {
+			return this.#list;
+		}
+
+		update() {
+			while (this.#body.childNodes.length > 0)
+				this.#body.removeChild (this.#body.firstChild);
+			var count = parseInt (Hfr.getValue ("hfr-warez-search-nb","30"));
+			var i = 0;
+			this.#list.forEach (item => {
+				if (i > count)
+					return;
+				i++;
+				var tr = document.createElement ("tr");
+				var td1 = document.createElement ("td");
+				var diff = this.#now - item.date;
+				var dstr = diff + " ms";
+				if (diff > 1000) {
+					diff = diff / 1000;
+					dstr = Math.round (diff) + " s";
+					if (diff > 60) {
+						diff = diff / 60;
+						dstr = Math.round (diff) + " min";
+						if (diff > 60) {
+							diff = diff / 60;
+							dstr = Math.round (diff) + " h";
+							if (diff > 24) {
+								diff = diff / 24;
+								dstr = Math.round (diff) + " j";
+								if (diff > 31) {
+									diff = diff / 31;
+									dstr = Math.round (diff) + " mois";
+									if (diff > 12) {
+										diff = diff / 12;
+										dstr = Math.round (diff) + " ans";
+									}
+								}
+							}
+						}
+					}
+				}
+				td1.appendChild (document.createTextNode (dstr));
+				tr.appendChild (td1);
+
+				var img = document.createElement("img");
+				img.height = 1;
+				img.src = item.image;
+				img.style.visibility = "hidden";
+				tr.addEventListener("mouseleave", e => {
+					img.style.visibility = "hidden";
+				});
+				tr.addEventListener ("mousemove", e => {
+					img.style.visibility = "visible";
+					img.style.position = 'absolute';
+					img.style.height = '200px';
+					img.style.top = (e.pageY || e.clientY) + 'px';
+					img.style.left = (e.pageX || e.clientX) + 'px';
+				});
+				tr.setAttribute ("data-url", item.url);
+				tr.addEventListener ("click", () => {
+					Hfr.open (tr.getAttribute ("data-url"), true);
+				});
+				var td2 = document.createElement("td");
+				td2.style = "overflow-x: hidden";
+				td2.appendChild (document.createTextNode(item.name));
+				td2.appendChild (img);
+				tr.appendChild (td2);
+
+				this.#body.appendChild (tr);
+			});
+		}
+
+		set items (list) {
+			this.#list = list;
+			this.update();
+		}
 	}
 };
 
@@ -346,6 +507,8 @@ if (url.searchParams.get("cat") != "prive" || url.searchParams.get("post") != "2
 
 var div_result = document.createElement("div");
 div_result.style = "margin: 5px 0px 0px; overflow-y: auto; max-height: 300px; height: auto;";
+var table = new Hfr.Table ([ "date", "titre" ]);
+div_result.appendChild (table.element);
 var div = document.createElement("div");
 div.appendChild (document.createTextNode ("🏴‍☠️"));
 var input = document.createElement("input");
@@ -355,25 +518,9 @@ var button = document.createElement ("input");
 button.setAttribute ("type", "button");
 button.setAttribute ("value", "recherche");
 button.addEventListener ("click", e => {
+	var now = new Date();
 	Hfr.search (input.value).then (items => {
-		while (div_result.childNodes.length > 0)
-			div_result.removeChild (select.firstChild);
-		var count = parseInt (Hfr.getValue ("hfr-warez-search-nb","30"));
-		var i = 0;
-		items.forEach (item => {
-			if (i >= count)
-				return;
-			var img = document.createElement("img");
-			img.src = item.image;
-			img.height = 100;
-			img.title = item.name;
-			img.setAttribute ("data-url", item.url);
-			img.addEventListener ("click", () => {
-				Hfr.open (img.getAttribute ("data-url"), true);
-			});
-			div_result.appendChild (img);
-			i++;
-		});
+		table.items = items;
 	}).catch (err => { console.log (err); });
 });
 div.appendChild(button);
