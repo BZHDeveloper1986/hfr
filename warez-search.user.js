@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper
 // @name          [HFR] warez search
-// @version       0.0.3
+// @version       0.0.4
 // @namespace     forum.hardware.fr
 // @description   recherche de contenu
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -28,14 +28,20 @@ class SearchItem {
 	#sid;
 	#img;
 	#d;
+	#s;
 	
-	constructor (u, s, t, i, p, dstr) {
+	constructor (u, s, t, i, p, dstr, size) {
 		this.#str = s;
 		this.#uri = u;
 		this.#ttype = t;
 		this.#sid = i;
 		this.#img = p;
 		this.#d = new Date (dstr);
+		this.#s = size;
+	}
+	
+	get size() {
+		return this.#s;
 	}
 
 	get date() {
@@ -68,6 +74,18 @@ class SearchItem {
 	}
 }
 
+function printSize (size){
+	var s = size;
+	var i = 0;
+	while (s > 1024) {
+		s = s / 1024;
+		i++;
+	}
+	var a = [ "B", "KB", "MB", "GB", "TB" ];
+	
+	return s.toFixed(2) + " " + a[i];
+}
+
 let Hfr = {
 	searchTr4ker : function (query) {
 		return new Promise ((resolve, reject) => {
@@ -83,7 +101,7 @@ let Hfr = {
 					var i =  idx < 0 ? 7 : idx;
 					console.log (torrent.classic_cover_url);
 					var img = torrent.classic_cover_url == null ? "https://i.imgur.com/Z6I332D.png" : torrent.classic_cover_url;
-					items.push (new SearchItem (link, name, i, "tr4ker", img, torrent.created_at));
+					items.push (new SearchItem (link, name, i, "tr4ker", img, torrent.created_at, torrent.size_bytes));
 				});
 				resolve (items);
 			})
@@ -112,6 +130,17 @@ let Hfr = {
 					var n = a.firstChild.textContent;
 					var l = "https://www.vidlox2.cc" + a.getAttribute("href");
 					var i = tr.querySelector ("span.WinOption1 img").getAttribute("src");
+					var tstr = tr.querySelector("td.liste-accueil-taille").textContent.trim();
+					var tsize = parseInt (tstr.split (" ")[0]);
+					var trange = tstr.split (" ")[1].toLowerCase();
+					if (trange == "kb")
+						tsize = tsize * 1024;
+					if (trange == "mb")
+						tsize = tsize * 1024 * 1024;
+					if (trange == "gb")
+						tsize = tsize * 1024 * 1024 * 1024;
+					if (trange == "tb")
+						tsize = tsize * 1024 * 1024 * 1024 * 1024;
 					var now = new Date();
 					var d = new Date();
 					var dstr = tr.querySelector("td.date").textContent.trim();
@@ -128,7 +157,7 @@ let Hfr = {
 					if (r == "ans" || r == "an")
 						c = c * 365 * 24 * 60 * 60 * 1000;
 					d.setTime (now.getTime() - c);
-					items.push (new SearchItem (l, n, t, "vidlox", i, d));
+					items.push (new SearchItem (l, n, t, "vidlox", i, d, tsize));
 				});
 				resolve (items);
 			})
@@ -147,7 +176,7 @@ let Hfr = {
 					if (item.category.id == 10)
 						type = 5;
 					var i = (item.posterUrl != null) ? item.posterUrl : "https://i.imgur.com/Z6I332D.png";
-					items.push (new SearchItem ("https://c411.org/torrents/" + item.infoHash, item.name, type, "c411", i, item.createdAt));
+					items.push (new SearchItem ("https://c411.org/torrents/" + item.infoHash, item.name, type, "c411", i, item.createdAt, item.size));
 				});
 				resolve (items);
 			})
@@ -400,6 +429,10 @@ let Hfr = {
 						this.#list.sort ((a, b) => {
 							return th.getAttribute ("ordered") == "true" ? b.date - a.date : a.date - b.date;
 						});
+					else if (name == "taille")
+						this.#list.sort ((a, b) => {
+							return th.getAttribute ("ordered") == "true" ? b.size - a.size : a.size - b.size;
+						});
 					else
 						this.#list.sort((a, b) => {
 							return th.getAttribute ("ordered") == "true" ? b.name.localeCompare(a.name) : a.name.localeCompare (b.name);
@@ -489,6 +522,10 @@ let Hfr = {
 				td2.appendChild (document.createTextNode(item.name));
 				td2.appendChild (img);
 				tr.appendChild (td2);
+				var td3 = document.createElement("td");
+				td3.style = "overflow-x: hidden";
+				td3.appendChild (document.createTextNode(printSize (item.size)));
+				tr.appendChild (td3);
 
 				this.#body.appendChild (tr);
 			});
@@ -507,7 +544,7 @@ if (url.searchParams.get("cat") != "prive" || url.searchParams.get("post") != "2
 
 var div_result = document.createElement("div");
 div_result.style = "margin: 5px 0px 0px; overflow-y: auto; max-height: 300px; height: auto;";
-var table = new Hfr.Table ([ "date", "titre" ]);
+var table = new Hfr.Table ([ "date", "titre", "taille" ]);
 div_result.appendChild (table.element);
 var div = document.createElement("div");
 div.appendChild (document.createTextNode ("🏴‍☠️"));
