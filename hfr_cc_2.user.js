@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.51
+// @version       1.5.52
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.52         BlueSky : mise à jour
 // 1.5.46         Instagram : c'est revenu (pour le moment)
 // 1.5.44         limitation de la taille de l'image à afficher
 // 1.5.43         Twitter : correction (encore)
@@ -1037,6 +1038,7 @@ class BlueSky extends Social {
 
 	constructor (data) {
 		super();
+		console.log (data);
 		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/327943${Social.hasMEP()}[/img]`;
 		var did = data.uri.split ("at://")[1].split ("/")[0];
 		var hash = data.uri.split ("app.bsky.feed.post/")[1];
@@ -1099,6 +1101,8 @@ class BlueSky extends Social {
 			}
 			if (data.embed.record?.record != null)
 				this.quote = new BlueSky (data.embed.record.record);
+			if (data.embed["$type"].indexOf ("app.bsky.embed.record") == 0)
+				this.quote = new BlueSky (data.embed.record);
 		}
 		if (Array.isArray (data.embeds))
 			data.embeds.forEach (embed => {

@@ -69,6 +69,14 @@ class SearchItem {
 		return this.#ttype;
 	}
 	
+	get logo() {
+		if (this.id == "c411")
+			return "https://i.imgur.com/SDmDkHh.png";
+		if (this.id == "tr4ker")
+			return "https://i.imgur.com/Oh6yvGP.png";
+		return "https://i.imgur.com/2D1mMMm.png";
+	}
+	
 	get image() {
 		return this.#img;
 	}
@@ -425,7 +433,11 @@ let Hfr = {
 			names.forEach (name => {
 				var th = document.createElement ("th");
 				th.addEventListener ("click", e => {
-					if (name == "date")
+					if (name == "tracker")
+						this.#list.sort ((a, b) => {
+							return th.getAttribute ("ordered") == "true" ? b.type - a.type : a.type - b.type;
+						});
+					else if (name == "date")
 						this.#list.sort ((a, b) => {
 							return th.getAttribute ("ordered") == "true" ? b.date - a.date : a.date - b.date;
 						});
@@ -469,6 +481,13 @@ let Hfr = {
 					return;
 				i++;
 				var tr = document.createElement ("tr");
+				
+				var tdl = document.createElement ("td");
+				var img = document.createElement ("img");
+				img.setAttribute ("src", item.logo);
+				tdl.appendChild (img);
+				tr.appendChild (tdl);
+				
 				var td1 = document.createElement ("td");
 				var diff = this.#now - item.date;
 				var dstr = diff + " ms";
@@ -544,7 +563,7 @@ if (url.searchParams.get("cat") != "prive" || url.searchParams.get("post") != "2
 
 var div_result = document.createElement("div");
 div_result.style = "margin: 5px 0px 0px; overflow-y: auto; max-height: 300px; height: auto;";
-var table = new Hfr.Table ([ "date", "titre", "taille" ]);
+var table = new Hfr.Table ([ "tracker", "date", "titre", "taille" ]);
 div_result.appendChild (table.element);
 var div = document.createElement("div");
 div.appendChild (document.createTextNode ("🏴‍☠️"));
