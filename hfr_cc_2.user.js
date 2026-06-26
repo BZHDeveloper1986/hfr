@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.53
+// @version       1.5.54
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -21,6 +21,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.54         correction dans l'envoi de vidéo (préférence pour imgur)
 // 1.5.53         upload petite vidéo
 // 1.5.52         BlueSky : mise à jour
 // 1.5.46         Instagram : c'est revenu (pour le moment)
@@ -1844,7 +1845,20 @@ class Utils {
 		return new Promise ((resolve, reject) => {
 			var loading = new Loading();
 			loading.attach (area);
-			if (file.type.indexOf ("audio/") == 0 || (file.type.indexOf ("video/") == 0 && file.size < 80000000)) {
+			if (file.type.indexOf ("video/") == 0) {
+				area.disabled = true;
+				Utils.uploadVideo (file).then (bbcode => {
+					Utils.insertText (area, bbcode);
+					loading.destroy();
+					area.disabled = false;
+					resolve();
+				}).catch (e => {
+					loading.destroy();
+					area.disabled = false;
+					reject (e);
+				});
+			}
+			else if (file.type.indexOf ("audio/") == 0) {
 				area.disabled = true;
 				Utils.dropGofile (file).then (bbcode => {
 					Utils.insertText (area, bbcode);
@@ -2189,6 +2203,38 @@ class Utils {
 			})();
 		});
 	}
+
+	static uploadVideo (file) {
+		return new Promise ((resolve, reject) => {
+			if (file.size > 100000000) {
+				reject("fichier trop gros");
+				return;
+			}
+			var video = document.createElement ("video");
+			video.onerror = () => {
+				reject ("ce n'est pas une vidéo");
+			};
+			video.onloadedmetadata = () => {
+				if (video.duration > 180) {
+					reject ("vidéo trop longue");
+					return;
+				}
+				Hfr.post ("https://api.imgur.com/3/image", { "image" : file }, { "Authorization" : "Client-ID d1619618d2ac442" })
+				.then (rep => rep.json())
+				.then (object => {
+					if (object.success) {
+						var url = new URL (object.data.mp4);
+						url.searchParams.append ("hfr-cc-imgvid", "true");
+						resolve (url.toString());
+					}
+					else
+						reject ("erreur dans l'envoi de la vidéo");
+				})
+				.catch (e => reject (e));
+			};
+			video.src = URL.createObjectURL (file);
+		});
+	}
 	
 	static uploadGofile (file, resolve, reject) {
 		if (file.size > 20000000) {
@@ -2376,7 +2422,23 @@ class Utils {
 						}
 						else
 							for (var type of item.types) {
-								if (type.indexOf ("audio/") == 0) {
+								if (type.indexOf ("video/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.uploadVideo (item).then (bbcode => {
+										Utils.insertText (event.target, bbcode);
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+								else if (type.indexOf ("audio/") == 0) {
 									event.target.disabled = true;
 									loading.attach (event.target);
 									Utils.uploadGofile (item, type).then (bbcode => {
@@ -2536,12 +2598,9 @@ class Utils {
 					alert ("Vous êtes sur Firefox et la fonctionnalité de glisser des images entre les onglets n'est pas activée\nsuivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_265.htm#t71266097");
 				}
 				if (item.type.indexOf ("video/") == 0) {
-					var video = item.getAsFile();
-					if (video.size > 80000000)
-						return;
 					event.target.disabled = true;
 					loading.attach (event.target);
-					Utils.dropGofile (item.getAsFile()).then (bbcode => {
+					Utils.uploadVideo (item.getAsFile()).then (bbcode => {
 						Utils.insertText (event.target, bbcode);
 						loading.destroy();
 						event.target.disabled = false;
@@ -2671,7 +2730,11 @@ Utils.init (table => {
 			var u = new URL (href);
 			if (link.firstElementChild == null || link.firstElementChild.nodeName.toLowerCase() != "img")
 				return;
-			if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
+			if (u.searchParams.get ("hfr-cc-imgvid") == "true") {
+				var video = link.createPlayer (false);
+				video.player.src ({ src : href, type : "video/mp4" });
+			}
+			else if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 					href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 					href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0 || u.searchParams.get("hfr-cc-insta") == "true") {
 				var video = link.createPlayer (u.searchParams.get("gif") == "true");
@@ -2701,6 +2764,10 @@ Utils.init (table => {
 		catch {
 			return;
 		}
+		if (u.searchParams.get ("hfr-cc-imgvid") == "true") {
+			var video = link.createPlayer (false);
+			video.player.src ({ src : href, type : "video/mp4" });
+		}
 		if (u.searchParams.get("hfr-cc-image") == "true") {
 			var image = document.createElement ("img");
 			image.setAttribute ("src", href);
@@ -2716,14 +2783,6 @@ Utils.init (table => {
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
 			var t = u.searchParams.has ("hfr-cc-mime-type") ? u.searchParams.get ("hfr-cc-mime-type") : "video/mp4";
 			video.player.src ({ src : href, type : t  });
-		}
-		else if (href.indexOf ("https://store2.gofile.io") == 0 && u.searchParams.get ("hfr-cc-gof") == "true") {
-			var video = link.createPlayer (false);
-			console.log (u.searchParams.get ("hfr-cc-type"));
-			Utils.convertVideoURL (href).then (uri => {
-				video.player.src ({ src : uri, type : "video/x-matroska" });
-			});
-
 		}
 		else if (href.indexOf ("https://video.twimg.com/") == 0) {
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
