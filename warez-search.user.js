@@ -95,6 +95,18 @@ function printSize (size){
 }
 
 let Hfr = {
+	searchTorr9 : function (query) {
+		return new Promise ((resolve, reject) => {
+			Hfr.fetch ("https://torr9.net/search?q=power+rangers&category=film")
+			.then (rep => rep.html())
+			.then (doc => {})
+			.catch (e => {
+				console.log (e);
+				reject ("erreur html");
+			});
+			reject ("test torr9");
+		});
+	},
 	searchTr4ker : function (query) {
 		return new Promise ((resolve, reject) => {
 			var arr = [ "films", "livres", "audio", "applications", "jeux-video", "impression-3d", "series" ];
@@ -209,6 +221,7 @@ let Hfr = {
 	search : function (query) {
 		return new Promise ((resolve, reject) => {
 				Promise.allSettled([
+					Hfr.searchTorr9 (query),
 					Hfr.searchTr4ker(query),
 					Hfr.searchC411(query),
 					Hfr.searchVidlox(query)

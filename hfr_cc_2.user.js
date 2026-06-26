@@ -1,13 +1,14 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.52
+// @version       1.5.53
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
 // @downloadURL   https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
 // @updateURL     https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
 // @require       https://unpkg.com/video.js/dist/video.min.js
+// @require       https://raw.githubusercontent.com/7Ds7/videojs-vjsdownload/refs/heads/master/dist/videojs-vjsdownload.js
 // @include       https://forum.hardware.fr/*
 // @noframes
 // @grant         GM.info
@@ -20,6 +21,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.5.53         upload petite vidéo
 // 1.5.52         BlueSky : mise à jour
 // 1.5.46         Instagram : c'est revenu (pour le moment)
 // 1.5.44         limitation de la taille de l'image à afficher
@@ -420,7 +422,14 @@ Element.prototype.createPlayer = function (is_gif) {
 	video.setAttribute ("height", "400");
 	video.setAttribute ("class", "video-js");
 	this.parentNode.replaceChild (video, this);
-	video.player = videojs (video);
+	video.player = videojs (video, {
+		plugins: {
+			vjsdownload:{
+				textControl: "télécharge",
+				name: "btnDownload"
+			}
+		}
+	});
 	return video;
 };
 
@@ -1462,7 +1471,7 @@ class Button extends Widget {
 		
 		this.#ipt = new Input ("file");
 		this.#ipt.set ("multiple", true);
-		this.#ipt.set ("accept", "image/png,image/jpeg,image/bmp,image/gif,audio/*");
+		this.#ipt.set ("accept", "image/png,image/jpeg,image/bmp,image/gif,audio/*,video/*");
 		this.#ipt.set ("style", "display : none");
 		
 		this.add (this.#lbl);
@@ -1835,10 +1844,10 @@ class Utils {
 		return new Promise ((resolve, reject) => {
 			var loading = new Loading();
 			loading.attach (area);
-			if (file.type.indexOf ("audio/") == 0) {
+			if (file.type.indexOf ("audio/") == 0 || (file.type.indexOf ("video/") == 0 && file.size < 80000000)) {
 				area.disabled = true;
-				Utils.dropGofile (item).then (url => {
-					Utils.insertText (area, "[url]" + url + "[/url]");
+				Utils.dropGofile (file).then (bbcode => {
+					Utils.insertText (area, bbcode);
 					loading.destroy();
 					area.disabled = false;
 					resolve();
@@ -2186,19 +2195,27 @@ class Utils {
 			reject("fichier trop gros");
 			return;
 		}
-		var form = new FormData();
-		form.append ("file", file);
-		Utils.request ({
-			method : "POST",
-			url : "https://fastupload.io/upload",
-			data : form,
-			onabort : function() { reject(""); }, 
-			ontimeout : function() { reject(""); },
-			onerror : function() { reject(""); },
-			onload : function (rep) {
-				console.log (rep.responseText);
-				resolve ("ok");
+		
+		Hfr.post ("https://upload.gofile.io/uploadfile", {
+			"file" : file
+		})
+		.then (rep => rep.json())
+		.then (json => {
+			var name = encodeURIComponent (json.data.name);
+			var res = `https://${json.data.servers[0]}.gofile.io/download/web/${json.data.id}/${name}`;
+			var u = new URL (res);
+			u.searchParams.append ("hfr-cc-gof", "true");
+			u.searchParams.append ("hfr-cc-type", file.type == "video/mkv" ? "video/x-matroska" : file.type);
+			if (file.type.indexOf ("video/") == 0) {
+				var poster = `https://${json.data.servers[0]}.gofile.io/download/web/${json.data.id}/thumb_${json.data.md5}`;
+				resolve (`[url=${res}][img]${poster}[/img][/url]`);
 			}
+			else
+				resolve (res);
+		})
+		.catch (e => {
+			console.log (e);
+			reject ("fichier non accepté");
 		});
 	}
 	
@@ -2362,8 +2379,8 @@ class Utils {
 								if (type.indexOf ("audio/") == 0) {
 									event.target.disabled = true;
 									loading.attach (event.target);
-									Utils.uploadGofile (item, type).then (url => {
-										Utils.insertText (event.target, "[url]" + url + "[/url]");
+									Utils.uploadGofile (item, type).then (bbcode => {
+										Utils.insertText (event.target, bbcode);
 										loading.destroy();
 										event.target.disabled = false;
 										event.target.focus();
@@ -2518,11 +2535,27 @@ class Utils {
 				if (item.type == "application/x-moz-nativeimage") {
 					alert ("Vous êtes sur Firefox et la fonctionnalité de glisser des images entre les onglets n'est pas activée\nsuivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_265.htm#t71266097");
 				}
-				if (item.type.indexOf ("audio/") == 0) {
+				if (item.type.indexOf ("video/") == 0) {
+					var video = item.getAsFile();
+					if (video.size > 80000000)
+						return;
 					event.target.disabled = true;
 					loading.attach (event.target);
-					Utils.dropGofile (item.getAsFile()).then (url => {
-						Utils.insertText (event.target, "[url]" + url + "[/url]");
+					Utils.dropGofile (item.getAsFile()).then (bbcode => {
+						Utils.insertText (event.target, bbcode);
+						loading.destroy();
+						event.target.disabled = false;
+					}).catch (e => {
+						loading.destroy();
+						event.target.disabled = false;
+						console.log (e);
+					});
+				}
+				else if (item.type.indexOf ("audio/") == 0) {
+					event.target.disabled = true;
+					loading.attach (event.target);
+					Utils.dropGofile (item.getAsFile()).then (bbcode => {
+						Utils.insertText (event.target, bbcode);
 						loading.destroy();
 						event.target.disabled = false;
 					}).catch (e => {
@@ -2602,6 +2635,7 @@ Utils.registerCommand ("Copie/Colle -> détail des liens", () => {
 Utils.init (table => {
 	Utils.emojis = table;
 	Utils.addCss ("https://vjs.zencdn.net/8.0.4/video-js.css");
+	Utils.addCss ("https://7ds7.github.io/videojs-vjsdownload/dist/videojs-vjsdownload.css");
 	Utils.addJs ("https://vjs.zencdn.net/8.0.4/video.js");
 	Utils.addJs ("https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js", true);
 	
@@ -2635,12 +2669,6 @@ Utils.init (table => {
 			if (href[0] == '/')
 				href = "https://forum.hardware.fr" + href;
 			var u = new URL (href);
-			if (u.hostname == "store10.gofile.io" && u.pathname.indexOf ("/download") == 0 && u.searchParams.get("isAudio") == "true") {
-				var audio = document.createElement ("audio");
-				audio.setAttribute ("src", href);
-				audio.setAttribute ("controls", "controls");
-				link.parentNode.replaceChild (audio, link);
-			}
 			if (link.firstElementChild == null || link.firstElementChild.nodeName.toLowerCase() != "img")
 				return;
 			if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
@@ -2678,12 +2706,6 @@ Utils.init (table => {
 			image.setAttribute ("src", href);
 			link.parentNode.replaceChild (image, link);
 		}
-		if (u.hostname == "store10.gofile.io" && u.pathname.indexOf ("/download") == 0 && u.searchParams.get("isAudio") == "true") {
-			var audio = document.createElement ("audio");
-			audio.setAttribute ("src", href);
-			audio.setAttribute ("controls", "controls");
-			link.parentNode.replaceChild (audio, link);
-		}
 		if (link.firstElementChild == null || link.firstElementChild.nodeName.toLowerCase() != "img")
 			return;
 		if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
@@ -2694,6 +2716,14 @@ Utils.init (table => {
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
 			var t = u.searchParams.has ("hfr-cc-mime-type") ? u.searchParams.get ("hfr-cc-mime-type") : "video/mp4";
 			video.player.src ({ src : href, type : t  });
+		}
+		else if (href.indexOf ("https://store2.gofile.io") == 0 && u.searchParams.get ("hfr-cc-gof") == "true") {
+			var video = link.createPlayer (false);
+			console.log (u.searchParams.get ("hfr-cc-type"));
+			Utils.convertVideoURL (href).then (uri => {
+				video.player.src ({ src : uri, type : "video/x-matroska" });
+			});
+
 		}
 		else if (href.indexOf ("https://video.twimg.com/") == 0) {
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
