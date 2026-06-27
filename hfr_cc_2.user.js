@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.54
+// @version       1.5.55
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -634,12 +634,24 @@ class Social {
 }
 
 class Twitch extends Social {
+	constructor (doc, url) {
+		super();
+		this.icon = `[img]https://i.imgur.com/jFOkUtK.pnghttps://i.imgur.com/jFOkUtK.png[/img]`;
+		this.link = url;
+		this.info = "";
+		var u = new URL (doc.querySelector ("meta[property='og:video']").getAttribute("content"));
+		this.user = u.searchParams.get("channel");
+		this.text = doc.querySelector("meta[name='description']").getAttribute ("content");
+		var img = doc.querySelector("meta[property='og:image']").getAttribute("content");
+		this.images.push (new Hfr.Image (img));
+	}
+
 	static load (url) {
+		var m = Expr.twitch.exec (url);
+		var channel = m.groups.channel;
 		return new Promise ((resolve, reject) => {
-			Hfr.fetch ("https://clips.twitch.tv/embed?clip=KathishEnchantingCarabeefOhMyDog-iJDpCAsG8mCZuZHS&parent=forum.hardware.fr").then (rep => rep.html()).then (doc => {
-				console.log ("salope");
-				console.log (doc.querySelector("title").textContent);
-				reject (url);
+			Hfr.fetch ("https://m.twitch.tv/" + channel).then (rep => rep.html()).then (doc => {
+				resolve (new Twitch (doc, url));
 			}).catch (e => {
 				console.log (e);
 				reject (url);
@@ -1050,6 +1062,8 @@ class BlueSky extends Social {
 		super();
 		console.log (data);
 		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/327943${Social.hasMEP()}[/img]`;
+		console.log (data.uri);
+		console.log (data["uri"]);
 		var did = data.uri.split ("at://")[1].split ("/")[0];
 		var hash = data.uri.split ("app.bsky.feed.post/")[1];
 		this.link = `https://bsky.app/profile/${did}/post/${hash}`;
@@ -1111,7 +1125,7 @@ class BlueSky extends Social {
 			}
 			if (data.embed.record?.record != null)
 				this.quote = new BlueSky (data.embed.record.record);
-			if (data.embed["$type"].indexOf ("app.bsky.embed.record") == 0)
+			else if (data.embed["$type"].indexOf ("app.bsky.embed.record") == 0)
 				this.quote = new BlueSky (data.embed.record);
 		}
 		if (Array.isArray (data.embeds))
