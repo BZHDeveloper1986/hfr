@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6
+// @version       1.6.1
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -904,7 +904,7 @@ class Instagram extends Social {
 	
 	constructor (data, url) {
 		super();
-		
+		console.log (data);
 		this.icon = "[:hfr_icons:7]";
 		this.user = data.user.username;
 		this.info = `(@${this.user})`;
@@ -912,19 +912,33 @@ class Instagram extends Social {
 		this.text = Social.normalize (data.caption.text)
 				.replaceAll (/#\w+/g, match => { return "[url=https://www.instagram.com/explore/search/keyword/?q=" + match + "][b]" + match + "[/b][/url]"; })
 				.replaceAll (/@\w+/g, match => { return "[url=https://www.instagram.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; });
-		data.carousel_media.forEach (media => {
-			if (Array.isArray (media.video_versions) && media.video_versions.length > 0) {
+		
+		if (data.hasOwnProperty ("carousel_media"))
+			data.carousel_media.forEach (media => {
+				if (Array.isArray (media.video_versions) && media.video_versions.length > 0) {
+					var vid = new Video();
+					vid.poster = media.image_versions2.candidates[0].url;
+					var u = new URL(media.video_versions[0].url);
+					u.searchParams.append ("hfr-cc-insta", "true");
+					vid.url = u.toString();
+					vid.contentType = "video/mp4";
+					this.videos.push (vid);
+				}
+				else
+					this.images.push (new Hfr.Image (media.image_versions2.candidates[0].url));
+		});
+		else
+			if (Array.isArray (data.video_versions) && data.video_versions.length > 0) {
 				var vid = new Video();
-				vid.poster = media.image_versions2.candidates[0].url;
-				var u = new URL(media.video_versions[0].url);
+				vid.poster = data.image_versions2.candidates[0].url;
+				var u = new URL(data.video_versions[0].url);
 				u.searchParams.append ("hfr-cc-insta", "true");
 				vid.url = u.toString();
 				vid.contentType = "video/mp4";
 				this.videos.push (vid);
 			}
 			else
-				this.images.push (new Hfr.Image (media.image_versions2.candidates[0].url));
-		});			
+				this.images.push (new Hfr.Image (data.image_versions2.candidates[0].url));	
 	}
 
 	static idToPk (id) {
@@ -968,6 +982,7 @@ class Instagram extends Social {
 							reject (url);
 					})
 					.catch (e => {
+						console.log (e);
 						console.warn ("le token est inexistant ou invalide. Ouvre une page Instagram au hasard, pour récupérer un nouveau token");
 						reject (url);
 					});
