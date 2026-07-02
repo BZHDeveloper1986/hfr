@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.5.55
+// @version       1.6
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -10,6 +10,8 @@
 // @require       https://unpkg.com/video.js/dist/video.min.js
 // @require       https://raw.githubusercontent.com/7Ds7/videojs-vjsdownload/refs/heads/master/dist/videojs-vjsdownload.js
 // @include       https://forum.hardware.fr/*
+// @include       https://www.instagram.com
+// @include       https://www.instagram.com/*
 // @noframes
 // @grant         GM.info
 // @grant         GM.xmlHttpRequest
@@ -21,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6            Instagram : utilisation de l'API
 // 1.5.54         correction dans l'envoi de vidéo (préférence pour imgur)
 // 1.5.53         upload petite vidéo
 // 1.5.52         BlueSky : mise à jour
@@ -174,6 +177,159 @@ class Expr {
 }
 
 let Hfr = {
+	Cookie : class {
+		#sname;
+		#svalue;
+
+		constructor (s) {
+			this.#sname = s.substring (0, s.indexOf ("="));
+			this.#svalue = s.substring (1 + s.indexOf ("="));
+		}
+
+		get name() {
+			return this.#sname;
+		}
+
+		get value() {
+			return this.#svalue;
+		}
+	},
+	Cookies : class {
+		#cookies;
+
+		constructor (s) {
+			this.#cookies = [];
+			s.split (";").forEach (st => {
+				this.#cookies.push (new Hfr.Cookie (st.trim()));
+			});
+		}
+
+		getCookie (name) {
+			for (var cookie of this.#cookies)
+				if (cookie.name == name)
+					return cookie.value;
+			return "";
+		}
+
+		hasCookie (name) {
+			for (var cookie of this.#cookies)
+				if (cookie.name == name)
+					return true;
+			return false;
+		}
+		
+		get list() {
+			return this.#cookies;
+		}
+
+		static parse() {
+			return new Hfr.Cookies (document.cookie);
+		}
+	},
+	Data : class {
+		#obj;
+		#uurl;
+		#numrep;
+
+		constructor (post, numrep, data) {
+			this.#obj = data;
+			this.numrep = numrep;
+			this.#uurl = "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=" + post + "&numreponse=" + numrep + "&page=1&p=1&subcat=0&sondage=0&owntopic=0";
+		}
+
+		update() {
+			Hfr.fetch (this.#uurl)
+			.then (rep => rep.html())
+			.then (doc => {
+				var form = doc.querySelector ("#hop");
+				form.querySelector("#content_form").value = JSON.stringify (this.#obj);
+				var fdata = new FormData (form);
+				Hfr.fetch ("https://forum.hardware.fr/bdd.php?config=hfr.inc", {
+					method : "POST",
+					body : fdata
+				}).then (r => r.html()).then (d => console.log (d))
+				.catch (e => console.log (e));
+			})
+			.catch (caca => {
+				console.log (caca);
+			});
+		}
+
+		get data() {
+			return this.#obj;
+		}
+
+		static #sdata;
+
+		static get values() {
+			return this.#sdata;
+		}
+		static set values (data) {
+			this.#sdata = data;
+		}
+
+		static create (json) {
+			return new Promise ((resolve, reject) => {
+				Hfr.fetch ("https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=0&p=1&subcat=0&dest=&subcatgroup=0")
+				.then (rep => rep.html())
+				.then (doc => {
+					var form = doc.querySelector ("#hop");
+					form.querySelector("#dest").value = "MultiMP";
+					form.querySelector("#topic_title").value = "hfrccdata";
+					form.querySelector("#content_form").value = JSON.stringify (json);
+					var fdata = new FormData (form);
+					Hfr.fetch ("https://forum.hardware.fr/bddpost.php?config=hfr.inc", {
+						method : "POST",
+						body : fdata
+					})
+					.then (rep => rep.html())
+					.then (doc => resolve (doc))
+					.catch (e => reject (e));
+				})
+				.catch (e => reject (e));
+			});
+		}
+
+		static get () {
+			return new Promise ((resolve, reject) => {
+				Hfr.fetch ("https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1")
+				.then (rep => rep.html())
+				.then (doc => {
+					var found = false;
+					doc.querySelectorAll("tr.sujet").forEach (tr => {
+						if (found)
+							return;
+						var a = tr.querySelector (".sujetCase3 .cCatTopic");
+						var u = tr.querySelector (".sujetCase6 > a");
+						if (a.textContent == "hfrccdata" && u != null && u.textContent == "MultiMP") {
+							found = true;
+							var u = new URL ("https://forum.hardware.fr/" + a.getAttribute ("href"));
+							var post = u.searchParams.get ("post");
+							Hfr.fetch (u.toString())
+							.then (r => r.html())
+							.then (d => {
+								var numrep = d.querySelector("[action='/transsearch.php'] [name='firstnum']").value;
+								var s = d.querySelector(".messCase2 p").textContent;
+								try {
+									var data = JSON.parse (s);
+									var hdata = new Hfr.Data (post, numrep, data);
+									Hfr.Data.values = hdata;
+									resolve (hdata);
+								}
+								catch (err) {
+									reject (err);
+								}
+							})
+							.catch (err => reject (err));
+						}
+					});
+					if (!found)
+						reject ("");
+				})
+				.catch (e => reject (e));
+			});
+		}
+	},
 	Headers : class {
 		#obj;
 
@@ -218,8 +374,6 @@ let Hfr = {
 		#data;
 
 		constructor (r) {
-			console.log ("réponse");
-			console.log (r);
 			this.#hdr = Hfr.Headers.parse (r.responseHeaders);
 			this.#data = r.response.slice (0, r.response.size, this.#hdr.contentType);
 		}
@@ -265,11 +419,12 @@ let Hfr = {
 			});
 		}
 	},
-	fetch : function (url) {
+	fetch : function (url, object) {
 		return new Promise ((resolve, reject) => {
-			Utils.request({
+			var req = {
 				method : "GET",
 				url : url,
+				headers : {},
 				onabort : function() { reject (url); },
 				onerror : function() { reject (url); },
 				ontimeout : function() { reject (url); },
@@ -277,51 +432,24 @@ let Hfr = {
 				onload : function (response) {
 					resolve (new Hfr.Response (response));
 				}
-			});
-		});
-	},
-	post : function (url, data, headers) {
-		var fdata = new FormData();
-		for (const [k,v] of Object.entries (data))
-			fdata.append (k, v);
-		var rh = {};
-		if (headers != null)
-			for (const [k,v] of Object.entries (headers))
-				rh[k] = v;
-		return new Promise ((resolve, reject) => {
-			Utils.request ({
-				method : "POST",
-				data : fdata,
-				headers : rh,
-				url : url,
-				responseType : "blob",
-				onabort : function() { reject ("envoi annulé"); }, 
-				ontimeout : function() { reject ("délai dépassé"); },
-				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
-				onload : function (response) { resolve (new Hfr.Response (response)); }
-			});
-		});
-	},
-	postJSON : function (url, data, headers) {
-		var rh = {};
-		if (headers != null)
-			for (const [k,v] of Object.entries (headers))
-				rh[k] = v;
-		var json = JSON.stringify(data);
-		rh["Content-Type"] = "application/json";
-		rh["Content-Lenght"] = json.length;
-		return new Promise ((resolve, reject) => {
-			Utils.request ({
-				method : "POST",
-				data : json,
-				headers : rh,
-				url : url,
-				responseType : "blob",
-				onabort : function() { reject ("envoi annulé"); }, 
-				ontimeout : function() { reject ("délai dépassé"); },
-				onerror : function () { reject ("erreur lors de l'envoi d'image"); },
-				onload : function (response) { resolve (new Hfr.Response (response)); }
-			});
+			};
+			if (typeof (object) == "object") {
+				if (object.hasOwnProperty ("method"))
+					req.method = object["method"];
+				if (object.hasOwnProperty("body"))
+					req.data = object["body"];
+				if (object.hasOwnProperty ("headers") && typeof (object["headers"] == "object")) {
+					for (const [k,v] of Object.entries (object["headers"]))
+						req.headers[k] = v;
+				}
+				if (typeof (object["referrer"]) == "string")
+					req.headers["Referer"] = object["referrer"];
+				if (typeof (object["referrerPolicy"]) == "string")
+					req.headers["Referrer-Policy"] = object["referrerPolicy"];
+				if (typeof (object["credentials"]) == "string")
+					req.anonymous = object["credentials"] != "include";
+			}
+			Utils.request (req);
 		});
 	},
 	Image : class {
@@ -361,10 +489,8 @@ let Hfr = {
 			if (this.#filled == true)
 				return Promise.resolve (this.toString());
 			return new Promise ((resolve, reject) => {
-				console.log ("putain d'url : " + this.url);
 				Utils.downloadImage (this.url).then (file => {
 					new Rehost().uploadAsync (file).then (upload => {
-						console.log (upload);
 						this.#h = upload.height;
 						this.#w = upload.width;
 						this.#src = upload.url;
@@ -780,87 +906,75 @@ class Instagram extends Social {
 		super();
 		
 		this.icon = "[:hfr_icons:7]";
-		this.user = data.username;
+		this.user = data.user.username;
 		this.info = `(@${this.user})`;
 		this.link = url;
-		this.text = Social.normalize (data.caption);
-		for (var media of data.mediaUrls)
-				if (media.type == "image")
-					this.images.push (new Hfr.Image (media.url));
-				else if (media.type == "video") {
-					var video = new Video();
-					var u = new URL (media.url);
-					u.searchParams.append ("hfr-cc-insta", "true");
-					video.url = u.toString();
-					video.poster = media.thumbnail_url;
-					video.contentType = "video/mp4";
-					this.videos.push (video);
-				}
-	}
-	
-	static acquireChallenge() {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				Hfr.post ("https://api.boostfluence.com/api/instagram-viewer-v2-2", {
-						url : "https://www.instagram.com/dafnekeen/p/DWo7tjCD_YM/"
-					}, { "Referer" : "https://www.boostfluence.com/" }).then (rep => rep.json()).then (data => {
-						Instagram.challenge = data.challenge;
-						resolve (data.challenge);
-					}).catch (e => {
-						console.log (e);
-						reject ({});
-					});
-			})();
-		});
-	}
-	
-	static loadURI (uri) {
-		return new Promise ((resolve, reject) => {
-			(async () => {
-				var res = Expr.instagram.exec (uri);
-				var code = res.groups.shortcode;
-				
-				console.log ("chall");
-				console.log (Instagram.challenge);
-				
-				Hfr.postJSON ("https://api.boostfluence.com/api/instagram-viewer-v2-2", {
-						url : uri
-					}, { 
-						"Referer" : "https://www.boostfluence.com/",
-						"X-Compute" : Instagram.challenge.expectedCompute,
-						"X-Timestamp" : Instagram.challenge.timestamp
-					}).then (rep => rep.json()).then (data => {
-						resolve (new Instagram (data, uri));
-					}).catch (e => {
-						console.log ("prout de cul");
-						console.log (e);
-						reject (uri);
-					});
-			})();
-		});
+		this.text = Social.normalize (data.caption.text)
+				.replaceAll (/#\w+/g, match => { return "[url=https://www.instagram.com/explore/search/keyword/?q=" + match + "][b]" + match + "[/b][/url]"; })
+				.replaceAll (/@\w+/g, match => { return "[url=https://www.instagram.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; });
+		data.carousel_media.forEach (media => {
+			if (Array.isArray (media.video_versions) && media.video_versions.length > 0) {
+				var vid = new Video();
+				vid.poster = media.image_versions2.candidates[0].url;
+				var u = new URL(media.video_versions[0].url);
+				u.searchParams.append ("hfr-cc-insta", "true");
+				vid.url = u.toString();
+				vid.contentType = "video/mp4";
+				this.videos.push (vid);
+			}
+			else
+				this.images.push (new Hfr.Image (media.image_versions2.candidates[0].url));
+		});			
 	}
 
+	static idToPk (id) {
+		var table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+		var res = BigInt (0);
+		var size = BigInt (table.length);
+		for (var i = 0; i < id.length; i++) {
+			var idx = BigInt (table.indexOf (id[i]));
+			res = res * size + idx;
+		}
+		return res.toString();
+	}
+	
 	static load (url) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				var res = Expr.instagram.exec (url);
-				var code = res.groups.shortcode;
-				
-				if (Instagram.challenge == null)
-					Instagram.acquireChallenge().then (c => {
-						Instagram.loadURI (url).then (insta => resolve (insta)).catch (e => {
-							console.log (e);
+				Hfr.Data.get().then (data => {
+					if (!data.data.hasOwnProperty ("insta_token")) {
+						console.warn ("le token Instagram est manquant. Va sur Instagram pour en générer un");
+						reject (url);
+						return;
+					}
+					var res = Expr.instagram.exec (url);
+					var pk = Instagram.idToPk (res.groups.shortcode);
+					Hfr.fetch ("https://www.instagram.com/api/v1/media/" + pk + "/info/", {
+						headers : {
+							"X-Csrftoken" : data.data.insta_token,
+							"X-IG-App-ID": "936619743392459",
+							"X-ASBD-ID": "359341",
+							"X-IG-WWW-Claim": "0",
+							"Origin": "https://www.instagram.com",
+							"Accept": "*/*"
+						}
+					})
+					.then (rep => rep.json())
+					.then (data => {
+						if (data.num_results > 0) {
+							resolve (new Instagram (data.items[0], url));
+						}
+						else
 							reject (url);
-						});
-					}).catch (e => {
-						console.log (e);
+					})
+					.catch (e => {
+						console.warn ("le token est inexistant ou invalide. Ouvre une page Instagram au hasard, pour récupérer un nouveau token");
 						reject (url);
 					});
-				else
-					Instagram.loadURI (url).then (insta => resolve (insta)).catch (e => {
-						console.log (e);
-						reject (url);
-					});
+				}).catch (e => {
+					console.warn ("le token Instagram est manquant. Va sur Instagram pour en générer un");
+					reject (url);
+				});
 			})();
 		});
 	}
@@ -1060,10 +1174,7 @@ class BlueSky extends Social {
 
 	constructor (data) {
 		super();
-		console.log (data);
 		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/327943${Social.hasMEP()}[/img]`;
-		console.log (data.uri);
-		console.log (data["uri"]);
 		var did = data.uri.split ("at://")[1].split ("/")[0];
 		var hash = data.uri.split ("app.bsky.feed.post/")[1];
 		this.link = `https://bsky.app/profile/${did}/post/${hash}`;
@@ -1094,8 +1205,6 @@ class BlueSky extends Social {
 			}
 		txt = new TextDecoder().decode (arr);
 		this.text = Social.normalize (txt);
-		console.log ("data");
-		console.log (data);
 		if (data.embed != null) {
 			var med = (data.embed.media != null) ? data.embed.media : data.embed;
 			if (med["$type"] == "app.bsky.embed.video#view") {
@@ -1107,7 +1216,6 @@ class BlueSky extends Social {
 			}
 			var imgs = Array.isArray (data.embed.images) ? data.embed.images : (Array.isArray (data.embed.media?.images) ? data.embed.media.images : []);
 			imgs.forEach (img => {
-				console.log (img);
 				var i = new Hfr.Image (img.thumb);
 				this.images.push (i);
 			});
@@ -1139,7 +1247,6 @@ class BlueSky extends Social {
 				}
 				if (embed.images)
 					embed.images.forEach (img => {
-						console.log (img);
 						this.images.push ({
 							url : img.fullsize,
 							toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + img.fullsize + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + img.fullsize + "[/img][/url]" }
@@ -1747,8 +1854,12 @@ class Rehost extends UploadService {
 	get name() { return "rehost"; }
 
 	upload (file, resolve, reject) {
-		Hfr.post ("https://rehost.diberie.com/Host/UploadFiles?SelectedAlbumId=undefined&PrivateMode=false&SendMail=false&KeepTags=&Comment=&SelectedExpiryType=0", { "image" : file })
-			.then (rep => rep.json())
+		var data = new FormData();
+		data.append ("image", file);
+		Hfr.fetch ("https://rehost.diberie.com/Host/UploadFiles?SelectedAlbumId=undefined&PrivateMode=false&SendMail=false&KeepTags=&Comment=&SelectedExpiryType=0", {
+			method : "POST",
+			body : data
+		}).then (rep => rep.json())
 			.then (object => {
 				var up = new Upload (object.picURL, object.isGIF);
 				up.height = object.previewHeight;
@@ -1767,8 +1878,15 @@ class Imgur extends UploadService {
 	get name() { return "imgur"; }
 
 	upload (file, resolve, reject) {
-		Hfr.post ("https://api.imgur.com/3/image", { "image" : file }, { "Authorization" : "Client-ID d1619618d2ac442" })
-		.then (rep => rep.json())
+		var data = new FormData();
+		data.append ("image", file);
+		Hfr.fetch ("https://api.imgur.com/3/image", {
+			method : "POST",
+			body : data,
+			headers : {
+				"Authorization" : "Client-ID d1619618d2ac442"
+			}
+		}).then (rep => rep.json())
 		.then (object => {
 			var up = new Upload (object.data.link, object.data.type == "image/gif");
 			up.width = object.data.width;
@@ -2233,8 +2351,15 @@ class Utils {
 					reject ("vidéo trop longue");
 					return;
 				}
-				Hfr.post ("https://api.imgur.com/3/image", { "image" : file }, { "Authorization" : "Client-ID d1619618d2ac442" })
-				.then (rep => rep.json())
+				var data = new FormData();
+				data.append ("image", file);
+				Hfr.fetch ("https://api.imgur.com/3/image", {
+					method : "POST",
+					body : data,
+					headers : {
+						"Authorization" : "Client-ID d1619618d2ac442"
+					}
+				}).then (rep => rep.json())
 				.then (object => {
 					if (object.success) {
 						var url = new URL (object.data.mp4);
@@ -2255,11 +2380,13 @@ class Utils {
 			reject("fichier trop gros");
 			return;
 		}
-		
-		Hfr.post ("https://upload.gofile.io/uploadfile", {
-			"file" : file
-		})
-		.then (rep => rep.json())
+
+		var data = new FormData();
+		data.append ("file", file);
+		Hfr.fetch ("https://upload.gofile.io/uploadfile", {
+			method : "POST",
+			body : data
+		}).then (rep => rep.json())
 		.then (json => {
 			var name = encodeURIComponent (json.data.name);
 			var res = `https://${json.data.servers[0]}.gofile.io/download/web/${json.data.id}/${name}`;
@@ -2428,7 +2555,7 @@ class Utils {
 								event.target.disabled = false;
 								event.target.focus();
 							}).catch (e => {
-								Utils.insertText (event.target, Utils.formatText (e));
+								Utils.insertText (event.target, Social.normalize (e));
 								loading.destroy();
 								event.target.disabled = false;
 								event.target.focus();
@@ -2679,7 +2806,7 @@ class Utils {
 							event.target.disabled = false;
 						}).catch (e => {
 							console.log (e);
-							Utils.insertText (event.target, e);
+							Utils.insertText (event.target, Social.normalize (e));
 							loading.destroy();
 							event.target.disabled = false;
 						});
@@ -2687,6 +2814,26 @@ class Utils {
 				}
 			}
 	}
+}
+
+if (document.location.href.indexOf ("https://www.instagram.com") == 0) {
+	var cookies = Hfr.Cookies.parse();
+	Hfr.Data.get().then (msg => {
+		if (!msg.data.hasOwnProperty ("insta_token") || msg.data.insta_token != cookies.getCookie ("csrftoken")) {
+			msg.data.insta_token = cookies.getCookie ("csrftoken");
+			console.log ("prout caca");
+			msg.update();
+		}
+	})
+	.catch (e => {
+		console.log(e);
+		if (cookies.hasCookie ("csrftoken"))
+			Hfr.Data.create ({
+				insta_token : cookies.getCookie ("csrftoken")
+			}).then (text => console.log (text))
+			.catch (e => console.log (e));
+	});
+	return;
 }
 
 Utils.registerCommand ("Copie/Colle -> choix du service", () => {
