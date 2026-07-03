@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.2
+// @version       1.6.3
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -23,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6.3          Instagram : récupération du token
 // 1.6            Instagram : utilisation de l'API
 // 1.5.54         correction dans l'envoi de vidéo (préférence pour imgur)
 // 1.5.53         upload petite vidéo
@@ -197,11 +198,8 @@ let Hfr = {
 	Cookies : class {
 		#cookies;
 
-		constructor (s) {
+		constructor() {
 			this.#cookies = [];
-			s.split (";").forEach (st => {
-				this.#cookies.push (new Hfr.Cookie (st.trim()));
-			});
 		}
 
 		getCookie (name) {
@@ -223,7 +221,25 @@ let Hfr = {
 		}
 
 		static parse() {
-			return new Hfr.Cookies (document.cookie);
+			var cookies = new Hfr.Cookies();
+			document.cookies.split (";").forEach (st => {
+				cookies.list.push (new Hfr.Cookie (st.trim()));
+			});
+			return cookies;
+		}
+
+		static parseHeaders (headers) {
+			var cookies = new Hfr.Cookies();
+			var p = headers.split ("\n");
+			p.forEach (line => {
+				var l = line;
+				var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
+				if (k == "set-cookie") {
+					l = l.substring (l.indexOf (":") + 1).split (";")[0].trim();
+					cookies.list.push (new Hfr.Cookie (l));
+				}
+			});
+			return cookies;
 		}
 	},
 	Data : class {
@@ -370,16 +386,26 @@ let Hfr = {
 		}
 	},
 	Response : class {
-		#hdr;
+		#u;
 		#data;
+		#hstr;
 
 		constructor (r) {
-			this.#hdr = Hfr.Headers.parse (r.responseHeaders);
-			this.#data = r.response.slice (0, r.response.size, this.#hdr.contentType);
+			this.#hstr = r.responseHeaders;
+			this.#u = r.finalUrl;
+			this.#data = r.response.slice (0, r.response.size, this.headers.contentType);
+		}
+
+		get url() {
+			return this.#u;
+		}
+
+		get cookies() {
+			return Hfr.Cookies.parseHeaders (this.#hstr);
 		}
 
 		get headers() {
-			return this.#hdr;
+			return Hfr.Headers.parse (this.#hstr);
 		}
 
 		blob() {
@@ -955,39 +981,40 @@ class Instagram extends Social {
 	static load (url) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				Hfr.Data.get().then (data => {
-					if (!data.data.hasOwnProperty ("insta_token")) {
-						console.warn ("le token Instagram est manquant. Va sur Instagram pour en générer un");
-						reject (url);
-						return;
-					}
-					var res = Expr.instagram.exec (url);
-					var pk = Instagram.idToPk (res.groups.shortcode);
-					Hfr.fetch ("https://www.instagram.com/api/v1/media/" + pk + "/info/", {
-						headers : {
-							"X-Csrftoken" : data.data.insta_token,
-							"X-IG-App-ID": "936619743392459",
-							"X-ASBD-ID": "359341",
-							"X-IG-WWW-Claim": "0",
-							"Origin": "https://www.instagram.com",
-							"Accept": "*/*"
-						}
-					})
-					.then (rep => rep.json())
-					.then (data => {
-						if (data.num_results > 0) {
-							resolve (new Instagram (data.items[0], url));
-						}
-						else
+				Hfr.fetch ("https://www.instagram.com/", {
+					credentials : "omit"
+				}).then (rep => {
+					if (rep.cookies.hasCookie("csrftoken")) {
+						var res = Expr.instagram.exec (url);
+						var pk = Instagram.idToPk (res.groups.shortcode);
+						Hfr.fetch ("https://www.instagram.com/api/v1/media/" + pk + "/info/", {
+							headers : {
+								"X-Csrftoken" : rep.cookies.getCookie ("csrftoken"),
+								"X-IG-App-ID": "936619743392459",
+								"X-ASBD-ID": "359341",
+								"X-IG-WWW-Claim": "0",
+								"Origin": "https://www.instagram.com",
+								"Accept": "*/*"
+							}
+						})
+						.then (r => r.json())
+						.then (data => {
+							if (data.num_results > 0) {
+								resolve (new Instagram (data.items[0], url));
+							}
+							else
+								reject (url);
+						})
+						.catch (e => {
+							console.log (e);
+							console.warn ("le token est inexistant ou invalide");
 							reject (url);
-					})
-					.catch (e => {
-						console.log (e);
-						console.warn ("le token est inexistant ou invalide. Ouvre une page Instagram au hasard, pour récupérer un nouveau token");
+						});
+					}
+					else
 						reject (url);
-					});
 				}).catch (e => {
-					console.warn ("le token Instagram est manquant. Va sur Instagram pour en générer un");
+					console.log (e);
 					reject (url);
 				});
 			})();
