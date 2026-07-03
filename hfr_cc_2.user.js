@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.1
+// @version       1.6.2
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -840,14 +840,14 @@ class Threads extends Social {
 		element.childNodes.forEach (node => {
 			if (node.nodeType == Node.TEXT_NODE)
 				builder.append (Social.normalize (node.textContent)
-					.replaceAll (/#\w+/g, match => { return "[url=https://www.threads.com/search?q=%23" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+					.replaceAll (/#\p{L}+/g, match => { return "[url=https://www.threads.com/search?q=%23" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
 					.replaceAll (/@\w+/g, match => { return "[url=https://www.threads.com/" + match + "][b]" + match + "[/b][/url]"; }));
 			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "br")
 				builder.append ("\n");
 			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "a")
 				builder.append (`[b][url=${node.getAttribute ("href")}]${node.textContent}[/url][/b]`);
 			else if (node.nodeType == Node.ELEMENT_NODE)
-				builder.append (Instagram.elementToBBCode (node));
+				builder.append (Threads.elementToBBCode (node));
 		});
 		return builder.toString();
 	}
@@ -910,7 +910,7 @@ class Instagram extends Social {
 		this.info = `(@${this.user})`;
 		this.link = url;
 		this.text = Social.normalize (data.caption.text)
-				.replaceAll (/#\w+/g, match => { return "[url=https://www.instagram.com/explore/search/keyword/?q=" + match + "][b]" + match + "[/b][/url]"; })
+				.replaceAll (/#\p{L}+/g, match => { return "[url=https://www.instagram.com/explore/search/keyword/?q=" + match + "][b]" + match + "[/b][/url]"; })
 				.replaceAll (/@\w+/g, match => { return "[url=https://www.instagram.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; });
 		
 		if (data.hasOwnProperty ("carousel_media"))
@@ -1070,7 +1070,7 @@ class Twitter extends Social {
 	static normalize (str) {
 		return Social.normalize (str
 			.replaceAll (/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g, "[url=$&][b]$&[/b][/url]")
-			.replaceAll (/#\w+/g, match => { return "[url=https://x.com/hashtag/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+			.replaceAll (/#\p{L}+/g, match => { return "[url=https://x.com/hashtag/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
 			.replaceAll (/\$\b[^\d\W]+\b/g, match => { return "[url=https://x.com/search?q=" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
 			.replaceAll (/@\w+/g, match => { return "[url=https://x.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
 	}
@@ -1079,8 +1079,10 @@ class Twitter extends Social {
 		for (var i = 0; i < media.video_info.variants.length; i++) {
 			var vid = new Video();
 			var v = media.video_info.variants[i];
-			if (v.content_type == "application/x-mpegURL")
+			if (v.content_type == "application/x-mpegURL") {
+				console.log ("video : " + v.url);
 				continue;
+			}
 			var url = new URL (v.url);
 			url.searchParams.delete ("tag");
 			vid.url = url.toString();
