@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.3
+// @version       1.6.4
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -922,6 +922,45 @@ class Threads extends Social {
 	}
 }
 
+class InstagramVideo {
+	#pst;
+	#uri;
+
+	constructor (url, p) {
+		this.#uri = url;
+		this.#pst = p;
+	}
+
+	get poster() { return this.#pst; }
+
+	get url() { return this.#uri; }
+
+	get contentType() { return "video/mp4"; }
+
+	get isGif() { return false; }
+
+	toString() {
+		var u = new URL (this.url);
+		u.searchParams.append ("hfr-cc-mime-type", "video/mp4");
+		return `[url=${u}][img]${this.poster}[/img][/url]\n`;
+	}
+
+	build() {
+		return new Promise ((resolve, reject) => {
+			Hfr.fetch (this.url)
+			.then (rep => rep.blob())
+			.then (blob => {
+				Utils.uploadVideo (blob).then (l => {
+					var u = new URL (l);
+					u.searchParams.append ("hfr-cc-mime-type", "video/mp4");
+					resolve (`[url=${u}][img]${this.poster}[/img][/url]\n`);
+				}).catch (err => reject (err));
+			})
+			.catch (e => reject (""));
+		});
+	}
+}
+
 class Instagram extends Social {
 	static #chlg;
 	
@@ -941,28 +980,14 @@ class Instagram extends Social {
 		
 		if (data.hasOwnProperty ("carousel_media"))
 			data.carousel_media.forEach (media => {
-				if (Array.isArray (media.video_versions) && media.video_versions.length > 0) {
-					var vid = new Video();
-					vid.poster = media.image_versions2.candidates[0].url;
-					var u = new URL(media.video_versions[0].url);
-					u.searchParams.append ("hfr-cc-insta", "true");
-					vid.url = u.toString();
-					vid.contentType = "video/mp4";
-					this.videos.push (vid);
-				}
+				if (Array.isArray (media.video_versions) && media.video_versions.length > 0)
+					this.videos.push (new InstagramVideo (media.video_versions[0].url, media.image_versions2.candidates[0].url));
 				else
 					this.images.push (new Hfr.Image (media.image_versions2.candidates[0].url));
 		});
 		else
-			if (Array.isArray (data.video_versions) && data.video_versions.length > 0) {
-				var vid = new Video();
-				vid.poster = data.image_versions2.candidates[0].url;
-				var u = new URL(data.video_versions[0].url);
-				u.searchParams.append ("hfr-cc-insta", "true");
-				vid.url = u.toString();
-				vid.contentType = "video/mp4";
-				this.videos.push (vid);
-			}
+			if (Array.isArray (data.video_versions) && data.video_versions.length > 0)
+				this.videos.push (new InstagramVideo (data.video_versions[0].url, data.image_versions2.candidates[0].url));
 			else
 				this.images.push (new Hfr.Image (data.image_versions2.candidates[0].url));	
 	}
@@ -2382,10 +2407,6 @@ class Utils {
 
 	static uploadVideo (file) {
 		return new Promise ((resolve, reject) => {
-			if (file.size > 100000000) {
-				reject("fichier trop gros");
-				return;
-			}
 			var video = document.createElement ("video");
 			video.onerror = () => {
 				reject ("ce n'est pas une vidéo");
