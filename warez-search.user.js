@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper
 // @name          [HFR] warez search
-// @version       0.0.4
+// @version       0.0.5
 // @namespace     forum.hardware.fr
 // @description   recherche de contenu
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -95,18 +95,6 @@ function printSize (size){
 }
 
 let Hfr = {
-	searchTorr9 : function (query) {
-		return new Promise ((resolve, reject) => {
-			Hfr.fetch ("https://torr9.net/search?q=power+rangers&category=film")
-			.then (rep => rep.html())
-			.then (doc => {})
-			.catch (e => {
-				console.log (e);
-				reject ("erreur html");
-			});
-			reject ("test torr9");
-		});
-	},
 	searchTr4ker : function (query) {
 		return new Promise ((resolve, reject) => {
 			var arr = [ "films", "livres", "audio", "applications", "jeux-video", "impression-3d", "series" ];
@@ -130,7 +118,7 @@ let Hfr = {
 	},
 	searchVidlox : function (query) {
 		return new Promise ((resolve, reject) => {
-			Hfr.fetch ("https://www.vidlox2.cc/recherche/" + query)
+			Hfr.fetch ("https://www.vidlox4.cc/recherche/" + query)
 			.then (rep => rep.html())
 			.then (doc => {
 				var items = [];
@@ -186,7 +174,7 @@ let Hfr = {
 	},
 	searchC411 : function (query) {
 		return new Promise ((resolve, reject) => {
-			Hfr.fetch ("https://c411.org/api/torrents?page=1&perPage=25&sortBy=createdAt&sortOrder=desc&name=" + query)
+			Hfr.fetch ("https://c411.org/api/torrents?page=1&perPage=25&sortBy=relevance&sortOrder=desc&name=" + query.replace (" ", "+"))
 			.then (rep => rep.json())
 			.then (json => {
 				var items = [];
@@ -221,7 +209,6 @@ let Hfr = {
 	search : function (query) {
 		return new Promise ((resolve, reject) => {
 				Promise.allSettled([
-					Hfr.searchTorr9 (query),
 					Hfr.searchTr4ker(query),
 					Hfr.searchC411(query),
 					Hfr.searchVidlox(query)
@@ -448,6 +435,10 @@ let Hfr = {
 				th.addEventListener ("click", e => {
 					if (name == "tracker")
 						this.#list.sort ((a, b) => {
+							return th.getAttribute ("ordered") == "true" ? b.id.localeCompare (a.id) : a.id.localeCompare (b.id);
+						});
+					else if (name == "type")
+						this.#list.sort ((a, b) => {
 							return th.getAttribute ("ordered") == "true" ? b.type - a.type : a.type - b.type;
 						});
 					else if (name == "date")
@@ -500,6 +491,10 @@ let Hfr = {
 				img.setAttribute ("src", item.logo);
 				tdl.appendChild (img);
 				tr.appendChild (tdl);
+				
+				var td0 = document.createElement ("td");
+				td0.appendChild (document.createTextNode (item.icon));
+				tr.appendChild (td0);
 				
 				var td1 = document.createElement ("td");
 				var diff = this.#now - item.date;
@@ -576,7 +571,7 @@ if (url.searchParams.get("cat") != "prive" || url.searchParams.get("post") != "2
 
 var div_result = document.createElement("div");
 div_result.style = "margin: 5px 0px 0px; overflow-y: auto; max-height: 300px; height: auto;";
-var table = new Hfr.Table ([ "tracker", "date", "titre", "taille" ]);
+var table = new Hfr.Table ([ "tracker", "type", "date", "titre", "taille" ]);
 div_result.appendChild (table.element);
 var div = document.createElement("div");
 div.appendChild (document.createTextNode ("🏴‍☠️"));
