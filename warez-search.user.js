@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper
 // @name          [HFR] warez search
-// @version       0.0.5
+// @version       0.0.6
 // @namespace     forum.hardware.fr
 // @description   recherche de contenu
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -20,6 +20,18 @@
 // @grant         GM.getValue
 // @grant         GM.setValue
 // ==/UserScript==
+
+var style = document.createElement ("style");
+style.textContent = `tbody.warez-body {
+	display: block; height: 300px; overflow-y:auto;
+}
+
+thead.warez-head, tbody.warez-body tr {
+    display:table;
+    width:100%;
+    table-layout:fixed;
+}`;
+document.querySelector ("head").appendChild (style);
 
 class SearchItem {
 	#uri;
@@ -428,7 +440,7 @@ let Hfr = {
 			this.#now = new Date();
 			this.#table = document.createElement ("table");
 			var thead = document.createElement ("thead");
-			thead.style = "text-align: center";
+			thead.setAttribute ("class", "warez-head");
 			var trh = document.createElement ("tr");
 			names.forEach (name => {
 				var th = document.createElement ("th");
@@ -464,6 +476,7 @@ let Hfr = {
 			thead.appendChild (trh);
 			this.#table.appendChild (thead);
 			this.#body = document.createElement ("tbody");
+			this.#body.setAttribute ("class", "warez-body");
 			this.#table.appendChild (this.#body);
 		}
 
@@ -570,7 +583,6 @@ if (url.searchParams.get("cat") != "prive" || url.searchParams.get("post") != "2
 	return;
 
 var div_result = document.createElement("div");
-div_result.style = "margin: 5px 0px 0px; overflow-y: auto; max-height: 300px; height: auto;";
 var table = new Hfr.Table ([ "tracker", "type", "date", "titre", "taille" ]);
 div_result.appendChild (table.element);
 var div = document.createElement("div");
