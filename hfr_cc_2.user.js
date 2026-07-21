@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.8
+// @version       1.6.9
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -23,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6.9          rehost des miniatures des sites externes
 // 1.6.7          Correction Unicode + alignement des emojis
 // 1.6.3          Instagram : récupération du token
 // 1.6            Instagram : utilisation de l'API
@@ -639,27 +640,30 @@ class Embed {
 							uri : link,
 							site : site,
 							title : Social.normalize (title),
-							description : Social.normalize(desc),
+							description : Social.normalize (desc),
 						}));
 					else {
-						Utils.getImageInfo (m.getAttribute ("content")).then (info => {
-							var w = Math.floor (info.width * 180 / info.height);
-							var h = 180;
-							resolve (new Embed ({
-								uri : link,
-								site : site,
-								title : Social.normalize(title),
-								description : Social.normalize(desc),
-								thumb : m.getAttribute ("content"),
-								thumb_width : w,
-								thumb_height : h
-							}));
+						console.log ("image : " + m.getAttribute ("content"));
+						
+						Hfr.fetch (m.getAttribute ("content")).then (rep => rep.blob()).then (blob => {
+							new Rehost().uploadAsync (blob).then (upload => {
+								resolve (new Embed ({
+									uri : link,
+									site : site,
+									title : Social.normalize (title),
+									description : Social.normalize (desc),
+									thumb : upload.url,
+									thumb_width : upload.width,
+									thumb_height : upload.height
+								}))
+							}).catch (e => reject (link));
 						}).catch (e => {
 							console.log (e);
 							reject (link);
 						});
 					}
 				}).catch (e => {
+					console.log ("rejet doc");
 					console.log  (e);
 					reject (link);
 				});
@@ -2691,7 +2695,6 @@ class Utils {
 	}
 
 	static displayImage (upload) {
-		console.log (upload);
 		return new Promise ((res, rej) => {
 			var dialog = new Dialog();
 			dialog.closed (d => { d.destroy(); rej ("annulé"); });
@@ -2744,7 +2747,6 @@ class Utils {
 				var nw = val * w / h;
 				if (val >= 1000 || nw >= 1000)
 					return;
-				console.log (val + "::" + nw);
 				img.height = val;
 				img.width = Math.floor (val*w/h);
 				button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
@@ -2864,7 +2866,6 @@ if (document.location.href.indexOf ("https://www.instagram.com") == 0) {
 	Hfr.Data.get().then (msg => {
 		if (!msg.data.hasOwnProperty ("insta_token") || msg.data.insta_token != cookies.getCookie ("csrftoken")) {
 			msg.data.insta_token = cookies.getCookie ("csrftoken");
-			console.log ("prout caca");
 			msg.update();
 		}
 	})
@@ -2920,7 +2921,7 @@ Utils.init (table => {
 				if (u.searchParams.get("hfr-cc-image") == "true")
 					img.style.margin = "";
 			} catch {
-				console.log (img.getAttribute ("src"));
+				
 			}
 		});
 		for (var textarea of document.querySelectorAll("textarea")) {
@@ -2970,7 +2971,7 @@ Utils.init (table => {
 			if (u.searchParams.get("hfr-cc-image") == "true")
 				img.style.margin = "";
 		} catch {
-			console.log (img.getAttribute ("src"));
+			
 		}
 	});
 	document.querySelectorAll (".cLink").forEach (function (link) {
