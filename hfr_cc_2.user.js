@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.9
+// @version       1.6.10
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -23,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6.10         conversion de la miniature avant rehost (en cas de webp)
 // 1.6.9          rehost des miniatures des sites externes
 // 1.6.7          Correction Unicode + alignement des emojis
 // 1.6.3          Instagram : récupération du token
@@ -645,16 +646,16 @@ class Embed {
 					else {
 						console.log ("image : " + m.getAttribute ("content"));
 						
-						Hfr.fetch (m.getAttribute ("content")).then (rep => rep.blob()).then (blob => {
-							new Rehost().uploadAsync (blob).then (upload => {
+						Utils.downloadImage (m.getAttribute ("content")).then (blob => {
+							UploadService.getDefault().uploadAsync (blob).then (upload => {
 								resolve (new Embed ({
 									uri : link,
 									site : site,
 									title : Social.normalize (title),
 									description : Social.normalize (desc),
 									thumb : upload.url,
-									thumb_width : upload.width,
-									thumb_height : upload.height
+									thumb_width : upload.minWidth,
+									thumb_height : upload.minHeight
 								}))
 							}).catch (e => reject (link));
 						}).catch (e => {
@@ -1299,8 +1300,7 @@ class BlueSky extends Social {
 					if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
 						this.images.push (new Hfr.Image (data.embed.external.uri));
 					else {
-						var thumb = typeof (data.embed.external.thumb) == "string" ? data.embed.external.thumb : `https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${data.embed.external.thumb.ref["$link"]}`;
-						
+						console.log (data.embed.external);
 						this.embed = Embed.load (data.embed.external.uri);
 					}
 				}
@@ -1922,6 +1922,13 @@ class Upload {
 	get width() { return this.#w; }
 	set height (l) { this.#h = l; }
 	get height() { return this.#h; }
+	
+	get minHeight() {
+		return 200;
+	}
+	get minWidth() {
+		return Math.round (200 * this.width / this.height);
+	}
 }
 
 class Rehost extends UploadService {
