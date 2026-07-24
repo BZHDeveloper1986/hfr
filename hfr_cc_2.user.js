@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.10
+// @version       1.6.11
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -2226,8 +2226,16 @@ class Utils {
 		var strn = str.normalize ("NFKD");
 		var arr = [...strn];
 		var res_arr = [];
+		var emoji = "emojis";
+		var emoji_size = Utils.getValue ("hfr-copie-colle-emoji", "micro");
+		if (emoji_size != "normal")
+			emoji += `-${emoji_size}`;
 		for (var i = 0; i < arr.length; i++) {
 			var code = arr[i].codePointAt (0);
+			if (code >= 127462 && code <= 127487) {
+				res_arr.push ("[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + code.toString (16) + ".png?hfr-cc-image=true&raw=true[/img]");
+				continue;
+			}
 			if (code >= 127312 && code <= 127363)
 				code -= 127247;
 			else if (code >= 9398 && code <= 9449)
@@ -2236,8 +2244,6 @@ class Utils {
 				code -= 127183;
 			else if (code >= 9372 && code <= 9397)
 				code -= 9307;
-			else if (code >= 127462 && code <= 127487)
-				code -= 127397;
 			else if (code >= 120406 && code <= 120457)
 				code -= 120335;
 			res_arr.push (String.fromCodePoint (code));
