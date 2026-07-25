@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.11
+// @version       1.6.12
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -23,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6.12         correction regex Instagram
 // 1.6.10         conversion de la miniature avant rehost (en cas de webp)
 // 1.6.9          rehost des miniatures des sites externes
 // 1.6.7          Correction Unicode + alignement des emojis
@@ -164,7 +165,7 @@ class Expr {
 	}
 
 	static get instagram() {
-		return new Expr ("^(https://(www\\.)?instagram\\.com/(\\w+/)?(p|reel)/(?<shortcode>[-_a-zA-Z0-9]+)/?)");
+		return new Expr ("^(https://(www\\.)?instagram\\.com/(p|reels)/(?<shortcode>[-_a-zA-Z0-9]+)/?)");
 	}
 
 	static get threads() {
