@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.12
+// @version       1.6.13
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -165,7 +165,7 @@ class Expr {
 	}
 
 	static get instagram() {
-		return new Expr ("^(https://(www\\.)?instagram\\.com/(p|reels)/(?<shortcode>[-_a-zA-Z0-9]+)/?)");
+		return new Expr ("^(https://(www\\.)?instagram\\.com/(p|reels|reel)/(?<shortcode>[-_a-zA-Z0-9]+)/?)");
 	}
 
 	static get threads() {
