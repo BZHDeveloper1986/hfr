@@ -2268,7 +2268,10 @@ class Utils {
 		var emoji_size = Utils.getValue ("hfr-copie-colle-emoji", "micro");
 		if (emoji_size != "normal")
 			emoji += `-${emoji_size}`;
-		return text.replaceAll (/\p{RGI_Emoji}/gv, m => {
+		return text
+		.replaceAll ("🕉", "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/1f549.png?hfr-cc-image=true&raw=true[/img]")
+		.replaceAll ("🕊", "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/1f54A.png?hfr-cc-image=true&raw=true[/img]")
+		.replaceAll (/\p{RGI_Emoji}/gv, m => {
 			var arr = [];
 			[...m].forEach (c => { 
 				var s = c.codePointAt(0).toString(16);
