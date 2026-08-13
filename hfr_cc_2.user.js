@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.15
+// @version       1.6.16
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -23,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6.16         Le text d'un post insta peut être nul
 // 1.6.12         correction regex Instagram
 // 1.6.10         conversion de la miniature avant rehost (en cas de webp)
 // 1.6.9          rehost des miniatures des sites externes
@@ -981,7 +982,7 @@ class Instagram extends Social {
 		this.user = data.user.username;
 		this.info = `(@${this.user})`;
 		this.link = url;
-		this.text = Social.normalize (data.caption.text)
+		this.text = (data.caption == null || data.caption.text == null) ? "" : Social.normalize (data.caption.text)
 				.replaceAll (/#(\p{L}|\p{N})+/gu, match => { return "[url=https://www.instagram.com/explore/search/keyword/?q=" + match + "][b]" + match + "[/b][/url]"; })
 				.replaceAll (/@\w+/g, match => { return "[url=https://www.instagram.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; });
 		
