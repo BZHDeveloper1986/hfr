@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.17
+// @version       1.6.18
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -1900,9 +1900,9 @@ class UploadService {
 
 	static getDefault() {
 		var svc = Utils.getValue ("hfr-copie-colle-service");
-		if (svc == "rehost")
-			return new Rehost();
-		return new Imgur();
+		if (svc == "imgur")
+			return new Imgur();
+		return new Rehost();
 	}
 }
 
