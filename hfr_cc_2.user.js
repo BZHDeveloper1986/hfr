@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.18
+// @version       1.6.19
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -23,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6.19         Suppression de Imgur pour les images; ajoute de ImgBB
 // 1.6.16         Le text d'un post insta peut être nul
 // 1.6.12         correction regex Instagram
 // 1.6.10         conversion de la miniature avant rehost (en cas de webp)
@@ -1895,13 +1896,13 @@ class UploadService {
 	static getService (service) {
 		if (service == "rehost")
 			return new Rehost();
-		return new Imgur();
+		return new ImgBB();
 	}
 
 	static getDefault() {
 		var svc = Utils.getValue ("hfr-copie-colle-service");
-		if (svc == "imgur")
-			return new Imgur();
+		if (svc == "imgbb")
+			return new ImgBB();
 		return new Rehost();
 	}
 }
@@ -1938,6 +1939,37 @@ class Upload {
 	}
 }
 
+class ImgBB extends UploadService {
+	get name() { return "imgbb"; }
+	// b39d391af0123f67bdc1a51ff6808fcf
+	upload (file, resolve, reject) {
+		var data = new FormData();
+		data.append ("image", file);
+		Hfr.fetch ("https://api.imgbb.com/1/upload?key=b39d391af0123f67bdc1a51ff6808fcf", {
+			method : "POST",
+			body : data
+		}).then (rep => rep.json())
+			.then (obj => {
+				console.log (obj);
+				if (obj.status != 200)
+					reject (obj.status);
+				else {
+					var d = obj.data;
+					var up = new Upload (d.image.url, d.image.url.endsWith (".gif"));
+					up.height = d.height;
+					up.width = d.width;
+					up.sizes["miniature"] = d.thumb.url;
+					up.sizes["moyenne"] = d.medium.url;
+					up.sizes["normale"] = d.image.url;
+					resolve (up);
+				}
+			})
+			.catch (e => {
+				reject (e);
+			});
+	}
+}
+
 class Rehost extends UploadService {
 	get name() { return "rehost"; }
 
@@ -1959,35 +1991,6 @@ class Rehost extends UploadService {
 			.catch (e => {
 				reject (e);
 			});
-	}
-}
-
-class Imgur extends UploadService {
-	get name() { return "imgur"; }
-
-	upload (file, resolve, reject) {
-		var data = new FormData();
-		data.append ("image", file);
-		Hfr.fetch ("https://api.imgur.com/3/image", {
-			method : "POST",
-			body : data,
-			headers : {
-				"Authorization" : "Client-ID d1619618d2ac442"
-			}
-		}).then (rep => rep.json())
-		.then (object => {
-			var up = new Upload (object.data.link, object.data.type == "image/gif");
-			up.width = object.data.width;
-			up.height = object.data.height;
-			up.sizes["petit carré"] = object.data.link.replace (object.data.id, object.data.id + "s");
-			up.sizes["grand carré"] = object.data.link.replace (object.data.id, object.data.id + "b");
-			up.sizes["petite miniature"] = object.data.link.replace (object.data.id, object.data.id + "t");
-			up.sizes["miniature"] = object.data.link.replace (object.data.id, object.data.id + "m");
-			up.sizes["large miniature"] = object.data.link.replace (object.data.id, object.data.id + "l");
-			up.sizes["énorme miniature"] = object.data.link.replace (object.data.id, object.data.id + "h");
-			resolve (up);
-		})
-		.catch (e => reject (e));
 	}
 }
 
@@ -3139,8 +3142,8 @@ if (document.location.href.indexOf ("https://www.instagram.com") == 0) {
 }
 
 Utils.registerCommand ("Copie/Colle -> choix du service", () => {
-	var service = prompt ("Entrez ici le service d'image désiré (imgur, ou rehost)", Utils.getValue ("hfr-copie-colle-service", ""));
-	if (service == "imgur" || service == "rehost")
+	var service = prompt ("Entrez ici le service d'image désiré (imgbb, ou rehost)", Utils.getValue ("hfr-copie-colle-service", ""));
+	if (service == "imgbb" || service == "rehost")
 		Utils.setValue ("hfr-copie-colle-service", service);
 });
 
