@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.19
+// @version       1.6.20
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -163,7 +163,7 @@ class Expr {
 	}
 	
 	static get bluesky() {
-		return new Expr ("^(https://(?<instance>[\\w\\.\\-]+)/profile/(?<handle>[\\w\\.\\-]+)/post/(?<hash>\\w+))$");
+		return new Expr ("^(https://(?<instance>[\\w\\.\\-]+)/profile/(?<handle>[:\\w\\.\\-]+)/post/(?<hash>\\w+))$");
 	}
 
 	static get instagram() {
@@ -1235,28 +1235,42 @@ class BlueSky extends Social {
 		return new Promise ((resolve, reject) => {
 			(async () => {
 				var res = Expr.bluesky.exec (url);
-				Hfr.fetch ("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + res.groups.handle)
-					.then (rep => rep.json())
-					.then (json => {
-						var u = `at://${json.did}/app.bsky.feed.post/${res.groups.hash}`;
-						Hfr.fetch (`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`)
-							.then (rep => rep.json())
-							.then (json => resolve (new BlueSky (json.thread.post)))
-							.catch (e => {
-								console.log (e);
-								reject (url);
-							});
-					})
-					.catch (e => {
-						console.log (e);
-						reject (url);
-					});
+				if (res.groups.handle.indexOf ("did:") == 0) {
+					var u = `at://${res.groups.handle}/app.bsky.feed.post/${res.groups.hash}`;
+					Hfr.fetch (`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`)
+						.then (rep => rep.json())
+						.then (json => resolve (new BlueSky (json.thread.post)))
+						.catch (e => {
+							console.log (e);
+							reject (url);
+						});
+				}
+				else
+					Hfr.fetch ("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + res.groups.handle)
+						.then (rep => rep.json())
+						.then (json => {
+							var u = `at://${json.did}/app.bsky.feed.post/${res.groups.hash}`;
+							Hfr.fetch (`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`)
+								.then (rep => rep.json())
+								.then (json => resolve (new BlueSky (json.thread.post)))
+								.catch (e => {
+									console.log (e);
+									reject (url);
+								});
+						})
+						.catch (e => {
+							console.log (e);
+							reject (url);
+						});
 			})();
 		});
 	}
 
 	constructor (data) {
 		super();
+		
+		console.log (data);
+		
 		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/327943${Social.hasMEP()}[/img]`;
 		var did = data.uri.split ("at://")[1].split ("/")[0];
 		var hash = data.uri.split ("app.bsky.feed.post/")[1];
@@ -1302,6 +1316,10 @@ class BlueSky extends Social {
 				var i = new Hfr.Image (img.thumb);
 				this.images.push (i);
 			});
+			if (data.embed["$type"] == "app.bsky.embed.gallery#view")
+				data.embed.items.forEach (item => {
+					this.images.push (new Hfr.Image (item.fullsize));
+				});
 			if (data.embed.external != null) {
 				if (imgs.length == 0) {
 					var u = new URL (data.embed.external.uri);
