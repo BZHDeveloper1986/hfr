@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.20
+// @version       1.6.21
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -23,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6.21         Possibilité de changer le service d'image pour les miniatures
 // 1.6.19         Suppression de Imgur pour les images; ajoute de ImgBB
 // 1.6.16         Le text d'un post insta peut être nul
 // 1.6.12         correction regex Instagram
@@ -527,7 +528,7 @@ let Hfr = {
 				return Promise.resolve (this.toString());
 			return new Promise ((resolve, reject) => {
 				Utils.downloadImage (this.url).then (file => {
-					new Rehost().uploadAsync (file).then (upload => {
+					UploadService.getDefault().uploadAsync (file).then (upload => {
 						this.#h = upload.height;
 						this.#w = upload.width;
 						this.#src = upload.url;
