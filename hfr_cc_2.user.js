@@ -7,7 +7,7 @@
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
 // @downloadURL   https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
 // @updateURL     https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
-// @require       https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/video.js
+// @require       https://vjs.zencdn.net/8.0.4/video.js
 // @require       https://raw.githubusercontent.com/7Ds7/videojs-vjsdownload/refs/heads/master/dist/videojs-vjsdownload.js
 // @include       https://forum.hardware.fr/*
 // @include       https://www.instagram.com
@@ -2057,7 +2057,7 @@ class Utils {
 		});
 	}
 	
-	static addCss (url) {
+	static add (url) {
 		var head = document.getElementsByTagName('head')[0];
 		if (!head) { return; }
 		var link = document.createElement ("link");
@@ -3179,7 +3179,7 @@ Utils.registerCommand ("Copie/Colle -> détail des liens", () => {
 
 Utils.init (table => {
 	Utils.emojis = table;
-	Utils.addCss ("https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/video-js.css");
+	Utils.addCss ("https://vjs.zencdn.net/8.0.4/video-js.css");
 	Utils.addCss ("https://7ds7.github.io/videojs-vjsdownload/dist/videojs-vjsdownload.css");
 	Utils.addJs ("https://vjs.zencdn.net/8.0.4/video.js");
 	Utils.addJs ("https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js", true);
