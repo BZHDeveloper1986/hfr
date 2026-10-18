@@ -1,13 +1,13 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.21
+// @version       1.6.22
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
 // @downloadURL   https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
 // @updateURL     https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
-// @require       https://unpkg.com/video.js/dist/video.min.js
+// @require       https://cdn.jsdelivr.net/npm/@videojs/cdn@10.1.0/video.js
 // @require       https://raw.githubusercontent.com/7Ds7/videojs-vjsdownload/refs/heads/master/dist/videojs-vjsdownload.js
 // @include       https://forum.hardware.fr/*
 // @include       https://www.instagram.com
@@ -23,6 +23,7 @@
 // ==/UserScript==
 
 // Historique
+// 1.6.22         Changement du CDN pour video.js
 // 1.6.21         Possibilité de changer le service d'image pour les miniatures
 // 1.6.19         Suppression de Imgur pour les images; ajoute de ImgBB
 // 1.6.16         Le text d'un post insta peut être nul
