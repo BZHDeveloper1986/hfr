@@ -1978,8 +1978,10 @@ class ImgBB extends UploadService {
 					var up = new Upload (d.image.url, d.image.url.endsWith (".gif"));
 					up.height = d.height;
 					up.width = d.width;
-					up.sizes["miniature"] = d.thumb.url;
-					up.sizes["moyenne"] = d.medium.url;
+					if (d.thumb)
+						up.sizes["miniature"] = d.thumb.url;
+					if (d.medium)
+						up.sizes["moyenne"] = d.medium.url;
 					up.sizes["normale"] = d.image.url;
 					resolve (up);
 				}
