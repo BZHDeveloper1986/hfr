@@ -3144,118 +3144,14 @@ class Utils {
 	}
 
 static paste (event) {
+	event.preventDefault();
  console.log ("prout");
     const userAgent = window.navigator.userAgent;
 	const platform = window.navigator?.userAgentData?.platform || window.navigator.platform;
     console.log (userAgent);
     console.log (platform);
-    if (!navigator?.clipboard?.read)
-				alert ("navigator.clipboard.read : fonction non présente ou non activée.\nVous êtes sur Firefox : suivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_240.htm#t67904757")
-			else
-				navigator.clipboard.read().then(array => {
-					for (var item of array) {
-						console.log (item.types);
-						if (Utils.isGDoc (item)) {
-							event.target.disabled = true;
-							loading.attach (event.target);
-							Utils.pasteHtml (item).then (bbcode => {
-								Utils.insertText (event.target, bbcode);
-								loading.destroy();
-								event.target.disabled = false;
-								event.target.focus();
-							}).catch (e => {
-								Utils.insertText (event.target, e);
-								loading.destroy();
-								event.target.disabled = false;
-								event.target.focus();
-							});
-						}
-						else if (item.types.indexOf ("text/plain") >= 0) {
-							event.target.disabled = true;
-							loading.attach (event.target);
-							Utils.pasteText (item).then (text => {
-								Utils.insertText (event.target, Utils.formatText (text));
-                                Utils.insertText (platform + " :: " + userAgent);
-								loading.destroy();
-								event.target.disabled = false;
-								event.target.focus();
-							}).catch (e => {
-								Utils.insertText (event.target, Social.normalize (e));
-								loading.destroy();
-								event.target.disabled = false;
-								event.target.focus();
-							});
-						}
-						else
-							for (var type of item.types) {
-								if (type.indexOf ("video/") == 0) {
-									event.target.disabled = true;
-									loading.attach (event.target);
-									Utils.uploadVideo (item).then (bbcode => {
-										Utils.insertText (event.target, bbcode);
-										loading.destroy();
-										event.target.disabled = false;
-										event.target.focus();
-									}).catch (e => {
-										loading.destroy();
-										event.target.disabled = false;
-										event.target.focus();
-										console.log (e);
-									});
-									break;
-								}
-								else if (type.indexOf ("audio/") == 0) {
-									event.target.disabled = true;
-									loading.attach (event.target);
-									Utils.uploadGofile (item, type).then (bbcode => {
-										Utils.insertText (event.target, bbcode);
-										loading.destroy();
-										event.target.disabled = false;
-										event.target.focus();
-									}).catch (e => {
-										loading.destroy();
-										event.target.disabled = false;
-										event.target.focus();
-										console.log (e);
-									});
-									break;
-								}
-								else if (type.indexOf ("image/") == 0) {
-									event.target.disabled = true;
-									loading.attach (event.target);
-									Utils.pasteImage (item, type).then (upload => {
-										if (event.altKey) {
-											Utils.insertText (event.target, "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");
-											loading.destroy();
-											event.target.disabled = false;
-											event.target.focus();
-										}
-										else
-											Utils.displayImage (upload).then (bbcode => {
-												Utils.insertText (event.target, bbcode);
-												loading.destroy();
-												event.target.disabled = false;
-												event.target.focus();
-											}).catch (e => {
-												console.log (e);
-												loading.destroy();
-												event.target.disabled = false;
-												event.target.focus();
-											});
-									}).catch (e => {
-										loading.destroy();
-										event.target.disabled = false;
-										event.target.focus();
-										console.log (e);
-									});
-									break;
-								}
-							}
-					}
-				}).catch(e => {
-					console.log (e);
-				});
-			event.preventDefault();
+    
+	Utils.insertText (event.target, userAgent);
 }
 }
 
