@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.28
+// @version       1.6.29
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -3145,6 +3145,7 @@ class Utils {
 
 static paste (event) {
 	event.preventDefault();
+	var loading = new Loading();
  console.log ("prout");
     const userAgent = window.navigator.userAgent;
 	const platform = window.navigator?.userAgentData?.platform || window.navigator.platform;
