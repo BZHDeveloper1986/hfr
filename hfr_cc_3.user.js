@@ -1,14 +1,17 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
-// @name          [HFR] Copié/Collé v3
-// @version       1.6.0
+// @name          [HFR] Copié/Collé v2
+// @version       1.6.26
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
 // @downloadURL   https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
 // @updateURL     https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/hfr_cc_2.user.js
-// @require       https://unpkg.com/video.js/dist/video.min.js
+// @require       https://vjs.zencdn.net/8.0.4/video.js
+// @require       https://raw.githubusercontent.com/7Ds7/videojs-vjsdownload/refs/heads/master/dist/videojs-vjsdownload.js
 // @include       https://forum.hardware.fr/*
+// @include       https://www.instagram.com
+// @include       https://www.instagram.com/*
 // @noframes
 // @grant         GM.info
 // @grant         GM.xmlHttpRequest
@@ -20,64 +23,397 @@
 // ==/UserScript==
 
 // Historique
-// 1.2            on repart de la v2.
+// 1.6.22         Changement du CDN pour video.js
+// 1.6.21         Possibilité de changer le service d'image pour les miniatures
+// 1.6.19         Suppression de Imgur pour les images; ajoute de ImgBB
+// 1.6.16         Le text d'un post insta peut être nul
+// 1.6.12         correction regex Instagram
+// 1.6.10         conversion de la miniature avant rehost (en cas de webp)
+// 1.6.9          rehost des miniatures des sites externes
+// 1.6.7          Correction Unicode + alignement des emojis
+// 1.6.3          Instagram : récupération du token
+// 1.6            Instagram : utilisation de l'API
+// 1.5.54         correction dans l'envoi de vidéo (préférence pour imgur)
+// 1.5.53         upload petite vidéo
+// 1.5.52         BlueSky : mise à jour
+// 1.5.46         Instagram : c'est revenu (pour le moment)
+// 1.5.44         limitation de la taille de l'image à afficher
+// 1.5.43         Twitter : correction (encore)
+// 1.5.42         BlueSky : pas de pré chargement de l'image (à cause du format webp)
+// 1.5.40         Ajout de TikTok.
+// 1.5.39         Si "mise en page" est installé, ne pas modifier les URL
+// 1.5.38         Social : affichage des icônes hors des liens (bug URL imbriquées)
+// 1.5.37         Ajout d'un paramètre dans l'url des images/emojis pour garder l'affichage
+// 1.5.35         wzsqhw odshs yhyh.
+// 1.5.26         Gestion des medias embarqués/imbriqués
+// 1.5.20         Retrait support gofile. correction vidéo pour firefox
+// 1.5.19         Emoji 17.0, regex simplifiée
+// 1.5.15         Simplification du code
+// 1.5.13         Merci pour tout Marc
+// 1.5.10         Modification de la taille de l'image avant collage
+// 1.5.8          Threads + correction instagram
+// 1.5.7          Correction emoji
+// 1.5.6          Taille de l'image de prévisualisation.
+// 1.5.4          Correction Instagram
+// 1.5.3          Affichage des liens si HTML avec description.
+// 1.5.1          Correctif vidéo reddit pour firefox
+// 1.5            Refonte complète du code : utilisation de classes, promesses, etc.
+// 1.4.75         Correction d'un bug avec les vidéos Reddit.
+// 1.4.73         Twitter : nique-toi Elon
+// 1.4.70         ajoute d'une boîte text 
+// 1.4.68         édition casse-bonbons
+// 1.4.67         vidéos Mastodon
+// 1.4.66         ajout de Truth Social (instance mastodon)
+// 1.4.65         Unicode 16.0
+// 1.4.63         modification des # chez Bluesky.
+// 1.4.62         Correction du contrôle image GDoc
+// 1.4.61         Collage des images Google Docs.
+// 1.4.60         Gitlab s'emmerdifie, on va tenter Github.
+// 1.4.58         Choix du service d'envoi d'images.
+// 1.4.56         BlueSky : normalisation du texte enrichi
+// 1.4.55         tant pis pour les GIF sous Fofox.
+// 1.4.54         Nouvelle URL pour les emojis.
+// 1.4.53         le dev est un idiot.
+// 1.4.52         correction d'URL.
+// 1.4.50         Normalisation des chaînes de caractères.
+// 1.4.49         BlueSky : souci avec les images.
+// 1.4.48         BlueSky : les GIF sont là.
+// 1.4.46         BlueSky : compte le texte en octets, pas en caractères...
+// 1.4.45         BlueSky : c'est un *** leur gestion des données.
+// 1.4.44         BlueSky : Correction du profil.
+// 1.4.43         BlueSky : description du lien externe.
+// 1.4.42         BlueSky : ajout du profil (en travaux :o)
+// 1.4.41         BlueSky : ajout du logo.
+// 1.4.40         BlueSky : miniature des liens, si existe.
+// 1.4.39         BlueSky : ajout des images & video.
+// 1.4.38         alerte firefox sur une fonctionnalité désactivée.
+// 1.4.37         Taille limite pour imgur (*** alors eux).
+// 1.4.35         Twitter : correction affichage emojis dans le texte.
+// 1.4.34         Mastodon : emojis dans le nom de l'utilisateur.
+// 1.4.33         Instagram ne fonctionne plus
+// 1.4.28         Firefox : affichage de l'activation dans une alerte.
+// 1.4.27         ajout d'un contrôle de compatibilité :o
+// 1.4.26         BS : citations
+// 1.4.25         BS : affichage de miniature si possible
+// 1.4.24         BS : possibilité de voir le message pour les non connectés/inscrits.
+// 1.4.23         BlueSky
+// 1.4.19         Twitter/X : ajout du nouveau logo.
+// 1.4.18         Ajout d'un caractère par défaut si la zone de texte ne contient pas de texte.
+// 1.4.17         Twitter : mise à jour des URL.
+// 1.4.16         Twitter : mélange des medias (photo/gif/video).
+// 1.4.15         Tentative de correction de la partie Twitter.
+// 1.4.14         Correction YouTube.
+// 1.4.13         Correction de l'analyse des URL.
+// 1.4.12         Gestion des différentes certifications.
+// 1.4.11         Correction dans les caractères spéciaux des textes Twitter.
+// 1.4.10         Gestion du glisser/déposer de plusieurs fichiers.
+// 1.4.9          Effacement des images, amélioration de la fenêtre
+// 1.4.8          Compatibilité MacOS
+// 1.4.7          test effacement des images
+// 1.4.6          Erreur dans le collage des "card" twitter
+// 1.4.4          Correction de l'affichage des emojis
+// 1.4.3          la zone texte perdait le focus
+// 1.4.2          fix possible pour firefox ?
+// 1.4.1          reddit : passage au lecteur video.js
+// 1.4            ajout de reddit.
+// 1.3            fenêtre de visualisation de l'image avant collage.
+// 1.2            on repart de la v1.
 
 console.log ("Merci pour tout Marc 🕊️");
 
-class Headers {
-	#obj;
-
-	constructor() {
-		this.#obj = {};
+class Expr {
+	#patt;
+	
+	constructor (str) {
+		this.#patt = str;
+	}
+	
+	exec (str) {
+		return new RegExp (this.#patt).exec (str);
+	}
+	
+	match (str) {
+		return this.exec (str) != null;
+	}
+	
+	get pattern() {
+		return this.#patt;
+	}
+	
+	static get twitter() {
+		return new Expr ("^((https|http)://(mobile\\.)?(twitter|x)\\.com/(?<handle>\\w+)/status/(?<id>\\d+)(\\?s=\\d+)?\\??.*)$");
+	}
+	
+	static get mastodon() {
+		return new Expr ("^(https://(?<instance>[a-z\\.]+)/@\\w+(@[a-z\\.]+)?/(?<tid>\\d+))$");
+	}
+	
+	static get truthsocial() {
+		return new Expr ("^(https://(?<instance>[a-z\\.]+)/@\\w+(@[a-z\\.]+)?/posts/(?<tid>\\d+))$");
+	}
+	
+	static get zippy() {
+		return new Expr ("^(https://www41\\.zippyshare\\.com/downloadAudioHQ\\?key=\\w+)$");
+	}
+	
+	static get reddit() {
+		return new Expr ("^(https://www\\.reddit\\.com/r/\\w+/comments/\\w+/[àáâãäåçèéêëìíîïðòóôõöùúûüýÿ\\w%]+/)$");
 	}
 
-	setHeader (name, value) {
-		if (!(name in this.#obj))
-			this.#obj[name] = [];
-		this.#obj[name].push (value);
+	static get shreddit() {
+		return new Expr ("^(https://www\\.reddit\\.com/r/\\w+/s/\\w+)$");
+	}
+	
+	static get bluesky() {
+		return new Expr ("^(https://(?<instance>[\\w\\.\\-]+)/profile/(?<handle>[:\\w\\.\\-]+)/post/(?<hash>\\w+))$");
 	}
 
-	getHeader (name) {
-		if (name in this.#obj)
-			return this.#obj[name];
-		return [];
+	static get instagram() {
+		return new Expr ("^(https://(www\\.)?instagram\\.com/(p|reels|reel)/(?<shortcode>[-_a-zA-Z0-9]+)/?)");
 	}
 
-	get contentType() {
-		var a = this.getHeader ("content-type");
-		if (a.length == 0)
-			return "application/octet-stream";
-		return a[0];
+	static get threads() {
+		return new Expr ("^(https://www\\.threads\\.com/@[\\w\\.]+/post/[\\w\\-]+(\\?[\\w\\+\\-\\=\\&]+)?)$");
 	}
 
-	static parse (str) {
-		var headers = new Headers();
-		var p = str.split ("\n");
-		p.forEach (line => {
-			var l = line;
-			var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
-			l.substring (l.indexOf (":") + 1).split (";").forEach (v => {
-				headers.setHeader (k, v.trim());
-			});
-		});
-		return headers;
+	static get tiktok() {
+		return new Expr ("https://www\\.tiktok\\.com/@\\w+/video/(?<id>\\d+)");
+	}
+	
+	static get twitch() {
+		return new Expr ("^(https://www\\.twitch\\.tv/(?<channel>\\w+)(/.+)?)");
 	}
 }
 
 let Hfr = {
+	Cookie : class {
+		#sname;
+		#svalue;
+
+		constructor (s) {
+			this.#sname = s.substring (0, s.indexOf ("="));
+			this.#svalue = s.substring (1 + s.indexOf ("="));
+		}
+
+		get name() {
+			return this.#sname;
+		}
+
+		get value() {
+			return this.#svalue;
+		}
+	},
+	Cookies : class {
+		#cookies;
+
+		constructor() {
+			this.#cookies = [];
+		}
+
+		getCookie (name) {
+			for (var cookie of this.#cookies)
+				if (cookie.name == name)
+					return cookie.value;
+			return "";
+		}
+
+		hasCookie (name) {
+			for (var cookie of this.#cookies)
+				if (cookie.name == name)
+					return true;
+			return false;
+		}
+		
+		get list() {
+			return this.#cookies;
+		}
+
+		static parse() {
+			var cookies = new Hfr.Cookies();
+			document.cookies.split (";").forEach (st => {
+				cookies.list.push (new Hfr.Cookie (st.trim()));
+			});
+			return cookies;
+		}
+
+		static parseHeaders (headers) {
+			var cookies = new Hfr.Cookies();
+			var p = headers.split ("\n");
+			p.forEach (line => {
+				var l = line;
+				var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
+				if (k == "set-cookie") {
+					l = l.substring (l.indexOf (":") + 1).split (";")[0].trim();
+					cookies.list.push (new Hfr.Cookie (l));
+				}
+			});
+			return cookies;
+		}
+	},
+	Data : class {
+		#obj;
+		#uurl;
+		#numrep;
+
+		constructor (post, numrep, data) {
+			this.#obj = data;
+			this.numrep = numrep;
+			this.#uurl = "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=" + post + "&numreponse=" + numrep + "&page=1&p=1&subcat=0&sondage=0&owntopic=0";
+		}
+
+		update() {
+			Hfr.fetch (this.#uurl)
+			.then (rep => rep.html())
+			.then (doc => {
+				var form = doc.querySelector ("#hop");
+				form.querySelector("#content_form").value = JSON.stringify (this.#obj);
+				var fdata = new FormData (form);
+				Hfr.fetch ("https://forum.hardware.fr/bdd.php?config=hfr.inc", {
+					method : "POST",
+					body : fdata
+				}).then (r => r.html()).then (d => console.log (d))
+				.catch (e => console.log (e));
+			})
+			.catch (caca => {
+				console.log (caca);
+			});
+		}
+
+		get data() {
+			return this.#obj;
+		}
+
+		static #sdata;
+
+		static get values() {
+			return this.#sdata;
+		}
+		static set values (data) {
+			this.#sdata = data;
+		}
+
+		static create (json) {
+			return new Promise ((resolve, reject) => {
+				Hfr.fetch ("https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=0&p=1&subcat=0&dest=&subcatgroup=0")
+				.then (rep => rep.html())
+				.then (doc => {
+					var form = doc.querySelector ("#hop");
+					form.querySelector("#dest").value = "MultiMP";
+					form.querySelector("#topic_title").value = "hfrccdata";
+					form.querySelector("#content_form").value = JSON.stringify (json);
+					var fdata = new FormData (form);
+					Hfr.fetch ("https://forum.hardware.fr/bddpost.php?config=hfr.inc", {
+						method : "POST",
+						body : fdata
+					})
+					.then (rep => rep.html())
+					.then (doc => resolve (doc))
+					.catch (e => reject (e));
+				})
+				.catch (e => reject (e));
+			});
+		}
+
+		static get () {
+			return new Promise ((resolve, reject) => {
+				Hfr.fetch ("https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1")
+				.then (rep => rep.html())
+				.then (doc => {
+					var found = false;
+					doc.querySelectorAll("tr.sujet").forEach (tr => {
+						if (found)
+							return;
+						var a = tr.querySelector (".sujetCase3 .cCatTopic");
+						var u = tr.querySelector (".sujetCase6 > a");
+						if (a.textContent == "hfrccdata" && u != null && u.textContent == "MultiMP") {
+							found = true;
+							var u = new URL ("https://forum.hardware.fr/" + a.getAttribute ("href"));
+							var post = u.searchParams.get ("post");
+							Hfr.fetch (u.toString())
+							.then (r => r.html())
+							.then (d => {
+								var numrep = d.querySelector("[action='/transsearch.php'] [name='firstnum']").value;
+								var s = d.querySelector(".messCase2 p").textContent;
+								try {
+									var data = JSON.parse (s);
+									var hdata = new Hfr.Data (post, numrep, data);
+									Hfr.Data.values = hdata;
+									resolve (hdata);
+								}
+								catch (err) {
+									reject (err);
+								}
+							})
+							.catch (err => reject (err));
+						}
+					});
+					if (!found)
+						reject ("");
+				})
+				.catch (e => reject (e));
+			});
+		}
+	},
+	Headers : class {
+		#obj;
+
+		constructor() {
+			this.#obj = {};
+		}
+
+		setHeader (name, value) {
+			if (!(name in this.#obj))
+				this.#obj[name] = [];
+			this.#obj[name].push (value);
+		}
+
+		getHeader (name) {
+			if (name in this.#obj)
+				return this.#obj[name];
+			return [];
+		}
+
+		get contentType() {
+			var a = this.getHeader ("content-type");
+			if (a.length == 0)
+				return "application/octet-stream";
+			return a[0];
+		}
+
+		static parse (str) {
+			var headers = new Hfr.Headers();
+			var p = str.split ("\n");
+			p.forEach (line => {
+				var l = line;
+				var k = l.substring (0, l.indexOf (":")).trim().toLowerCase();
+				l.substring (l.indexOf (":") + 1).split (";").forEach (v => {
+					headers.setHeader (k, v.trim());
+				});
+			});
+			return headers;
+		}
+	},
 	Response : class {
-		#rep;
-		#hdr;
+		#u;
 		#data;
+		#hstr;
 
 		constructor (r) {
-			this.#rep = r;
-			this.#hdr = Headers.parse (r.responseHeaders);
-			this.#data = r.response.slice (0, r.response.size, this.#hdr.contentType);
+			this.#hstr = r.responseHeaders;
+			this.#u = r.finalUrl;
+			this.#data = r.response.slice (0, r.response.size, this.headers.contentType);
+		}
+
+		get url() {
+			return this.#u;
+		}
+
+		get cookies() {
+			return Hfr.Cookies.parseHeaders (this.#hstr);
 		}
 
 		get headers() {
-			return this.#hdr;
+			return Hfr.Headers.parse (this.#hstr);
 		}
 
 		blob() {
@@ -86,6 +422,21 @@ let Hfr = {
 
 		text() {
 			return this.#data.text();
+		}
+
+		html() {
+			return new Promise ((resolve, reject) => {
+				this.text().then (txt => {
+					try {
+						var parser = new DOMParser();
+						var doc = parser.parseFromString (txt, "text/html");
+						resolve (doc);
+					}
+					catch {
+						reject (txt);
+					}
+				}).catch (reject);
+			});
 		}
 
 		json() {
@@ -102,21 +453,42 @@ let Hfr = {
 			});
 		}
 	},
-	fetch : function (url) {
+	fetch : function (url, object) {
 		return new Promise ((resolve, reject) => {
-			Utils.request({
+			var req = {
 				method : "GET",
 				url : url,
+				headers : {},
 				onabort : function() { reject (url); },
 				onerror : function() { reject (url); },
 				ontimeout : function() { reject (url); },
-				headers : { "Cookie" : "" },
-				anonymous : true,
 				responseType : "blob",
 				onload : function (response) {
+					console.log (response);
+					if (response.status > 200) {
+						console.warn (response.status);
+						reject (url);
+					}
 					resolve (new Hfr.Response (response));
 				}
-			});
+			};
+			if (typeof (object) == "object") {
+				if (object.hasOwnProperty ("method"))
+					req.method = object["method"];
+				if (object.hasOwnProperty("body"))
+					req.data = object["body"];
+				if (object.hasOwnProperty ("headers") && typeof (object["headers"] == "object")) {
+					for (const [k,v] of Object.entries (object["headers"]))
+						req.headers[k] = v;
+				}
+				if (typeof (object["referrer"]) == "string")
+					req.headers["Referer"] = object["referrer"];
+				if (typeof (object["referrerPolicy"]) == "string")
+					req.headers["Referrer-Policy"] = object["referrerPolicy"];
+				if (typeof (object["credentials"]) == "string")
+					req.anonymous = object["credentials"] != "include";
+			}
+			Utils.request (req);
 		});
 	},
 	Image : class {
@@ -128,11 +500,14 @@ let Hfr = {
 
 		constructor (u) {
 			this.#uri = u;
+			this.#src = u;
 		}
 
 		get height() { return this.#h; }
+		set height (h) { this.#h = h; this.#filled = true; }
 
 		get width() { return this.#w; }
+		set width (w) { this.#w = w; this.#filled = true; }
 
 		get thumbHeight() {
 			return 200;
@@ -150,15 +525,14 @@ let Hfr = {
 		}
 
 		build() {
+			if (this.#filled == true)
+				return Promise.resolve (this.toString());
 			return new Promise ((resolve, reject) => {
-				if (this.#filled == true)
-					return Promise.resolve (this.toString());
-				Hfr.fetch (this.url).then (rep => rep.blob()).then (file => {
-					UploadService.getDefault().uploadAsync (file).then (o => {
-						console.log (o);
-						this.#h = o.height;
-						this.#w = o.width;
-						this.#src = o.url;
+				Utils.downloadImage (this.url).then (file => {
+					UploadService.getDefault().uploadAsync (file).then (upload => {
+						this.#h = upload.height;
+						this.#w = upload.width;
+						this.#src = upload.url;
 						this.#filled = true;
 						resolve (this.toString());
 					}).catch (reject);
@@ -214,7 +588,14 @@ Element.prototype.createPlayer = function (is_gif) {
 	video.setAttribute ("height", "400");
 	video.setAttribute ("class", "video-js");
 	this.parentNode.replaceChild (video, this);
-	video.player = videojs (video);
+	video.player = videojs (video, {
+		plugins: {
+			vjsdownload:{
+				textControl: "télécharge",
+				name: "btnDownload"
+			}
+		}
+	});
 	return video;
 };
 
@@ -232,14 +613,14 @@ class Embed {
 	toString() {
 		var builder = new Builder();
 		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
-		if (this.#data.description && detail == "oui")
-			builder.append (`[url=${this.#data.uri}]${this.#data.site}[/url]`);
-		builder.append (`[url=${this.#data.uri}][b]${this.#data.title}[/b][/url]`);
+		if (this.#data.description && detail == "oui" && this.#data.site.trim().length > 0)
+			builder.append (`[url=${this.#data.uri}]${this.#data.site}[/url]\n`);
+		builder.append (`[url=${this.#data.uri}][b]${this.#data.title}[/b][/url]\n`);
 		if (this.#data.thumb)
-			builder.append (`\n[url=${this.#data.uri}][img=${this.#data.thumb_width},${this.#data.thumb_height}]${this.#data.thumb}[/img][/url]`);
+			builder.append (`\n[url=${this.#data.uri}][img=${this.#data.thumb_width},${this.#data.thumb_height}]${this.#data.thumb}[/img][/url]\n`);
 		var detail = Utils.getValue ("hfr-copie-colle-detail", "non");
 		if (this.#data.description && detail == "oui")
-			builder.append (`\n${Social.normalize (this.#data.description)}`);
+			builder.append (`${Social.normalize (this.#data.description)}`);
 		return builder.toString();
 	}
 
@@ -250,51 +631,52 @@ class Embed {
 	static load (link) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				Utils.request({
-					method : "GET",
-					url : link,
-					onabort : function() { reject (link); },
-					ontimeout : function() { reject (link); },
-					onerror : function() { reject (link); },
-					headers : { "Cookie" : "" },
-					anonymous : true,
-					onload : function (response) {
-						try {
-							var doc = new DOMParser().parseFromString (response.responseText, "text/html");
-							var title = doc.querySelector ("head > title").textContent;
-							var site = doc.querySelector ("head > meta[property='og:site_name']").getAttribute ("content");
-							var desc = doc.querySelector ("head > meta[property='og:description']").getAttribute ("content");
-							var m = doc.querySelector ("head > meta[property='og:image']");
-							if (m == null)
+				Hfr.fetch (link).then (rep => rep.html()).then (doc => {
+					var func = (a) => {
+						var n = doc.querySelector (a);
+						if (n == null) {
+							return "";
+						}
+						return n.getAttribute ("content");
+					};
+					var t = doc.querySelector ("head > meta[property='og:title']");
+					if (t == null) { reject (link); return; }
+					var title = t.getAttribute ("content");
+					
+					var site = func ("head > meta[property='og:site_name']");
+					var desc = func ("head > meta[property='og:description']");
+					var m = doc.querySelector ("head > meta[property='og:image']");
+					if (m == null)
+						resolve (new Embed ({
+							uri : link,
+							site : site,
+							title : Social.normalize (title),
+							description : Social.normalize (desc),
+						}));
+					else {
+						console.log ("image : " + m.getAttribute ("content"));
+						
+						Utils.downloadImage (m.getAttribute ("content")).then (blob => {
+							UploadService.getDefault().uploadAsync (blob).then (upload => {
 								resolve (new Embed ({
 									uri : link,
 									site : site,
-									description : desc,
-								}));
-							else {
-								Utils.getImageInfo (m.getAttribute ("content")).then (info => {
-									var w = Math.floor (info.width * 180 / info.height);
-									var h = 180;
-									resolve (new Embed ({
-										uri : link,
-										site : site,
-										title : title,
-										description : desc,
-										thumb : m.getAttribute ("content"),
-										thumb_width : w,
-										thumb_height : h
-									}));
-								}).catch (e => {
-									console.log (e);
-									reject (link);
-								});
-							}
-						}
-						catch (e) {
+									title : Social.normalize (title),
+									description : Social.normalize (desc),
+									thumb : upload.url,
+									thumb_width : upload.minWidth,
+									thumb_height : upload.minHeight
+								}))
+							}).catch (e => reject (link));
+						}).catch (e => {
 							console.log (e);
 							reject (link);
-						}
+						});
 					}
+				}).catch (e => {
+					console.log ("rejet doc");
+					console.log  (e);
+					reject (link);
 				});
 			})();
 		});
@@ -302,40 +684,772 @@ class Embed {
 }
 
 class Social {
-	static objectToString (obj) {
+	static match (url) {
+		return Expr.twitter.match (url) || Expr.bluesky.match (url) || Expr.mastodon.match (url) || Expr.truthsocial.match (url) || 
+			Expr.reddit.match (url) || Expr.shreddit.match (url) || Expr.threads.match (url) || Expr.instagram.match (url) ||
+			Expr.tiktok.match (url) || Expr.twitch.match (url);
+	}
+
+	static normalize (txt) {
+		return  Utils.normalizeText (Utils.formatText (txt));
+	}
+
+	static load (url) {
+		if (Expr.twitter.match (url))
+			return Twitter.load (url);
+		if (Expr.bluesky.match (url))
+			return BlueSky.load (url);
+		if (Expr.reddit.match (url) || Expr.shreddit.match (url))
+			return Reddit.load (url);
+		if (Expr.mastodon.match (url) || Expr.truthsocial.match (url))
+			return Mastodon.load (url);
+		if (Expr.instagram.match (url))
+			return Instagram.load (url);
+		if (Expr.threads.match (url))
+			return Threads.load (url);
+		if (Expr.instagram.match (url))
+			return Instagram.load (url);
+		if (Expr.tiktok.match (url))
+			return Tiktok.load (url);
+		if (Expr.twitch.match (url))
+			return Twitch.load (url);
+		return Promise.reject (url);
+	}
+
+	static hasMEP() {
+		return (document.querySelector("#gm_hfr_semep_config_window") != null) ? "" : "?hfr-cc-image=true";
+	}
+
+	#lnk;
+	#usr;
+	#inf;
+	#icn;
+	#txt;
+	#qut;
+	#imgs;
+	#vids;
+	#emb;
+
+	constructor () {
+		this.#imgs = [];
+		this.#vids = [];
+	}
+
+	set link (l) { this.#lnk = l; }
+	get link() { return this.#lnk; }
+
+	set user (u) { this.#usr = u; }
+	get user() { return this.#usr; }
+
+	set info (i) { this.#inf = i; }
+	get info() { return this.#inf; }
+
+	set icon (i) { this.#icn = i; }
+	get icon() { return this.#icn; }
+
+	set text (t) { this.#txt = t; }
+	get text() { return this.#txt; }
+
+	set quote (q) { this.#qut = q; }
+	get quote() { return this.#qut; }
+
+	get images() { return this.#imgs; }
+
+	get videos() { return this.#vids; }
+
+	set embed (e) { this.#emb = e; }
+	get embed() { return this.#emb; }
+
+
+
+	toString() {
 		var builder = new Builder();
-		if (obj.quote)
-			builder.append (`${Social.objectToString (obj.quote)}\n`);
-		builder.append (`[quote][b][url=${obj.link}]${obj.icon} ${obj.user} ${obj.info}[/url][/b]\n\n`);
-		builder.append (`${Utils.formatText (Utils.normalizeText (obj.text))}\n`);
-		obj.videos.forEach (v => {
-			var u = new URL (v.source);
-			if (v.isGif)
-				u.searchParams.append ("gif", "true");
-			u.searchParams.append ("hfr-cc-mime-type", v.content_type);
-			builder.append (`[url=${u}][img]${v.poster}[/img][/url]`);
-		});
-		obj.images.forEach (i => {
-			builder.append (`[url=${i.source}][img=${i.thumb_width},${i.thumb_height}]${i.source}[/img][/url]`);
-		});
+		if (this.quote)
+			builder.append (`${this.quote}\n`);
+		builder.append (`[quote]${this.icon} [b][url=${this.link}]${this.user} ${this.info}[/url][/b]\n\n`);
+		builder.append (`${this.text}\n`);
+		this.videos.forEach (v => builder.append (v.toString()));
+		this.images.forEach (i => builder.append (i.toString()));
 		if (this.embed)
-			builder.append (`[quote][/quote]`);
+			builder.append (`[quote]${this.embed.toString()}[/quote]`);
 		builder.append ("[/quote]\n");
 		return builder.toString();
 	}
 
-	static load (url) {
+	build() {
+		var arr = [];
+		if (this.quote)
+			arr.push (this.quote.build());
+		arr.push (`[quote]${this.icon} [b][url=${this.link}]${this.user} ${this.info}[/url][/b]\n\n`);
+		arr.push (`${this.text}\n`);
+		this.images.forEach (i => arr.push (i.build()));
+		this.videos.forEach (v => arr.push (v.build()));
+		if (this.embed) {
+			arr.push ("[quote]");
+			arr.push (this.embed);
+			arr.push ("[/quote]");
+		}
+		arr.push ("[/quote]\n");
 		return new Promise ((resolve, reject) => {
-			Hfr.fetch ("https://bzhdev18.alwaysdata.net/social/?url=" + encodeURIComponent (url)).then (rep => rep.json()).then (data => {
-				if (data.error)
-					reject (url);
-				else
-					resolve (Social.objectToString (data));
+			Promise.all (arr).then (values => {
+				resolve (values.join(""));
+			}).catch (e => {
+				console.log (e);
+				reject();
+			});
+		});
+	}
+}
+
+class Twitch extends Social {
+	constructor (doc, url) {
+		super();
+		this.icon = `[img]https://i.imgur.com/jFOkUtK.pnghttps://i.imgur.com/jFOkUtK.png[/img]`;
+		this.link = url;
+		this.info = "";
+		var u = new URL (doc.querySelector ("meta[property='og:video']").getAttribute("content"));
+		this.user = u.searchParams.get("channel");
+		this.text = doc.querySelector("meta[name='description']").getAttribute ("content");
+		var img = doc.querySelector("meta[property='og:image']").getAttribute("content");
+		this.images.push (new Hfr.Image (img));
+	}
+
+	static load (url) {
+		var m = Expr.twitch.exec (url);
+		var channel = m.groups.channel;
+		return new Promise ((resolve, reject) => {
+			Hfr.fetch ("https://m.twitch.tv/" + channel).then (rep => rep.html()).then (doc => {
+				resolve (new Twitch (doc, url));
 			}).catch (e => {
 				console.log (e);
 				reject (url);
 			});
 		});
+	}
+}
+
+class Tiktok extends Social {
+	constructor (data) {
+		super();
+
+		this.icon = `[img]https://i.imgur.com/TFaQCKE.png${Social.hasMEP()}[/img]`;
+		this.link = `https://www.tiktok.com/@${data.authorInfos.uniqueId}/video/${data.itemInfos.id}`;
+		this.user = data.authorInfos.nickName;
+		this.info = `(@${data.authorInfos.uniqueId})`;
+		this.text = data.itemInfos.text
+			.replaceAll (/#\w+/g, match => { return "[url=https://www.tiktok.com/tag/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+			.replaceAll (/@\w+/g, match => { return "[url=https://www.tiktok.com/" + match + "][b]" + match + "[/b][/url]"; });
+
+		var video = new Video();
+		video.poster = data.itemInfos.covers[0];
+		var u = new URL (data.itemInfos.video.urls[0]);
+		u.searchParams.append ("hfr-cc-tiktok", "true");
+		video.url = u.toString();
+		video.contentType = "video/mp4";
+		this.videos.push (video);
+	}
+
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			var m = Expr.tiktok.exec (url);
+			Hfr.fetch ("https://www.tiktok.com/embed/v2/" + m.groups.id).then (rep => rep.html()).then (doc => {
+				var elem = doc.querySelector ("[data-e2e='video-v2-Card-CardInfo']");
+				if (elem) {
+					var json = doc.querySelector ("#__FRONTITY_CONNECT_STATE__").textContent;
+					try {
+						var data = JSON.parse (json);
+						var o = data.source.data;
+						var obj = o[Object.keys (o)[0]].videoData;
+						resolve (new Tiktok (obj));
+					}
+					catch {
+						reject (url);
+					}
+				}
+				else
+					reject (url);
+			}).catch (e => {
+				console.log (e);
+				reject (url);
+			});
+		});
+	}
+}
+
+class Threads extends Social {
+	static elementToBBCode (element) {
+		var builder = new Builder();
+		element.childNodes.forEach (node => {
+			if (node.nodeType == Node.TEXT_NODE)
+				builder.append (Social.normalize (node.textContent)
+					.replaceAll (/#(\p{L}|\p{N})+/gu, match => { return "[url=https://www.threads.com/search?q=%23" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+					.replaceAll (/@\w+/g, match => { return "[url=https://www.threads.com/" + match + "][b]" + match + "[/b][/url]"; }));
+			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "br")
+				builder.append ("\n");
+			else if (node.nodeType == Node.ELEMENT_NODE && node.tagName.toLowerCase() == "a")
+				builder.append (`[b][url=${node.getAttribute ("href")}]${node.textContent}[/url][/b]`);
+			else if (node.nodeType == Node.ELEMENT_NODE)
+				builder.append (Threads.elementToBBCode (node));
+		});
+		return builder.toString();
+	}
+
+	constructor (doc, url) {
+		super();
+
+		this.icon = `[img]https://i.imgur.com/wk7vohW.png${Social.hasMEP()}[/img]`;
+		this.link = url;
+		this.user = doc.querySelector (".NameContainer .HeaderLink").textContent;
+		var tw = doc.querySelector (".TopicTagWrapper");
+		this.info = "";
+		if (tw != null) {
+			this.info = " > " + doc.querySelector (".HeaderLink span").textContent;
+		}
+		this.text = Threads.elementToBBCode (doc.querySelector (".BodyTextContainer"));
+		doc.querySelectorAll (".MediaScrollImageContainer, .SingleInnerMediaContainer").forEach (media => {
+			var img = media.querySelector ("img");
+			if (img == null)
+				return;
+			var url = img.getAttribute ("src");
+			this.images.push (new Hfr.Image (url));
+		});
+		var cnt = doc.querySelector (".SingleInnerMediaContainerVideo");
+		if (cnt != null) {
+			var vid = cnt.querySelector ("video");
+			var v = new Video();
+			var u = new URL(vid.querySelector ("source").getAttribute ("src"));
+			u.searchParams.append ("hfr-cc-insta", "true");
+			v.url = u.toString();
+			v.contentType = "video/mp4";
+			v.poster = "https://rehost.diberie.com/Rehost?size=min&url=" + encodeURIComponent ("https://i.imgur.com/juJpPUD.png");
+			this.videos.push (v);
+		}
+	}
+
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				Hfr.fetch (`${url}/embed`).then (rep => rep.html()).then (doc => resolve (new Threads (doc, url))).catch (e => {
+					console.log (e);
+					reject (url);
+				});
+			})();
+		});
+	}
+}
+
+class InstagramVideo {
+	#pst;
+	#uri;
+
+	constructor (url, p) {
+		this.#uri = url;
+		this.#pst = p;
+	}
+
+	get poster() { return this.#pst; }
+
+	get url() { return this.#uri; }
+
+	get contentType() { return "video/mp4"; }
+
+	get isGif() { return false; }
+
+	toString() {
+		var u = new URL (this.url);
+		u.searchParams.append ("hfr-cc-mime-type", "video/mp4");
+		return `[url=${u}][img]${this.poster}[/img][/url]\n`;
+	}
+
+	build() {
+		return new Promise ((resolve, reject) => {
+			Hfr.fetch (this.url)
+			.then (rep => rep.blob())
+			.then (blob => {
+				Utils.uploadVideo (blob).then (l => {
+					var u = new URL (l);
+					u.searchParams.append ("hfr-cc-mime-type", "video/mp4");
+					resolve (`[url=${u}][img]${this.poster}[/img][/url]\n`);
+				}).catch (err => reject (err));
+			})
+			.catch (e => reject (""));
+		});
+	}
+}
+
+class Instagram extends Social {
+	static #chlg;
+	
+	static get challenge() { return this.#chlg; }
+	static set challenge (data) { this.#chlg = data; }
+	
+	constructor (data, url) {
+		super();
+		console.log (data);
+		this.icon = "[:hfr_icons:7]";
+		this.user = data.user.username;
+		this.info = `(@${this.user})`;
+		this.link = url;
+		this.text = (data.caption == null || data.caption.text == null) ? "" : Social.normalize (data.caption.text)
+				.replaceAll (/#(\p{L}|\p{N})+/gu, match => { return "[url=https://www.instagram.com/explore/search/keyword/?q=" + match + "][b]" + match + "[/b][/url]"; })
+				.replaceAll (/@\w+/g, match => { return "[url=https://www.instagram.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; });
+		
+		if (data.hasOwnProperty ("carousel_media"))
+			data.carousel_media.forEach (media => {
+				if (Array.isArray (media.video_versions) && media.video_versions.length > 0)
+					this.videos.push (new InstagramVideo (media.video_versions[0].url, media.image_versions2.candidates[0].url));
+				else
+					this.images.push (new Hfr.Image (media.image_versions2.candidates[0].url));
+		});
+		else
+			if (Array.isArray (data.video_versions) && data.video_versions.length > 0)
+				this.videos.push (new InstagramVideo (data.video_versions[0].url, data.image_versions2.candidates[0].url));
+			else
+				this.images.push (new Hfr.Image (data.image_versions2.candidates[0].url));	
+	}
+
+	static idToPk (id) {
+		var table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+		var res = BigInt (0);
+		var size = BigInt (table.length);
+		for (var i = 0; i < id.length; i++) {
+			var idx = BigInt (table.indexOf (id[i]));
+			res = res * size + idx;
+		}
+		return res.toString();
+	}
+	
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				Hfr.fetch ("https://www.instagram.com/", {
+					credentials : "omit"
+				}).then (rep => {
+					if (rep.cookies.hasCookie("csrftoken")) {
+						var res = Expr.instagram.exec (url);
+						var pk = Instagram.idToPk (res.groups.shortcode);
+						Hfr.fetch ("https://www.instagram.com/api/v1/media/" + pk + "/info/", {
+							headers : {
+								"X-Csrftoken" : rep.cookies.getCookie ("csrftoken"),
+								"X-IG-App-ID": "936619743392459",
+								"X-ASBD-ID": "359341",
+								"X-IG-WWW-Claim": "0",
+								"Origin": "https://www.instagram.com",
+								"Accept": "*/*"
+							}
+						})
+						.then (r => r.json())
+						.then (data => {
+							if (data.num_results > 0) {
+								resolve (new Instagram (data.items[0], url));
+							}
+							else
+								reject (url);
+						})
+						.catch (e => {
+							console.log (e);
+							console.warn ("le token est inexistant ou invalide");
+							reject (url);
+						});
+					}
+					else
+						reject (url);
+				}).catch (e => {
+					console.log (e);
+					reject (url);
+				});
+			})();
+		});
+	}
+}
+
+class Reddit extends Social {
+	constructor (url, doc) {
+		super();
+		this.icon = "[:jean robin:10]";
+		var doc = new DOMParser().parseFromString (text, "text/html");
+		var post = doc.querySelector ("shreddit-post");
+		var title = post.querySelector ("[slot='title']").textContent.trim();
+		var t = post.querySelector ("[slot='text-body'] div[id]");
+		var ctn = post.querySelector ("[slot='post-media-container']");
+		if (post.getAttribute ("content-href") != url)
+			this.embed = Embed.load (post.getAttribute ("content-href"));
+		this.link = url;
+		this.user = post.querySelector (".author-name").textContent;
+		this.info = "a publié sur " + post.querySelector ("a.subreddit-name").textContent.trim();
+		var txt = `[b]${title}[/b]\n`;
+		if (ctn != null) {
+			var sub = ctn.querySelector ("[property='schema:articleBody']");
+			if (sub != null)
+				t = sub;
+		}
+		if (t != null)
+			txt += Social.normalize (t.textContent.trim());
+		this.text = txt;
+		if (ctn != null) {
+			var img = ctn.querySelector ("img");
+			var carousel = ctn.querySelector ("gallery-carousel");
+			var player = ctn.querySelector ("shreddit-player");
+			if (player != null) {
+				if (player.getAttribute ("post-type") == "gif") {
+					this.images.push (new Hfr.Image (post.getAttribute ("content-href")));
+				} else {
+					var data = JSON.parse (player.getAttribute ("packaged-media-json"));
+					var perms = data.playbackMp4s.permutations;
+					perms.sort ((a, b) => b.source.dimensions.width - a.source.dimensions.width);
+					var src = perms[0].source.url;
+
+					var vid = new Video();
+					vid.url = src;
+					vid.poster = player.querySelector (".preview-image").getAttribute ("src");
+					this.videos.push (vid);
+				}
+			}
+			else if (carousel != null) {
+				carousel.querySelectorAll ("li > img").forEach (image => {
+					var src = image.getAttribute ("src");
+					if (src == null)
+						src = image.getAttribute ("data-lazy-src");
+					this.images.push (new Hfr.Image (src));
+				});
+			}
+			else if (img != null) {
+				var src = img.getAttribute ("src");
+				this.images.push (new Hfr.Image (src));
+			}
+		}
+	}
+
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				Hfr.fetch (url).then (rep => rep.html()).then (doc => {
+					resolve (new Reddit (url, doc));
+				}).catch (e => {
+					console.log (e);
+					reject (url);
+				});
+			})();
+		});
+	}
+}
+
+class Twitter extends Social {
+	static normalize (str) {
+		return Social.normalize (str
+			.replaceAll (/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g, "[url=$&][b]$&[/b][/url]")
+			.replaceAll (/#(\p{L}|\p{N})+/gu, match => { return "[url=https://x.com/hashtag/" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+			.replaceAll (/\$\b[^\d\W]+\b/g, match => { return "[url=https://x.com/search?q=" + match.substring (1) + "][b]" + match + "[/b][/url]"; })
+			.replaceAll (/@\w+/g, match => { return "[url=https://x.com/" + match.substring (1) + "][b]" + match + "[/b][/url]"; }));
+	}
+
+	static tweetVideoUrl (media) {
+		for (var i = 0; i < media.video_info.variants.length; i++) {
+			var vid = new Video();
+			var v = media.video_info.variants[i];
+			if (v.content_type == "application/x-mpegURL") {
+				console.log ("video : " + v.url);
+				continue;
+			}
+			var url = new URL (v.url);
+			url.searchParams.delete ("tag");
+			vid.url = url.toString();
+			vid.contentType = v.content_type;
+			vid.poster = media.media_url_https;
+			return vid;
+		}
+		return { url : "" };
+	}
+
+	constructor (data) {
+		super();
+		this.icon = `[img]https://i.imgur.com/pd0aoXr.png${Social.hasMEP()}[/img]`;
+		this.link = "https://twitter.com/i/status/" + data.id_str;
+		this.user = Social.normalize (data.user.name);
+		var obj = {
+			"Basic" : "[:yoann riou:9]",
+			"Government" : "[img]https://i.imgur.com/AYsrHeC.png[/img]",
+			"Business" : "[img]https://i.imgur.com/6C4thzC.png[/img]"
+		};
+		if (data.user.is_blue_verified || data.user.verified) {
+			data.user.verified = true;
+			data.user.verified_type = "Basic";
+		}
+		this.info = `@${data.user.screen_name} ${data.user.verified ? obj[data.user.verified_type] + " " : ""}`;
+		this.text = Twitter.normalize (data.text);
+		if (data.mediaDetails && data.mediaDetails.length > 0) {
+			data.mediaDetails.forEach (media => {
+				if (media.type == "video") {
+					this.videos.push (Twitter.tweetVideoUrl (media));
+				}
+				if (media.type == "animated_gif") {
+					var gif = new Video();
+					gif.url = media.video_info.variants[0].url;
+					gif.contentType = media.video_info.variants[0].content_type;
+					gif.poster = media.media_url_https;
+					gif.isGif = true;
+					this.videos.push (gif);
+				}
+				if (media.type == "photo") {
+					this.images.push (new Hfr.Image (media.media_url_https));
+				}
+			});
+		}
+		if (data.quoted_tweet)
+			this.quote = new Twitter (data.quoted_tweet);
+
+		if (data.card) {
+			var card_title = (data.card.binding_values.title == null) ? "" : data.card.binding_values.title.string_value;
+			var card_description = (data.card.binding_values.description == null) ? "" : data.card.binding_values.description.string_value;
+			var card_domain = (data.card.binding_values.domain == null) ? "" : data.card.binding_values.domain.string_value;
+			var card = {
+				uri : data.card.binding_values.card_url.string_value,
+				site : card_domain,
+				title : card_title,
+				description : card_description
+			};
+			if (data.card.binding_values.thumbnail_image != null) {
+				card.thumb = data.card.binding_values.thumbnail_image.image_value.url;
+				card.thumb_width = data.card.binding_values.thumbnail_image.image_value.width;
+				card.thumb_height = data.card.binding_values.thumbnail_image.image_value.height;
+			}
+			this.embed = new Embed (card);
+		}
+	}
+
+	static load (link) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var res = Expr.twitter.exec (link);
+				Hfr.fetch ("https://cdn.syndication.twimg.com/tweet-result?token=4xh271owofi&id=" + res.groups.id).then (rep => rep.json())
+					.then (json => resolve (new Twitter (json)))
+					.catch (e => {
+						console.log (e);
+						reject (link);
+					});
+			})();
+		});
+	}
+}
+
+class BlueSky extends Social {
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var res = Expr.bluesky.exec (url);
+				if (res.groups.handle.indexOf ("did:") == 0) {
+					var u = `at://${res.groups.handle}/app.bsky.feed.post/${res.groups.hash}`;
+					Hfr.fetch (`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`)
+						.then (rep => rep.json())
+						.then (json => resolve (new BlueSky (json.thread.post)))
+						.catch (e => {
+							console.log (e);
+							reject (url);
+						});
+				}
+				else
+					Hfr.fetch ("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + res.groups.handle)
+						.then (rep => rep.json())
+						.then (json => {
+							var u = `at://${json.did}/app.bsky.feed.post/${res.groups.hash}`;
+							Hfr.fetch (`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent (u)}`)
+								.then (rep => rep.json())
+								.then (json => resolve (new BlueSky (json.thread.post)))
+								.catch (e => {
+									console.log (e);
+									reject (url);
+								});
+						})
+						.catch (e => {
+							console.log (e);
+							reject (url);
+						});
+			})();
+		});
+	}
+
+	constructor (data) {
+		super();
+		
+		console.log (data);
+		
+		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/327943${Social.hasMEP()}[/img]`;
+		var did = data.uri.split ("at://")[1].split ("/")[0];
+		var hash = data.uri.split ("app.bsky.feed.post/")[1];
+		this.link = `https://bsky.app/profile/${did}/post/${hash}`;
+		this.user = Social.normalize (data.author.displayName);
+		this.info = `@${data.author.handle}${data.author.verification != null ? " [:yoann riou:9]" : ""}`;
+		var record = (data.record != null) ? data.record : data.value;
+		var txt = record.text;
+		var arr = new TextEncoder().encode (txt);
+		if (record.facets != null)
+			for (var i = record.facets.length - 1; i >= 0; i--) {
+				var facet = record.facets[i];
+				if (facet.features[0]["$type"] == "app.bsky.richtext.facet#tag") {
+					var htag = facet.features[0].tag;
+					var tag = `[url=https://bsky.app/hashtag/${htag}][b]#${htag}[/b][/url]`;
+					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + tag + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
+				}
+				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#mention") {
+					var mid = facet.features[0].did;
+					var mh = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
+					var mention = `[url=https://bsky.app/profile/${mid}][b]${mh}[/b][/url]`;
+					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + mention + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
+				}
+				else if (facet.features[0]["$type"] == "app.bsky.richtext.facet#link") {
+					var txt = new TextDecoder().decode (arr.slice (facet.index.byteStart, facet.index.byteEnd));
+					var url = `[url=${facet.features[0].uri}][b]${txt}[/b][/url]`;
+					arr = new TextEncoder().encode (new TextDecoder().decode (arr.slice (0, facet.index.byteStart)) + url + new TextDecoder().decode (arr.slice (facet.index.byteEnd)));
+				}
+			}
+		txt = new TextDecoder().decode (arr);
+		this.text = Social.normalize (txt);
+		if (data.embed != null) {
+			var med = (data.embed.media != null) ? data.embed.media : data.embed;
+			if (med["$type"] == "app.bsky.embed.video#view") {
+				var vid = new Video();
+				vid.contentType = "application/x-mpegURL";
+				vid.url = med.playlist;
+				vid.poster = med.thumbnail;
+				this.videos.push (vid);
+			}
+			var imgs = Array.isArray (data.embed.images) ? data.embed.images : (Array.isArray (data.embed.media?.images) ? data.embed.media.images : []);
+			imgs.forEach (img => {
+				var i = new Hfr.Image (img.thumb);
+				this.images.push (i);
+			});
+			if (data.embed["$type"] == "app.bsky.embed.gallery#view")
+				data.embed.items.forEach (item => {
+					this.images.push (new Hfr.Image (item.fullsize));
+				});
+			if (data.embed.external != null) {
+				if (imgs.length == 0) {
+					var u = new URL (data.embed.external.uri);
+					if (u.pathname.substring (u.pathname.lastIndexOf (".")) == ".gif")
+						this.images.push (new Hfr.Image (data.embed.external.uri));
+					else {
+						console.log (data.embed.external);
+						this.embed = Embed.load (data.embed.external.uri);
+					}
+				}
+			}
+			if (data.embed.record?.record != null)
+				this.quote = new BlueSky (data.embed.record.record);
+			else if (data.embed["$type"].indexOf ("app.bsky.embed.record") == 0)
+				this.quote = new BlueSky (data.embed.record);
+		}
+		if (Array.isArray (data.embeds))
+			data.embeds.forEach (embed => {
+				if (embed["$type"] == "app.bsky.embed.video#view") {
+					var vid = new Video();
+					vid.contentType = "application/x-mpegURL";
+					vid.url = embed.playlist;
+					vid.poster = embed.thumbnail;
+					this.videos.push (vid);
+				}
+				if (embed.images)
+					embed.images.forEach (img => {
+						this.images.push ({
+							url : img.fullsize,
+							toString : () => { return "[url=https://rehost.diberie.com/Rehost?url=" + img.fullsize + "][img]https://rehost.diberie.com/Rehost?size=min&url=" + img.fullsize + "[/img][/url]" }
+						});
+					});
+			});
+	}
+}
+
+class Mastodon extends Social {
+	static load (url) {
+		return new Promise ((resolve, reject) => {
+			(async () => {
+				var match = Expr.mastodon.exec (url);
+				if (match == null)
+					match = Expr.truthsocial.exec (url);
+				Hfr.fetch (`https://${match.groups.instance}/api/v1/statuses/${match.groups.tid}`)
+					.then (rep => rep.json())
+					.then (json => resolve (new Mastodon (json)))
+					.catch (e => {
+						console.log (e);
+						reject (url);
+					});
+			})();
+		});
+	}
+
+	constructor (data) {
+		super();
+		
+		var doc = new DOMParser().parseFromString (data.content, "text/html");
+		var builder = new Builder();
+		doc.querySelectorAll ("p").forEach (p => {
+			p.childNodes.forEach (node => {
+				if (node.nodeType == Node.TEXT_NODE)
+					builder.append (Utils.normalizeText (node.textContent));
+				else if (node.nodeType == Node.ELEMENT_NODE) {
+					if (node.tagName.toLowerCase() == "br")
+						builder.append ("\n");
+					else if (node.classList.contains ("hashtag")) {
+						var tag = node.textContent;
+						var lnk = node.getAttribute ("href");
+						builder.append (`[b][url=${lnk}]${tag}[/url][/b]`);
+					}
+					else if (node.classList.contains ("h-card") && node.querySelector ("a.u-url") != null) {
+						var id = node.textContent;
+						var lnk = node.querySelector ("a.u-url").getAttribute ("href");
+						builder.append (`[b][url=${lnk}]${id}[/url][/b]`);
+					}
+					else if (node.tagName.toLowerCase() == "a")
+						builder.append (`[b][url]${node.getAttribute ("href")}[/url][/b]`);
+				}
+			});
+			builder.append ("\n");
+		});
+
+		if (data.poll != null)
+			data.poll.options.forEach (opt => {
+				var tit = opt.title;
+				var pct = opt.votes_count * 100 / data.poll.votes_count;
+				builder.append (`[*] ${tit} : ${pct} %\n`);
+			});
+		
+		if (data.media_attachments != null)
+			data.media_attachments.forEach (media => {
+				if (media.type == "image")
+					this.images.push (new Hfr.Image (media.preview_url));
+				else if (media.type == "gifv") {
+					var gif = new Video();
+					gif.url = media.url;
+					gif.contentType = "video/mp4";
+					gif.poster = media.preview_url;
+					gif.isGif = true;
+					this.videos.push (gif);
+				}
+				else if (media.type == "video") {
+					var video = new Video();
+					video.url = media.url
+					video.contentType = "video/mp4";
+					video.poster = media.preview_url;
+					this.videos.push (video);
+				}
+			});
+
+		if (data.card)
+			this.embed = Promise.resolve (new Embed ({
+				uri : data.card.url,
+				site : data.card.provider_name,
+				title : data.card.title,
+				description : data.card.description,
+				thumb : data.card.image,
+				thumb_width : data.card.width,
+				thumb_height : data.card.height
+			}));
+
+		this.icon = `[img]https://rehost.diberie.com/Picture/Get/f/110911${Social.hasMEP()}[/img]`;
+		this.link = data.url;
+		this.user = Social.normalize (data.account.display_name).replace (":verified:", "[:yoann riou:9]");
+		var p = data.account.url.split("/");
+		this.info = `${p[3]}@${p[2]}`;
+		this.text = Social.normalize (builder.toString());
 	}
 }
 
@@ -419,7 +1533,6 @@ class Box extends Widget {
 
 	constructor (vertical = false) {
 		super ("div");
-
 		this.#vrt = vertical;
 	}
 
@@ -530,6 +1643,10 @@ class Input extends Widget {
 		super ("input");
 		this.set ("type", type);
 	}
+
+	value_changed (callback) {
+		this.element.addEventListener ("change", e => { callback (e.target.value); });
+	}
 }
 
 class TextButton extends Widget {
@@ -548,6 +1665,14 @@ class TextButton extends Widget {
 	
 	clicked (callback) {
 		this.element.addEventListener ("click", e => { callback (this); });
+	}
+	
+	out (callback) {
+		this.element.addEventListener ("mouseout", e => { callback (this); });
+	}
+	
+	over (callback) {
+		this.element.addEventListener ("mouseover", e => { callback (this); });
 	}
 }
 
@@ -570,7 +1695,7 @@ class Button extends Widget {
 		
 		this.#ipt = new Input ("file");
 		this.#ipt.set ("multiple", true);
-		this.#ipt.set ("accept", "image/png,image/jpeg,image/bmp,image/gif,audio/*");
+		this.#ipt.set ("accept", "image/png,image/jpeg,image/bmp,image/gif,audio/*,video/*");
 		this.#ipt.set ("style", "display : none");
 		
 		this.add (this.#lbl);
@@ -791,14 +1916,79 @@ class UploadService {
 	static getService (service) {
 		if (service == "rehost")
 			return new Rehost();
-		return new Imgur();
+		return new ImgBB();
 	}
 
 	static getDefault() {
 		var svc = Utils.getValue ("hfr-copie-colle-service");
-		if (svc == "rehost")
-			return new Rehost();
-		return new Imgur();
+		if (svc == "imgbb")
+			return new ImgBB();
+		return new Rehost();
+	}
+}
+
+class Upload {
+	#uri;
+	#data;
+	#gif;
+	#w;
+	#h;
+	
+	constructor (uri, is_gif = false) {
+		this.#uri = uri;
+		this.#gif = is_gif;
+		this.#data = {};
+	}
+	
+	get isGIF() { return this.#gif; }
+	
+	get url() { return this.#uri; }
+	
+	get sizes() { return this.#data; }
+	
+	set width (l) { this.#w = l; }
+	get width() { return this.#w; }
+	set height (l) { this.#h = l; }
+	get height() { return this.#h; }
+	
+	get minHeight() {
+		return 200;
+	}
+	get minWidth() {
+		return Math.round (200 * this.width / this.height);
+	}
+}
+
+class ImgBB extends UploadService {
+	get name() { return "imgbb"; }
+	// b39d391af0123f67bdc1a51ff6808fcf
+	upload (file, resolve, reject) {
+		var data = new FormData();
+		data.append ("image", file);
+		Hfr.fetch ("https://api.imgbb.com/1/upload?key=b39d391af0123f67bdc1a51ff6808fcf", {
+			method : "POST",
+			body : data
+		}).then (rep => rep.json())
+			.then (obj => {
+				console.log (obj);
+				if (obj.status != 200)
+					reject (obj.status);
+				else {
+					var d = obj.data;
+					var up = new Upload (d.image.url, d.image.url.endsWith (".gif"));
+					up.height = d.height;
+					up.width = d.width;
+					if (d.thumb)
+						up.sizes["miniature"] = d.thumb.url;
+					if (d.medium)
+						up.sizes["moyenne"] = d.medium.url;
+					up.sizes["normale"] = d.image.url;
+					resolve (up);
+				}
+			})
+			.catch (e => {
+				reject (e);
+			});
 	}
 }
 
@@ -806,86 +1996,23 @@ class Rehost extends UploadService {
 	get name() { return "rehost"; }
 
 	upload (file, resolve, reject) {
-		var form = new FormData();
-		form.append ("image", file);
-		Utils.request ({
+		var data = new FormData();
+		data.append ("image", file);
+		Hfr.fetch ("https://rehost.diberie.com/Host/UploadFiles?SelectedAlbumId=undefined&PrivateMode=false&SendMail=false&KeepTags=&Comment=&SelectedExpiryType=0", {
 			method : "POST",
-			data : form,
-			url : "https://rehost.diberie.com/Host/UploadFiles?SelectedAlbumId=undefined&PrivateMode=false&SendMail=false&KeepTags=&Comment=&SelectedExpiryType=0",
-			onabort : function() { reject ("envoi annulé"); }, 
-			ontimeout : function() { reject ("délai dépassé"); },
-			onerror : function (response) {
-				reject ("erreur lors de l'envoi d'image");
-			},
-			onload : function (response) {
-				try {
-					var object = JSON.parse (response.responseText);
-					resolve ({
-						gif : object.isGIF == true ? true : false,
-						url : object.picURL,
-						width : object.previewWidht,
-						height : object.previewHeight
-					});
-				}
-				catch (e) {
-					reject (e);
-				}
-			}
-		});
-	}
-}
-
-class Imgur extends UploadService {
-	get name() { return "imgur"; }
-
-	upload (file, resolve, reject) {
-		var form = new FormData();
-		form.append ("image", file);
-		Utils.request ({
-			method : "POST",
-			data : form,
-			headers : {		
-				"Authorization" : "Client-ID d1619618d2ac442"
-			},
-			url : "https://api.imgur.com/3/image",
-			onabort : function() { reject ("envoi annulé"); }, 
-			ontimeout : function() { reject ("délai dépassé"); },
-			onerror : function (response) {
-				reject ("erreur lors de l'envoi d'image");
-			},
-			onload : function (response) {
-				var object = JSON.parse (response.responseText);
-				if (!object.success) {
-					reject (object);
-					return;
-				}
-				resolve ({
-					hash : object.data.deletehash,
-					delete : function (callback) {
-						Utils.request ({
-							method : "DELETE",
-							headers : {		
-								"Authorization" : "Client-ID d1619618d2ac442"
-							},
-							url : "https://api.imgur.com/3/image/" + this.hash,
-							onerror : function (response) {
-								console.log (response);
-							},
-							onload : function (response) {
-								var result = JSON.parse (response.responseText);
-								if (result.success) {
-									callback();
-								}
-							}
-						});
-					},
-					gif : object.data.type == "image/gif",
-					url : object.data.link,
-					width : object.data.width,
-					height : object.data.height
-				});
-			}
-		});
+			body : data
+		}).then (rep => rep.json())
+			.then (object => {
+				var up = new Upload (object.picURL, object.isGIF);
+				up.height = object.previewHeight;
+				up.width = object.previewWidht;
+				up.sizes["moyenne"] = object.resizedURL;
+				up.sizes["miniature"] = object.thumbURL;
+				resolve (up);
+			})
+			.catch (e => {
+				reject (e);
+			});
 	}
 }
 
@@ -909,6 +2036,27 @@ class Utils {
 	static isMac() {
 		const userAgent = window.navigator.userAgent;
 		const platform = window.navigator?.userAgentData?.platform || window.navigator.platform;
+	}
+	
+	static downloadImage (url) {
+		return new Promise ((resolve, reject) => {
+			Hfr.fetch (url).then (r => r.blob()).then (blob => {
+				var lnk = URL.createObjectURL (blob);
+				var img = new Image();
+				img.onload = () => {
+					var canvas = document.createElement ("canvas");
+					canvas.width = img.width;
+					canvas.height = img.height;
+					var ctx = canvas.getContext("2d");
+					ctx.drawImage (img, 0, 0);
+					canvas.toBlob (blob => {
+						resolve (blob);
+					});
+				};
+				img.onerror = () => { reject(url); };
+				img.src = lnk;
+			}).catch (reject);
+		});
 	}
 	
 	static addCss (url) {
@@ -942,10 +2090,23 @@ class Utils {
 		return new Promise ((resolve, reject) => {
 			var loading = new Loading();
 			loading.attach (area);
-			if (file.type.indexOf ("audio/") == 0) {
+			if (file.type.indexOf ("video/") == 0) {
 				area.disabled = true;
-				Utils.dropGofile (item).then (url => {
-					Utils.insertText (area, "[url]" + url + "[/url]");
+				Utils.uploadVideo (file).then (bbcode => {
+					Utils.insertText (area, bbcode);
+					loading.destroy();
+					area.disabled = false;
+					resolve();
+				}).catch (e => {
+					loading.destroy();
+					area.disabled = false;
+					reject (e);
+				});
+			}
+			else if (file.type.indexOf ("audio/") == 0) {
+				area.disabled = true;
+				Utils.dropGofile (file).then (bbcode => {
+					Utils.insertText (area, bbcode);
 					loading.destroy();
 					area.disabled = false;
 					resolve();
@@ -1012,24 +2173,11 @@ class Utils {
 	
 	static convertVideoURL (url) {
 		return new Promise ((resolve, reject) => {
-			Utils.request({
-				method : "GET",
-				url : url,
-				onabort : function() { reject (url); },
-				onerror : function() { reject (url); },
-				ontimeout : function() { reject (url); },
-				headers : { "Cookie" : "" },
-				anonymous : true,
-				responseType : "blob",
-				onload : function (response) {
-					try {
-						resolve (URL.createObjectURL (response.response));
-					}
-					catch (e) {
-						console.log (e);
-						reject (url);
-					}
-				}
+			Hfr.fetch (url).then (rep => rep.blob())
+			.then (file => resolve (URL.createObjectURL (file)))
+			.catch (e => {
+				console.log (e);
+				reject (url);
 			});
 		});
 	}
@@ -1078,15 +2226,12 @@ class Utils {
 			data = {};
 		// mise à jour si vieille version Unicode
 		if (!(data.emojis instanceof Array) || !data.hasOwnProperty ("version") || Number(data.version) === data.version && data.version < 17) {
-			Utils.request({
-				method : "GET",
-				responseType : "json",
-				url : "https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/emojis-data.json",
-				onload : function (response) {
-					localStorage.setItem ("hfr-cc-data", JSON.stringify (response.response));
-					callback (response.response.emojis);
-				}
-			});
+			Hfr.fetch ("https://github.com/BZHDeveloper1986/hfr/raw/refs/heads/main/emojis-data.json")
+				.then (rep => rep.json())
+				.then (json => {
+					localStorage.setItem ("hfr-cc-data", JSON.stringify (json));
+					callback (json.emojis);
+				});
 		}
 		else
 			callback (data.emojis);
@@ -1113,8 +2258,16 @@ class Utils {
 		var strn = str.normalize ("NFKD");
 		var arr = [...strn];
 		var res_arr = [];
+		var emoji = "emojis";
+		var emoji_size = Utils.getValue ("hfr-copie-colle-emoji", "micro");
+		if (emoji_size != "normal")
+			emoji += `-${emoji_size}`;
 		for (var i = 0; i < arr.length; i++) {
 			var code = arr[i].codePointAt (0);
+			if (code >= 127462 && code <= 127487) {
+				res_arr.push ("[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + code.toString (16) + ".png?hfr-cc-image=true&raw=true[/img]");
+				continue;
+			}
 			if (code >= 127312 && code <= 127363)
 				code -= 127247;
 			else if (code >= 9398 && code <= 9449)
@@ -1123,8 +2276,6 @@ class Utils {
 				code -= 127183;
 			else if (code >= 9372 && code <= 9397)
 				code -= 9307;
-			else if (code >= 127462 && code <= 127487)
-				code -= 127397;
 			else if (code >= 120406 && code <= 120457)
 				code -= 120335;
 			res_arr.push (String.fromCodePoint (code));
@@ -1148,18 +2299,268 @@ class Utils {
 		var emoji_size = Utils.getValue ("hfr-copie-colle-emoji", "micro");
 		if (emoji_size != "normal")
 			emoji += `-${emoji_size}`;
-		var reg = /[#*0-9]\uFE0F?\u20E3|[\xA9\xAE\u203C\u2049\u2122\u2139\u2194-\u2199\u21A9\u21AA\u231A\u231B\u2328\u23CF\u23ED-\u23EF\u23F1\u23F2\u23F8-\u23FA\u24C2\u25AA\u25AB\u25B6\u25C0\u25FB\u25FC\u25FE\u2600-\u2604\u260E\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262A\u262E\u262F\u2638-\u263A\u2640\u2642\u2648-\u2653\u265F\u2660\u2663\u2665\u2666\u2668\u267B\u267E\u267F\u2692\u2694-\u2697\u2699\u269B\u269C\u26A0\u26A7\u26AA\u26B0\u26B1\u26BD\u26BE\u26C4\u26C8\u26CF\u26D1\u26E9\u26F0-\u26F5\u26F7\u26F8\u26FA\u2702\u2708\u2709\u270F\u2712\u2714\u2716\u271D\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u27A1\u2934\u2935\u2B05-\u2B07\u2B1B\u2B1C\u2B55\u3030\u303D\u3297\u3299]\uFE0F?|[\u261D\u270C\u270D](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?|[\u270A\u270B](?:\uD83C[\uDFFB-\uDFFF])?|[\u23E9-\u23EC\u23F0\u23F3\u25FD\u2693\u26A1\u26AB\u26C5\u26CE\u26D4\u26EA\u26FD\u2705\u2728\u274C\u274E\u2753-\u2755\u2795-\u2797\u27B0\u27BF\u2B50]|\u26D3\uFE0F?(?:\u200D\uD83D\uDCA5)?|\u26F9(?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|\u2764\uFE0F?(?:\u200D(?:\uD83D\uDD25|\uD83E\uDE79))?|\uD83C(?:[\uDC04\uDD70\uDD71\uDD7E\uDD7F\uDE02\uDE37\uDF21\uDF24-\uDF2C\uDF36\uDF7D\uDF96\uDF97\uDF99-\uDF9B\uDF9E\uDF9F\uDFCD\uDFCE\uDFD4-\uDFDF\uDFF5\uDFF7]\uFE0F?|[\uDF85\uDFC2\uDFC7](?:\uD83C[\uDFFB-\uDFFF])?|[\uDFC4\uDFCA](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDFCB\uDFCC](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDCCF\uDD8E\uDD91-\uDD9A\uDE01\uDE1A\uDE2F\uDE32-\uDE36\uDE38-\uDE3A\uDE50\uDE51\uDF00-\uDF20\uDF2D-\uDF35\uDF37-\uDF43\uDF45-\uDF4A\uDF4C-\uDF7C\uDF7E-\uDF84\uDF86-\uDF93\uDFA0-\uDFC1\uDFC5\uDFC6\uDFC8\uDFC9\uDFCF-\uDFD3\uDFE0-\uDFF0\uDFF8-\uDFFF]|\uDDE6\uD83C[\uDDE8-\uDDEC\uDDEE\uDDF1\uDDF2\uDDF4\uDDF6-\uDDFA\uDDFC\uDDFD\uDDFF]|\uDDE7\uD83C[\uDDE6\uDDE7\uDDE9-\uDDEF\uDDF1-\uDDF4\uDDF6-\uDDF9\uDDFB\uDDFC\uDDFE\uDDFF]|\uDDE8\uD83C[\uDDE6\uDDE8\uDDE9\uDDEB-\uDDEE\uDDF0-\uDDF7\uDDFA-\uDDFF]|\uDDE9\uD83C[\uDDEA\uDDEC\uDDEF\uDDF0\uDDF2\uDDF4\uDDFF]|\uDDEA\uD83C[\uDDE6\uDDE8\uDDEA\uDDEC\uDDED\uDDF7-\uDDFA]|\uDDEB\uD83C[\uDDEE-\uDDF0\uDDF2\uDDF4\uDDF7]|\uDDEC\uD83C[\uDDE6\uDDE7\uDDE9-\uDDEE\uDDF1-\uDDF3\uDDF5-\uDDFA\uDDFC\uDDFE]|\uDDED\uD83C[\uDDF0\uDDF2\uDDF3\uDDF7\uDDF9\uDDFA]|\uDDEE\uD83C[\uDDE8-\uDDEA\uDDF1-\uDDF4\uDDF6-\uDDF9]|\uDDEF\uD83C[\uDDEA\uDDF2\uDDF4\uDDF5]|\uDDF0\uD83C[\uDDEA\uDDEC-\uDDEE\uDDF2\uDDF3\uDDF5\uDDF7\uDDFC\uDDFE\uDDFF]|\uDDF1\uD83C[\uDDE6-\uDDE8\uDDEE\uDDF0\uDDF7-\uDDFB\uDDFE]|\uDDF2\uD83C[\uDDE6\uDDE8-\uDDED\uDDF0-\uDDFF]|\uDDF3\uD83C[\uDDE6\uDDE8\uDDEA-\uDDEC\uDDEE\uDDF1\uDDF4\uDDF5\uDDF7\uDDFA\uDDFF]|\uDDF4\uD83C\uDDF2|\uDDF5\uD83C[\uDDE6\uDDEA-\uDDED\uDDF0-\uDDF3\uDDF7-\uDDF9\uDDFC\uDDFE]|\uDDF6\uD83C\uDDE6|\uDDF7\uD83C[\uDDEA\uDDF4\uDDF8\uDDFA\uDDFC]|\uDDF8\uD83C[\uDDE6-\uDDEA\uDDEC-\uDDF4\uDDF7-\uDDF9\uDDFB\uDDFD-\uDDFF]|\uDDF9\uD83C[\uDDE6\uDDE8\uDDE9\uDDEB-\uDDED\uDDEF-\uDDF4\uDDF7\uDDF9\uDDFB\uDDFC\uDDFF]|\uDDFA\uD83C[\uDDE6\uDDEC\uDDF2\uDDF3\uDDF8\uDDFE\uDDFF]|\uDDFB\uD83C[\uDDE6\uDDE8\uDDEA\uDDEC\uDDEE\uDDF3\uDDFA]|\uDDFC\uD83C[\uDDEB\uDDF8]|\uDDFD\uD83C\uDDF0|\uDDFE\uD83C[\uDDEA\uDDF9]|\uDDFF\uD83C[\uDDE6\uDDF2\uDDFC]|\uDF44(?:\u200D\uD83D\uDFEB)?|\uDF4B(?:\u200D\uD83D\uDFE9)?|\uDFC3(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?|\uDFF3\uFE0F?(?:\u200D(?:\u26A7\uFE0F?|\uD83C\uDF08))?|\uDFF4(?:\u200D\u2620\uFE0F?|\uDB40\uDC67\uDB40\uDC62\uDB40(?:\uDC65\uDB40\uDC6E\uDB40\uDC67|\uDC73\uDB40\uDC63\uDB40\uDC74|\uDC77\uDB40\uDC6C\uDB40\uDC73)\uDB40\uDC7F)?)|\uD83D(?:[\uDC3F\uDCFD\uDD49\uDD4A\uDD6F\uDD70\uDD73\uDD76-\uDD79\uDD87\uDD8A-\uDD8D\uDDA5\uDDA8\uDDB1\uDDB2\uDDBC\uDDC2-\uDDC4\uDDD1-\uDDD3\uDDDC-\uDDDE\uDDE1\uDDE3\uDDE8\uDDEF\uDDF3\uDDFA\uDECB\uDECD-\uDECF\uDEE0-\uDEE5\uDEE9\uDEF0\uDEF3]\uFE0F?|[\uDC42\uDC43\uDC46-\uDC50\uDC66\uDC67\uDC6B-\uDC6D\uDC72\uDC74-\uDC76\uDC78\uDC7C\uDC83\uDC85\uDC8F\uDC91\uDCAA\uDD7A\uDD95\uDD96\uDE4C\uDE4F\uDEC0\uDECC](?:\uD83C[\uDFFB-\uDFFF])?|[\uDC6E-\uDC71\uDC73\uDC77\uDC81\uDC82\uDC86\uDC87\uDE45-\uDE47\uDE4B\uDE4D\uDE4E\uDEA3\uDEB4\uDEB5](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDD74\uDD90](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?|[\uDC00-\uDC07\uDC09-\uDC14\uDC16-\uDC25\uDC27-\uDC3A\uDC3C-\uDC3E\uDC40\uDC44\uDC45\uDC51-\uDC65\uDC6A\uDC79-\uDC7B\uDC7D-\uDC80\uDC84\uDC88-\uDC8E\uDC90\uDC92-\uDCA9\uDCAB-\uDCFC\uDCFF-\uDD3D\uDD4B-\uDD4E\uDD50-\uDD67\uDDA4\uDDFB-\uDE2D\uDE2F-\uDE34\uDE37-\uDE41\uDE43\uDE44\uDE48-\uDE4A\uDE80-\uDEA2\uDEA4-\uDEB3\uDEB7-\uDEBF\uDEC1-\uDEC5\uDED0-\uDED2\uDED5-\uDED8\uDEDC-\uDEDF\uDEEB\uDEEC\uDEF4-\uDEFC\uDFE0-\uDFEB\uDFF0]|\uDC08(?:\u200D\u2B1B)?|\uDC15(?:\u200D\uD83E\uDDBA)?|\uDC26(?:\u200D(?:\u2B1B|\uD83D\uDD25))?|\uDC3B(?:\u200D\u2744\uFE0F?)?|\uDC41\uFE0F?(?:\u200D\uD83D\uDDE8\uFE0F?)?|\uDC68(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDC68\uDC69]\u200D\uD83D(?:\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?)|[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?)|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFC-\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFD-\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFD\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFE]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?))?|\uDC69(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?[\uDC68\uDC69]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?|\uDC69\u200D\uD83D(?:\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?))|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFC-\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFC-\uDFFF])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB\uDFFD-\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFD-\uDFFF])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB-\uDFFD\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFD\uDFFF])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB-\uDFFE]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFE])))?))?|\uDD75(?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|\uDE2E(?:\u200D\uD83D\uDCA8)?|\uDE35(?:\u200D\uD83D\uDCAB)?|\uDE36(?:\u200D\uD83C\uDF2B\uFE0F?)?|\uDE42(?:\u200D[\u2194\u2195]\uFE0F?)?|\uDEB6(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?)|\uD83E(?:[\uDD0C\uDD0F\uDD18-\uDD1F\uDD30-\uDD34\uDD36\uDD77\uDDB5\uDDB6\uDDBB\uDDD2\uDDD3\uDDD5\uDEC3-\uDEC5\uDEF0\uDEF2-\uDEF8](?:\uD83C[\uDFFB-\uDFFF])?|[\uDD26\uDD35\uDD37-\uDD39\uDD3C-\uDD3E\uDDB8\uDDB9\uDDCD\uDDCF\uDDD4\uDDD6-\uDDDD](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDDDE\uDDDF](?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDD0D\uDD0E\uDD10-\uDD17\uDD20-\uDD25\uDD27-\uDD2F\uDD3A\uDD3F-\uDD45\uDD47-\uDD76\uDD78-\uDDB4\uDDB7\uDDBA\uDDBC-\uDDCC\uDDD0\uDDE0-\uDDFF\uDE70-\uDE7C\uDE80-\uDE8A\uDE8E-\uDEC2\uDEC6\uDEC8\uDECD-\uDEDC\uDEDF-\uDEEA\uDEEF]|\uDDCE(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?|\uDDD1(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1|\uDDD1\u200D\uD83E\uDDD2(?:\u200D\uD83E\uDDD2)?|\uDDD2(?:\u200D\uD83E\uDDD2)?))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE])))?))?|\uDEF1(?:\uD83C(?:\uDFFB(?:\u200D\uD83E\uDEF2\uD83C[\uDFFC-\uDFFF])?|\uDFFC(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB\uDFFD-\uDFFF])?|\uDFFD(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])?|\uDFFE(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB-\uDFFD\uDFFF])?|\uDFFF(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB-\uDFFE])?))?)/g;
-		return text.replaceAll (reg, m => {
+		var not_emojis = [
+    "👁‍🗨",
+    "🕵‍♂",
+    "🕵‍♀",
+    "🏳‍⚧",
+    "🏌‍♂",
+    "🏌‍♀",
+    "🏋‍♂",
+    "🏋‍♀",
+    "⛹‍♂",
+    "⛹‍♀",
+    "9⃣",
+    "8⃣",
+    "7⃣",
+    "6⃣",
+    "5⃣",
+    "4⃣",
+    "3⃣",
+    "2⃣",
+    "1⃣",
+    "0⃣",
+    "*⃣",
+    "#⃣",
+    "🛳",
+    "🛰",
+    "🛩",
+    "🛥",
+    "🛤",
+    "🛣",
+    "🛢",
+    "🛡",
+    "🛠",
+    "🛏",
+    "🛎",
+    "🛍",
+    "🛋",
+    "🗺",
+    "🗳",
+    "🗯",
+    "🗨",
+    "🗣",
+    "🗡",
+    "🗞",
+    "🗝",
+    "🗜",
+    "🗓",
+    "🗒",
+    "🗑",
+    "🗄",
+    "🗃",
+    "🗂",
+    "🖼",
+    "🖲",
+    "🖱",
+    "🖨",
+    "🖥",
+    "🖐",
+    "🖍",
+    "🖌",
+    "🖋",
+    "🖊",
+    "🖇",
+    "🕹",
+    "🕸",
+    "🕷",
+    "🕶",
+    "🕵",
+    "🕴",
+    "🕳",
+    "🕰",
+    "🕯",
+    "🕊",
+    "🕉",
+    "📽",
+    "👁",
+    "🐿",
+    "🏷",
+    "🏵",
+    "🏳",
+    "🏟",
+    "🏞",
+    "🏝",
+    "🏜",
+    "🏛",
+    "🏚",
+    "🏙",
+    "🏘",
+    "🏗",
+    "🏖",
+    "🏕",
+    "🏔",
+    "🏎",
+    "🏍",
+    "🏌",
+    "🏋",
+    "🎟",
+    "🎞",
+    "🎛",
+    "🎚",
+    "🎙",
+    "🎗",
+    "🎖",
+    "🍽",
+    "🌶",
+    "🌬",
+    "🌫",
+    "🌪",
+    "🌩",
+    "🌨",
+    "🌧",
+    "🌦",
+    "🌥",
+    "🌤",
+    "🌡",
+    "🈷",
+    "🈂",
+    "🅿",
+    "🅾",
+    "🅱",
+    "🅰",
+    "㊙",
+    "㊗",
+    "〽",
+    "〰",
+    "⬇",
+    "⬆",
+    "⬅",
+    "⤵",
+    "⤴",
+    "➡",
+    "❤",
+    "❣",
+    "❇",
+    "❄",
+    "✴",
+    "✳",
+    "✡",
+    "✝",
+    "✖",
+    "✔",
+    "✒",
+    "✏",
+    "✍",
+    "✌",
+    "✉",
+    "✈",
+    "✂",
+    "⛹",
+    "⛸",
+    "⛷",
+    "⛴",
+    "⛱",
+    "⛰",
+    "⛩",
+    "⛓",
+    "⛑",
+    "⛏",
+    "⛈",
+    "⚱",
+    "⚰",
+    "⚧",
+    "⚠",
+    "⚜",
+    "⚛",
+    "⚙",
+    "⚗",
+    "⚖",
+    "⚕",
+    "⚔",
+    "⚒",
+    "♾",
+    "♻",
+    "♨",
+    "♦",
+    "♥",
+    "♣",
+    "♠",
+    "♟",
+    "♂",
+    "♀",
+    "☺",
+    "☹",
+    "☸",
+    "☯",
+    "☮",
+    "☪",
+    "☦",
+    "☣",
+    "☢",
+    "☠",
+    "☝",
+    "☘",
+    "☑",
+    "☎",
+    "☄",
+    "☃",
+    "☂",
+    "☁",
+    "☀",
+    "◼",
+    "◻",
+    "◀",
+    "▶",
+    "▫",
+    "▪",
+    "Ⓜ",
+    "⏺",
+    "⏹",
+    "⏸",
+    "⏲",
+    "⏱",
+    "⏯",
+    "⏮",
+    "⏭",
+    "⏏",
+    "⌨",
+    "↪",
+    "↩",
+    "↙",
+    "↘",
+    "↗",
+    "↖",
+    "↕",
+    "↔",
+    "ℹ",
+    "™",
+    "⁉",
+    "‼",
+    "®",
+    "©"
+];
+		var t = text;
+		not_emojis.forEach (c => {
+			for (var i = 0; i < Utils.emojis.length; i++)
+				if (Utils.emojis[i].text == c)
+					t = t.replaceAll (c, "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.emojis[i].code + ".png?hfr-cc-image=true&raw=true[/img]");
+		});
+		return t
+		.replaceAll (/\p{RGI_Emoji}/gv, m => {
 			var arr = [];
-			[...m].forEach (c => { arr.push (c.codePointAt(0).toString(16)); });
-			return "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (arr.join ("-")) + ".png?raw=true[/img]"
+			[...m].forEach (c => { 
+				var s = c.codePointAt(0).toString(16);
+				while (s.length < 4)
+					s = "0" + s;
+				arr.push (s);
+			});
+			return "[img]https://github.com/BZHDeveloper1986/hfr/blob/main/" + emoji + "/" + Utils.feofConvert (arr.join ("-")) + ".png?hfr-cc-image=true&raw=true[/img]"
 		});
 	}
 
 	static dropText (text) {
 		return new Promise ((resolve, reject) => {
 			(async () => {
-				Social.load (text).then (str => resolve (str)).catch (e => {
+				if (Social.match (text)) {
+					Social.load (text).then (msg => msg.build()).then (txt => {
+						resolve (txt);
+					}).catch (e => {
+						console.log (e);
+						reject (text);
+					});
+				}
+				else {
 					try {
 						var url = new URL (text);
 						Utils.request({
@@ -1171,7 +2572,7 @@ class Utils {
 							headers : { "Cookie" : "" },
 							anonymous : true,
 							onload : function (response) {
-								var headers = Headers.parse (response.responseHeaders);
+								var headers = Hfr.Headers.parse (response.responseHeaders);
 								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
 									Embed.load (text).then (embed => {
 										resolve (embed.toString());
@@ -1184,13 +2585,9 @@ class Utils {
 									reject (text);
 							}
 						});
-							
 					}
-					catch (e) {
-						console.log (e);
-						reject (text);					
-					}
-				});
+					catch (e) { console.log (e); reject (text); }
+				}
 			})();
 		});
 	}
@@ -1233,8 +2630,13 @@ class Utils {
 			(async () => {
 				var blob = await item.getType ("text/plain");
 				var text = await blob.text();
-
-				Social.load (text).then (str => resolve (str)).catch (e => {
+				if (Social.match (text)) {
+					Social.load (text).then (msg => msg.build()).then (txt => resolve (txt)).catch (e => {
+						console.log (e);
+						reject (text);
+					});
+				}
+				else {
 					try {
 						var url = new URL (text);
 						Utils.request({
@@ -1243,10 +2645,8 @@ class Utils {
 							onabort : function() { reject (text); },
 							ontimeout : function() { reject (text); },
 							onerror : function() { reject (text); },
-							headers : { "Cookie" : "" },
-							anonymous : true,
 							onload : function (response) {
-								var headers = Headers.parse (response.responseHeaders);
+								var headers = Hfr.Headers.parse (response.responseHeaders);
 								if (headers.getHeader ("content-type").indexOf ("text/html") >= 0) {
 									Embed.load (text).then (embed => {
 										resolve (embed.toString());
@@ -1265,8 +2665,43 @@ class Utils {
 						console.log (e);
 						reject (text);					
 					}
-				});
+				}
 			})();
+		});
+	}
+
+	static uploadVideo (file) {
+		return new Promise ((resolve, reject) => {
+			var video = document.createElement ("video");
+			video.onerror = () => {
+				reject ("ce n'est pas une vidéo");
+			};
+			video.onloadedmetadata = () => {
+				if (video.duration > 180) {
+					reject ("vidéo trop longue");
+					return;
+				}
+				var data = new FormData();
+				data.append ("image", file);
+				Hfr.fetch ("https://api.imgur.com/3/image", {
+					method : "POST",
+					body : data,
+					headers : {
+						"Authorization" : "Client-ID d1619618d2ac442"
+					}
+				}).then (rep => rep.json())
+				.then (object => {
+					if (object.success) {
+						var url = new URL (object.data.mp4);
+						url.searchParams.append ("hfr-cc-imgvid", "true");
+						resolve (url.toString());
+					}
+					else
+						reject ("erreur dans l'envoi de la vidéo");
+				})
+				.catch (e => reject (e));
+			};
+			video.src = URL.createObjectURL (file);
 		});
 	}
 	
@@ -1275,19 +2710,29 @@ class Utils {
 			reject("fichier trop gros");
 			return;
 		}
-		var form = new FormData();
-		form.append ("file", file);
-		Utils.request ({
+
+		var data = new FormData();
+		data.append ("file", file);
+		Hfr.fetch ("https://upload.gofile.io/uploadfile", {
 			method : "POST",
-			url : "https://fastupload.io/upload",
-			data : form,
-			onabort : function() { reject(""); }, 
-			ontimeout : function() { reject(""); },
-			onerror : function() { reject(""); },
-			onload : function (rep) {
-				console.log (rep.responseText);
-				resolve ("ok");
+			body : data
+		}).then (rep => rep.json())
+		.then (json => {
+			var name = encodeURIComponent (json.data.name);
+			var res = `https://${json.data.servers[0]}.gofile.io/download/web/${json.data.id}/${name}`;
+			var u = new URL (res);
+			u.searchParams.append ("hfr-cc-gof", "true");
+			u.searchParams.append ("hfr-cc-type", file.type == "video/mkv" ? "video/x-matroska" : file.type);
+			if (file.type.indexOf ("video/") == 0) {
+				var poster = `https://${json.data.servers[0]}.gofile.io/download/web/${json.data.id}/thumb_${json.data.md5}`;
+				resolve (`[url=${res}][img]${poster}[/img][/url]`);
 			}
+			else
+				resolve (res);
+		})
+		.catch (e => {
+			console.log (e);
+			reject ("fichier non accepté");
 		});
 	}
 	
@@ -1440,7 +2885,7 @@ class Utils {
 								event.target.disabled = false;
 								event.target.focus();
 							}).catch (e => {
-								Utils.insertText (event.target, Utils.formatText (e));
+								Utils.insertText (event.target, Social.normalize (e));
 								loading.destroy();
 								event.target.disabled = false;
 								event.target.focus();
@@ -1448,11 +2893,27 @@ class Utils {
 						}
 						else
 							for (var type of item.types) {
-								if (type.indexOf ("audio/") == 0) {
+								if (type.indexOf ("video/") == 0) {
 									event.target.disabled = true;
 									loading.attach (event.target);
-									Utils.uploadGofile (item, type).then (url => {
-										Utils.insertText (event.target, "[url]" + url + "[/url]");
+									Utils.uploadVideo (item).then (bbcode => {
+										Utils.insertText (event.target, bbcode);
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+								else if (type.indexOf ("audio/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.uploadGofile (item, type).then (bbcode => {
+										Utils.insertText (event.target, bbcode);
 										loading.destroy();
 										event.target.disabled = false;
 										event.target.focus();
@@ -1517,41 +2978,65 @@ class Utils {
 	}
 
 	static displayImage (upload) {
-		console.log (upload);
 		return new Promise ((res, rej) => {
 			var dialog = new Dialog();
 			dialog.closed (d => { d.destroy(); rej ("annulé"); });
 			dialog.title = "prévisualisation de l'image";
 			var src = upload.url;
-			var button = new TextButton ("400 px");
+			var button = new TextButton ("ajouter");
+			var spin = new Input ("number");
 			var img = new Picture (src);
-			var scale = new Scale (100, 800);
+			var pbox = new Box();
 			var box = new Box (true);
 			var hbox = new Box();
-			hbox.add (scale);
+			hbox.add  (new Label ("hauteur de l'image : "));
+			hbox.add (spin);
+			hbox.add (new Label (" pixels "));
 			hbox.add (button);
+			var bbox = new Box();
+			bbox.add (new Label ("tailles prédéfinies : "));
+			Object.keys(upload.sizes).forEach (k => {
+				var sb = new TextButton (k);
+				sb.set ("bbcode", `[url=${upload.url}][img]${upload.sizes[k]}[/img][/url]`);
+				sb.clicked (self => { dialog.destroy(); res (sb.get ("bbcode")); });
+				sb.out (() => {
+					pbox.clear();
+					pbox.add (img);
+				});
+				sb.over (() => {
+					pbox.clear();
+					pbox.add (new Picture (upload.sizes[k]));
+				});
+				bbox.add (sb);
+			});
 			box.add (hbox);
-			box.add (img);
+			box.add (bbox);
+			pbox.add (img);
+			box.add (pbox);
 			img.loaded ((w,h) => {
-				if (w > 800) {
-					img.height = Math.floor (800 * h / w);
-					img.width = 800;
+				if (w > 400) {
+					img.height = Math.floor (400 * h / w);
+					img.width = 400;
 				}
-				if (h > 800) {
-					img.width = Math.floor (800 * w / h);
-					img.height = 800;
+				if (h > 400) {
+					img.width = Math.floor (400 * w / h);
+					img.height = 400;
 				}
 				button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 			});
 			dialog.content = box;
-			scale.changed (val => {
+			spin.value_changed (val => {
 				var w = img.width, h = img.height;
+				var nw = val * w / h;
+				if (val >= 1000 || nw >= 1000)
+					return;
 				img.height = val;
 				img.width = Math.floor (val*w/h);
-				button.text = `${val} px`;
 				button.set ("bbcode", `[url=${upload.url}][img=${img.width},${img.height}]${upload.url}[/img][/url]`);
 			});
-			scale.set ("value", 400);
+			spin.set ("value", 400);
+			spin.set ("min", 100);
+			spin.set ("max", 800);
 			
 			button.clicked (self => { dialog.destroy(); res (button.get ("bbcode")); });
 			dialog.display();
@@ -1581,11 +3066,24 @@ class Utils {
 				if (item.type == "application/x-moz-nativeimage") {
 					alert ("Vous êtes sur Firefox et la fonctionnalité de glisser des images entre les onglets n'est pas activée\nsuivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_265.htm#t71266097");
 				}
-				if (item.type.indexOf ("audio/") == 0) {
+				if (item.type.indexOf ("video/") == 0) {
 					event.target.disabled = true;
 					loading.attach (event.target);
-					Utils.dropGofile (item.getAsFile()).then (url => {
-						Utils.insertText (event.target, "[url]" + url + "[/url]");
+					Utils.uploadVideo (item.getAsFile()).then (bbcode => {
+						Utils.insertText (event.target, bbcode);
+						loading.destroy();
+						event.target.disabled = false;
+					}).catch (e => {
+						loading.destroy();
+						event.target.disabled = false;
+						console.log (e);
+					});
+				}
+				else if (item.type.indexOf ("audio/") == 0) {
+					event.target.disabled = true;
+					loading.attach (event.target);
+					Utils.dropGofile (item.getAsFile()).then (bbcode => {
+						Utils.insertText (event.target, bbcode);
 						loading.destroy();
 						event.target.disabled = false;
 					}).catch (e => {
@@ -1636,7 +3134,7 @@ class Utils {
 							event.target.disabled = false;
 						}).catch (e => {
 							console.log (e);
-							Utils.insertText (event.target, e);
+							Utils.insertText (event.target, Social.normalize (e));
 							loading.destroy();
 							event.target.disabled = false;
 						});
@@ -1644,11 +3142,145 @@ class Utils {
 				}
 			}
 	}
+
+static paste (event) {
+ console.log ("prout");
+    const userAgent = window.navigator.userAgent;
+	const platform = window.navigator?.userAgentData?.platform || window.navigator.platform;
+    console.log (userAgent);
+    console.log (platform);
+    if (!navigator?.clipboard?.read)
+				alert ("navigator.clipboard.read : fonction non présente ou non activée.\nVous êtes sur Firefox : suivre ce lien https://forum.hardware.fr/hfr/Discussions/Viepratique/scripts-infos-news-sujet_116015_240.htm#t67904757")
+			else
+				navigator.clipboard.read().then(array => {
+					for (var item of array) {
+						console.log (item.types);
+						if (Utils.isGDoc (item)) {
+							event.target.disabled = true;
+							loading.attach (event.target);
+							Utils.pasteHtml (item).then (bbcode => {
+								Utils.insertText (event.target, bbcode);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							}).catch (e => {
+								Utils.insertText (event.target, e);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							});
+						}
+						else if (item.types.indexOf ("text/plain") >= 0) {
+							event.target.disabled = true;
+							loading.attach (event.target);
+							Utils.pasteText (item).then (text => {
+								Utils.insertText (event.target, Utils.formatText (text));
+                                Utils.insertText (platform + " :: " + userAgent);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							}).catch (e => {
+								Utils.insertText (event.target, Social.normalize (e));
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							});
+						}
+						else
+							for (var type of item.types) {
+								if (type.indexOf ("video/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.uploadVideo (item).then (bbcode => {
+										Utils.insertText (event.target, bbcode);
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+								else if (type.indexOf ("audio/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.uploadGofile (item, type).then (bbcode => {
+										Utils.insertText (event.target, bbcode);
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+								else if (type.indexOf ("image/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.pasteImage (item, type).then (upload => {
+										if (event.altKey) {
+											Utils.insertText (event.target, "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");
+											loading.destroy();
+											event.target.disabled = false;
+											event.target.focus();
+										}
+										else
+											Utils.displayImage (upload).then (bbcode => {
+												Utils.insertText (event.target, bbcode);
+												loading.destroy();
+												event.target.disabled = false;
+												event.target.focus();
+											}).catch (e => {
+												console.log (e);
+												loading.destroy();
+												event.target.disabled = false;
+												event.target.focus();
+											});
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+							}
+					}
+				}).catch(e => {
+					console.log (e);
+				});
+			event.preventDefault();
+}
+}
+
+if (document.location.href.indexOf ("https://www.instagram.com") == 0) {
+	var cookies = Hfr.Cookies.parse();
+	Hfr.Data.get().then (msg => {
+		if (!msg.data.hasOwnProperty ("insta_token") || msg.data.insta_token != cookies.getCookie ("csrftoken")) {
+			msg.data.insta_token = cookies.getCookie ("csrftoken");
+			msg.update();
+		}
+	})
+	.catch (e => {
+		console.log(e);
+		if (cookies.hasCookie ("csrftoken"))
+			Hfr.Data.create ({
+				insta_token : cookies.getCookie ("csrftoken")
+			}).then (text => console.log (text))
+			.catch (e => console.log (e));
+	});
+	return;
 }
 
 Utils.registerCommand ("Copie/Colle -> choix du service", () => {
-	var service = prompt ("Entrez ici le service d'image désiré (imgur, ou rehost)", Utils.getValue ("hfr-copie-colle-service", ""));
-	if (service == "imgur" || service == "rehost")
+	var service = prompt ("Entrez ici le service d'image désiré (imgbb, ou rehost)", Utils.getValue ("hfr-copie-colle-service", ""));
+	if (service == "imgbb" || service == "rehost")
 		Utils.setValue ("hfr-copie-colle-service", service);
 });
 
@@ -1665,6 +3297,7 @@ Utils.registerCommand ("Copie/Colle -> détail des liens", () => {
 Utils.init (table => {
 	Utils.emojis = table;
 	Utils.addCss ("https://vjs.zencdn.net/8.0.4/video-js.css");
+	Utils.addCss ("https://7ds7.github.io/videojs-vjsdownload/dist/videojs-vjsdownload.css");
 	Utils.addJs ("https://vjs.zencdn.net/8.0.4/video.js");
 	Utils.addJs ("https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js", true);
 	
@@ -1677,9 +3310,19 @@ Utils.init (table => {
 		textarea.addEventListener('drop', Utils.drop);
 		textarea.addEventListener('dragover', Utils.allowDrop);
 		textarea.addEventListener('focus', Utils.addButtonToTextarea);
+        textarea.addEventListener('paste', Utils.paste);
 	}
 	
 	var observer = new MutationObserver ((mutations, observer) => {
+		document.querySelectorAll ("img").forEach (img => {
+			try {
+				var u = new URL (img.getAttribute ("src"));
+				if (u.searchParams.get("hfr-cc-image") == "true")
+					img.style.margin = "";
+			} catch {
+				
+			}
+		});
 		for (var textarea of document.querySelectorAll("textarea")) {
 			textarea.removeEventListener('keydown', Utils.stroke, false); 
 			textarea.addEventListener('keydown', Utils.stroke, false);
@@ -1689,6 +3332,8 @@ Utils.init (table => {
 			textarea.addEventListener('dragover', Utils.allowDrop, false); 
 			textarea.removeEventListener('focus', Utils.addButtonToTextarea, false);
 			textarea.addEventListener('focus', Utils.addButtonToTextarea, false);
+            textarea.removeEventListener('paste', Utils.paste, false);
+            textarea.addEventListener('paste', Utils.paste, false);
 		}
 		
 		document.querySelectorAll (".cLink").forEach (function (link) {
@@ -1698,15 +3343,13 @@ Utils.init (table => {
 			if (href[0] == '/')
 				href = "https://forum.hardware.fr" + href;
 			var u = new URL (href);
-			if (u.hostname == "store10.gofile.io" && u.pathname.indexOf ("/download") == 0 && u.searchParams.get("isAudio") == "true") {
-				var audio = document.createElement ("audio");
-				audio.setAttribute ("src", href);
-				audio.setAttribute ("controls", "controls");
-				link.parentNode.replaceChild (audio, link);
-			}
 			if (link.firstElementChild == null || link.firstElementChild.nodeName.toLowerCase() != "img")
 				return;
-			if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
+			if (u.searchParams.get ("hfr-cc-imgvid") == "true") {
+				var video = link.createPlayer (false);
+				video.player.src ({ src : href, type : "video/mp4" });
+			}
+			else if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 					href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 					href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0 || u.searchParams.get("hfr-cc-insta") == "true") {
 				var video = link.createPlayer (u.searchParams.get("gif") == "true");
@@ -1723,6 +3366,15 @@ Utils.init (table => {
 	});
 	observer.observe(document, {attributes: false, childList: true, characterData: false, subtree: true});
 		
+	document.querySelectorAll ("img").forEach (img => {
+		try {
+			var u = new URL (img.getAttribute ("src"));
+			if (u.searchParams.get("hfr-cc-image") == "true")
+				img.style.margin = "";
+		} catch {
+			
+		}
+	});
 	document.querySelectorAll (".cLink").forEach (function (link) {
 		if (typeof (link.getAttribute ("href")) !== "string")
 			return;
@@ -1736,18 +3388,21 @@ Utils.init (table => {
 		catch {
 			return;
 		}
-		if (u.hostname == "store10.gofile.io" && u.pathname.indexOf ("/download") == 0 && u.searchParams.get("isAudio") == "true") {
-			var audio = document.createElement ("audio");
-			audio.setAttribute ("src", href);
-			audio.setAttribute ("controls", "controls");
-			link.parentNode.replaceChild (audio, link);
+		if (u.searchParams.get ("hfr-cc-imgvid") == "true") {
+			var video = link.createPlayer (false);
+			video.player.src ({ src : href, type : "video/mp4" });
+		}
+		if (u.searchParams.get("hfr-cc-image") == "true") {
+			var image = document.createElement ("img");
+			image.setAttribute ("src", href);
+			link.parentNode.replaceChild (image, link);
 		}
 		if (link.firstElementChild == null || link.firstElementChild.nodeName.toLowerCase() != "img")
 			return;
 		if (href.indexOf ("https://files.mastodon.social/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 				href.indexOf ("https://static-assets-1.truthsocial.com/tmtg:prime-ts-assets/media_attachments/files/") == 0 && u.pathname.endsWith (".mp4") ||
 				href.indexOf ("https://v.redd.it/") == 0 || href.indexOf ("https://packaged-media.redd.it/") == 0 || href.indexOf ("https://video.bsky.app/watch/") == 0 ||
-				u.searchParams.get("hfr-cc-insta") == "true") {
+				u.searchParams.get("hfr-cc-insta") == "true" || u.searchParams.get ("hfr-cc-tiktok") == "true") {
 
 			var video = link.createPlayer (u.searchParams.get("gif") == "true");
 			var t = u.searchParams.has ("hfr-cc-mime-type") ? u.searchParams.get ("hfr-cc-mime-type") : "video/mp4";
