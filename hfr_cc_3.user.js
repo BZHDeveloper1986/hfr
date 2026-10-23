@@ -1,7 +1,7 @@
 // ==UserScript==
 // @author        BZHDeveloper, roger21
 // @name          [HFR] Copié/Collé v2
-// @version       1.6.27
+// @version       1.6.28
 // @namespace     forum.hardware.fr
 // @description   Colle les données du presse-papiers et les traite si elles sont reconnues.
 // @icon          https://github.com/BZHDeveloper1986/hfr/blob/main/hfr-logo.png?raw=true
@@ -3150,8 +3150,110 @@ static paste (event) {
 	const platform = window.navigator?.userAgentData?.platform || window.navigator.platform;
     console.log (userAgent);
     console.log (platform);
-    
-	Utils.insertText (event.target, userAgent);
+    if (userAgent.indexOf ("Android") > 0) {
+		navigator.clipboard.read().then(array => {
+					for (var item of array) {
+						console.log (item.types);
+						if (Utils.isGDoc (item)) {
+							event.target.disabled = true;
+							loading.attach (event.target);
+							Utils.pasteHtml (item).then (bbcode => {
+								Utils.insertText (event.target, bbcode);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							}).catch (e => {
+								Utils.insertText (event.target, e);
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							});
+						}
+						else if (item.types.indexOf ("text/plain") >= 0) {
+							event.target.disabled = true;
+							loading.attach (event.target);
+							Utils.pasteText (item).then (text => {
+								Utils.insertText (event.target, Utils.formatText (text));
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							}).catch (e => {
+								Utils.insertText (event.target, Social.normalize (e));
+								loading.destroy();
+								event.target.disabled = false;
+								event.target.focus();
+							});
+						}
+						else
+							for (var type of item.types) {
+								if (type.indexOf ("video/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.uploadVideo (item).then (bbcode => {
+										Utils.insertText (event.target, bbcode);
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+								else if (type.indexOf ("audio/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.uploadGofile (item, type).then (bbcode => {
+										Utils.insertText (event.target, bbcode);
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+								else if (type.indexOf ("image/") == 0) {
+									event.target.disabled = true;
+									loading.attach (event.target);
+									Utils.pasteImage (item, type).then (upload => {
+										if (event.altKey) {
+											Utils.insertText (event.target, "[url=" + upload.url + "][img]" + upload.url + "[/img][/url]");	
+											loading.destroy();
+											event.target.disabled = false;
+											event.target.focus();
+										}
+										else
+											Utils.displayImage (upload).then (bbcode => {
+												Utils.insertText (event.target, bbcode);
+												loading.destroy();
+												event.target.disabled = false;
+												event.target.focus();
+											}).catch (e => {
+												console.log (e);
+												loading.destroy();
+												event.target.disabled = false;
+												event.target.focus();
+											});
+									}).catch (e => {
+										loading.destroy();
+										event.target.disabled = false;
+										event.target.focus();
+										console.log (e);
+									});
+									break;
+								}
+							}
+					}
+				}).catch(e => {
+					console.log (e);
+				});
+	}
 }
 }
 
